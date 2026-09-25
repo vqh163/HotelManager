@@ -1,0 +1,73 @@
+﻿@page "{id?}"
+@model HotelManager.Pages.QuanTriHeThong.SuaTaiKhoanModel
+@{
+    ViewData["Title"] = "Cập nhật Tài khoản (UC_13)";
+}
+
+<div class="container mt-4">
+    <h3 class="mb-4 text-warning"><i class="bi bi-pencil-square"></i> Cập nhật Phân quyền & Trạng thái</h3>
+
+    <!-- Vùng hiển thị thông báo lỗi -->
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger shadow-sm">
+            @Model.ThongBaoLoi
+        </div>
+    }
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white text-secondary py-3">
+            <h5 class="mb-0">Thông tin tài khoản: <span class="text-primary fw-bold">@Model.Input.TenDangNhap</span></h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                <!-- Mã tài khoản ẩn để Submit về POST -->
+                <input type="hidden" asp-for="Input.MaTaiKhoan" />
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted">Tên đăng nhập (Không được sửa)</label>
+                        <!-- Thuộc tính readonly để chặn sửa đổi Tên đăng nhập -->
+                        <input asp-for="Input.TenDangNhap" class="form-control bg-light" readonly />
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Vai trò / Quyền hạn <span class="text-danger">*</span></label>
+                        <!-- CẬP NHẬT: Dùng asp-items để liên kết với DanhSachVaiTro -->
+                        <select asp-for="Input.VaiTro" asp-items="Model.DanhSachVaiTro" class="form-select">
+                            <option value="">-- Chọn quyền hạn --</option>
+                        </select>
+                        <span asp-validation-for="Input.VaiTro" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Trạng thái hoạt động <span class="text-danger">*</span></label>
+                        <select asp-for="Input.TrangThai" class="form-select">
+                            <option value="Hoạt động">Hoạt động</option>
+                            <option value="Khóa">Khóa (Cấm đăng nhập)</option>
+                        </select>
+                        <span asp-validation-for="Input.TrangThai" class="text-danger small"></span>
+                        <small class="text-muted">Chọn "Khóa" nếu muốn thu hồi quyền truy cập của người dùng này.</small>
+                    </div>
+                </div>
+
+                <div class="border-top pt-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-warning px-4 fw-bold">
+                        <i class="bi bi-save"></i> Lưu Thay Đổi
+                    </button>
+                    <!-- Tag Helper điều hướng quay lại trang danh sách -->
+                    <a asp-page="./QuanLyTaiKhoan" class="btn btn-outline-secondary px-4">
+                        Hủy bỏ
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Kích hoạt validation phía Client -->
+    <partial name="_ValidationScriptsPartial" />
+}
