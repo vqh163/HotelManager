@@ -56,10 +56,19 @@
                                         <span class="badge bg-secondary">@tk.TrangThai</span>
                                     }
                                 </td>
-                                <td class="text-center">
-                                    <!-- Truyền ID vào route để sang trang Sửa / Xóa -->
-                                    <a asp-page="./SuaTaiKhoan" asp-route-id="@tk.MaTaiKhoan" class="btn btn-warning btn-sm">Sửa</a>
-                                    <a asp-page="./XoaTaiKhoan" asp-route-id="@tk.MaTaiKhoan" class="btn btn-danger btn-sm">Khóa</a>
+                                <td>
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <!-- Nút Sửa (Màu vàng Warning) -->
+                                        <a asp-page="./SuaTaiKhoan" asp-route-id="@tk.MaTaiKhoan" class="btn btn-warning btn-sm text-dark fw-bold">Sửa</a>
+
+                                        <!-- Nút Khóa (Màu hồng/đỏ nhạt như trong hình) -->
+                                        <a asp-page="./KhoaTaiKhoan" asp-route-id="@tk.MaTaiKhoan" class="btn btn-danger btn-sm">Khóa</a>
+
+                                        <!-- BỔ SUNG NÚT XÓA Ở ĐÂY (Màu xám/đen hoặc đỏ đậm để phân biệt với Khóa) -->
+                                        <a asp-page="./XoaTaiKhoan" asp-route-id="@tk.MaTaiKhoan" class="btn btn-dark btn-sm">
+                                            <i class="bi bi-trash"></i> Xóa
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         }

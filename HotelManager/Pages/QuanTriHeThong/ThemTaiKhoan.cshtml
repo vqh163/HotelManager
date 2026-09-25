@@ -37,13 +37,9 @@
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Vai trò <span class="text-danger">*</span></label>
-                        <select asp-for="Input.VaiTro" class="form-select">
+                        <!-- Dùng asp-items để tự động sinh các thẻ option từ DanhSachVaiTro -->
+                        <select asp-for="Input.VaiTro" asp-items="Model.DanhSachVaiTro" class="form-select">
                             <option value="">-- Chọn quyền hạn --</option>
-                            <option value="Quản trị viên">Quản trị viên</option>
-                            <option value="Quản lý">Quản lý</option>
-                            <option value="Lễ tân">Lễ tân</option>
-                            <option value="Nhân viên Buồng phòng">Nhân viên Buồng phòng</option>
-                            <option value="Kế toán">Kế toán</option>
                         </select>
                         <span asp-validation-for="Input.VaiTro" class="text-danger small"></span>
                     </div>
