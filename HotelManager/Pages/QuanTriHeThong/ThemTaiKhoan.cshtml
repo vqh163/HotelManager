@@ -1,0 +1,81 @@
+﻿@page
+@model HotelManager.Pages.QuanTriHeThong.ThemTaiKhoanModel
+@{
+    ViewData["Title"] = "Thêm Tài khoản Mới (UC_13)";
+}
+
+<div class="container mt-4">
+    <h3 class="mb-4 text-success"><i class="bi bi-person-plus"></i> Cấp Phát Tài Khoản Mới</h3>
+
+    <!-- Thông báo lỗi (nếu có) -->
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger shadow-sm">
+            @Model.ThongBaoLoi
+        </div>
+    }
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white text-secondary py-3">
+            <h5 class="mb-0">Nhập thông tin tài khoản</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tên đăng nhập <span class="text-danger">*</span></label>
+                        <input asp-for="Input.TenDangNhap" class="form-control" placeholder="Nhập tên đăng nhập..." />
+                        <span asp-validation-for="Input.TenDangNhap" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Mật khẩu <span class="text-danger">*</span></label>
+                        <input asp-for="Input.MatKhau" type="text" class="form-control" placeholder="Nhập mật khẩu..." />
+                        <span asp-validation-for="Input.MatKhau" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Vai trò <span class="text-danger">*</span></label>
+                        <select asp-for="Input.VaiTro" class="form-select">
+                            <option value="">-- Chọn quyền hạn --</option>
+                            <option value="Quản trị viên">Quản trị viên</option>
+                            <option value="Quản lý">Quản lý</option>
+                            <option value="Lễ tân">Lễ tân</option>
+                            <option value="Nhân viên Buồng phòng">Nhân viên Buồng phòng</option>
+                            <option value="Kế toán">Kế toán</option>
+                        </select>
+                        <span asp-validation-for="Input.VaiTro" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Trạng thái</label>
+                        <select asp-for="Input.TrangThai" class="form-select">
+                            <option value="Hoạt động">Hoạt động</option>
+                            <option value="Khóa">Khóa</option>
+                        </select>
+                        <span asp-validation-for="Input.TrangThai" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Mã Nhân Viên (Thuộc sở hữu)</label>
+                        <input asp-for="Input.MaNhanVien" class="form-control" placeholder="Ví dụ: NV001..." />
+                    </div>
+                </div>
+
+                <div class="border-top pt-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-success px-4 fw-bold">
+                        <i class="bi bi-save"></i> Tạo Tài Khoản
+                    </button>
+                    <!-- Nút quay lại sử dụng Tag Helper điều hướng -->
+                    <a asp-page="./QuanLyTaiKhoan" class="btn btn-outline-secondary px-4">
+                        Hủy & Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Script hỗ trợ validate trực tiếp phía Frontend -->
+    <partial name="_ValidationScriptsPartial" />
+}
