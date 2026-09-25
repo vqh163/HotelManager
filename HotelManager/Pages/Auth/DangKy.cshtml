@@ -1,0 +1,82 @@
+﻿@page
+@model HotelManager.Pages.Auth.DangKyModel
+@{
+    ViewData["Title"] = "Đăng ký Tài khoản (UC_02)";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 rounded-lg mt-2">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <h4 class="mb-0 fw-bold">TẠO TÀI KHOẢN MỚI</h4>
+                </div>
+                <div class="card-body p-4">
+
+                    <!-- Hiển thị thông báo trạng thái -->
+                    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+                    {
+                        <div class="alert alert-danger">@Model.ThongBaoLoi</div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ThongBaoThanhCong))
+                    {
+                        <div class="alert alert-success">
+                            @Model.ThongBaoThanhCong
+                            <a asp-page="./DangNhap" class="fw-bold">Đăng nhập ngay</a>
+                        </div>
+                    }
+
+                    <form method="post">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Họ và Tên</label>
+                            <input asp-for="Input.HoTen" class="form-control" placeholder="Nhập họ tên đầy đủ" />
+                            <span asp-validation-for="Input.HoTen" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Số điện thoại</label>
+                                <input asp-for="Input.SDT" class="form-control" placeholder="09xxxx..." />
+                                <span asp-validation-for="Input.SDT" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Email</label>
+                                <input asp-for="Input.Email" type="email" class="form-control" placeholder="email@domain.com" />
+                                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+                        <h6 class="text-muted mb-3">THÔNG TIN ĐĂNG NHẬP</h6>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tên đăng nhập</label>
+                            <input asp-for="Input.TenDangNhap" class="form-control" />
+                            <span asp-validation-for="Input.TenDangNhap" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Mật khẩu</label>
+                            <input asp-for="Input.MatKhau" type="password" class="form-control" />
+                            <span asp-validation-for="Input.MatKhau" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">Đăng ký ngay</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center py-3 bg-light">
+                    <div class="small">
+                        Đã có tài khoản? <a asp-page="./DangNhap" class="text-decoration-none fw-bold">Đăng nhập</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Kích hoạt validation trực tiếp trên trình duyệt (Client-side) -->
+    <partial name="_ValidationScriptsPartial" />
+}
