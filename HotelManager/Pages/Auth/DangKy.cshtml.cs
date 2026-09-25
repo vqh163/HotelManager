@@ -91,6 +91,7 @@ namespace HotelManager.Pages.Auth
                     MatKhau = Input.MatKhau, // (Lưu ý: Thực tế cần mã hóa hash mật khẩu tại đây theo chuẩn bảo mật)
                     VaiTro = "Khách hàng",
                     TrangThai = "Chờ xác thực"
+                    TrangThai = "Hoạt động"
                 };
                 _context.TAI_KHOAN.Add(taiKhoanMoi);
 
@@ -105,8 +106,8 @@ namespace HotelManager.Pages.Auth
                 // Bắt lỗi ngoại lệ tránh sập ứng dụng
                 ThongBaoLoi = "Lỗi hệ thống trong quá trình đăng ký: " + ex.Message;
             }
-
             return RedirectToPage("./XacThucOTP", new { TenDangNhap = Input.TenDangNhap });
+            return Page();
         }
     }
 }
