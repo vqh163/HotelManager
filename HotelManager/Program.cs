@@ -1,7 +1,5 @@
 using HotelManager.Data;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Cookies; // Thêm thư viện này ở đầu file
 
 
