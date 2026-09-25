@@ -29,5 +29,25 @@ namespace HotelManager.Data
         public DbSet<HOA_DON_NHA_HANG> HOA_DON_NHA_HANG { get; set; } = default!;
         public DbSet<HOA_DON> HOA_DON { get; set; } = default!;
         public DbSet<THANH_TOAN> THANH_TOAN { get; set; } = default!;
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Nạp sẵn danh sách chức vụ vào bảng CHUC_VU theo đúng tài liệu
+            modelBuilder.Entity<CHUC_VU>().HasData(
+                new CHUC_VU { MaChucVu = "CV01", TenChucVu = "Quản trị viên" },
+                new CHUC_VU { MaChucVu = "CV02", TenChucVu = "Quản lý" },
+                new CHUC_VU { MaChucVu = "CV03", TenChucVu = "Lễ tân" },
+                new CHUC_VU { MaChucVu = "CV04", TenChucVu = "Nhân viên Buồng phòng" },
+                new CHUC_VU { MaChucVu = "CV05", TenChucVu = "Nhân viên Kỹ thuật" },
+                new CHUC_VU { MaChucVu = "CV06", TenChucVu = "Thu ngân Nhà hàng" },
+                new CHUC_VU { MaChucVu = "CV07", TenChucVu = "Phục vụ Nhà hàng" },
+                new CHUC_VU { MaChucVu = "CV08", TenChucVu = "Đầu bếp" },
+                new CHUC_VU { MaChucVu = "CV09", TenChucVu = "Thủ kho" },
+                new CHUC_VU { MaChucVu = "CV10", TenChucVu = "Sales" },
+                new CHUC_VU { MaChucVu = "CV11", TenChucVu = "Kế toán" },
+                new CHUC_VU { MaChucVu = "CV12", TenChucVu = "Giám đốc" }
+            );
+        }
     }
 }
