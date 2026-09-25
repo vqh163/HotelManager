@@ -1,5 +1,8 @@
 using HotelManager.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies; // Thêm thư viện này ở đầu file
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+// Đăng ký dịch vụ Cookie Auth
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/DangNhap"; // Trỏ đến trang đăng nhập nếu người dùng chưa auth
+        options.AccessDeniedPath = "/Auth/TruyCapTuChoi"; // Trang báo lỗi nếu không đủ quyền
+    });
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -27,6 +37,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
