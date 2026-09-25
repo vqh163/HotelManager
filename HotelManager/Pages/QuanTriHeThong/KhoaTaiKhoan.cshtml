@@ -1,0 +1,67 @@
+﻿@page "{id?}"
+@model HotelManager.Pages.QuanTriHeThong.KhoaTaiKhoanModel
+@{
+    ViewData["Title"] = "Khóa Tài khoản (UC_13)";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+
+            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+            {
+                <div class="alert alert-danger shadow-sm mb-4">
+                    <i class="bi bi-exclamation-triangle-fill"></i> @Model.ThongBaoLoi
+                </div>
+            }
+
+            <div class="card shadow border-warning">
+                <div class="card-header bg-warning text-dark py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-lock-fill"></i> TẠM KHÓA TÀI KHOẢN TRUY CẬP</h5>
+                </div>
+
+                <div class="card-body p-4 bg-light">
+                    <p class="text-dark fs-5 mb-4">
+                        Bạn đang thao tác <strong>Khóa (Đình chỉ)</strong> tài khoản này. Người dùng sẽ không thể đăng nhập hệ thống, nhưng các dữ liệu liên quan vẫn được giữ nguyên.
+                    </p>
+
+                    <div class="bg-white p-3 border rounded mb-4 shadow-sm">
+                        <div class="row mb-2">
+                            <div class="col-sm-4 fw-bold text-secondary">Mã Tài khoản:</div>
+                            <div class="col-sm-8 fw-bold">@Model.TaiKhoanKhoa.MaTaiKhoan</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4 fw-bold text-secondary">Tên Đăng nhập:</div>
+                            <div class="col-sm-8 text-primary fw-bold">@Model.TaiKhoanKhoa.TenDangNhap</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4 fw-bold text-secondary">Vai trò:</div>
+                            <div class="col-sm-8">
+                                <span class="badge bg-info text-dark">@Model.TaiKhoanKhoa.VaiTro</span>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4 fw-bold text-secondary">Trạng thái hiện tại:</div>
+                            <div class="col-sm-8">
+                                <span class="badge bg-success">@Model.TaiKhoanKhoa.TrangThai</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        <div class="d-flex justify-content-end gap-3">
+                            <!-- Nút Hủy -->
+                            <a asp-page="./QuanLyTaiKhoan" class="btn btn-secondary px-4 fw-bold">
+                                Hủy & Quay lại
+                            </a>
+                            <!-- Nút Submit thực hiện Post để Khóa -->
+                            <button type="submit" class="btn btn-warning px-4 fw-bold shadow-sm">
+                                <i class="bi bi-lock-fill"></i> Xác nhận Khóa
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
