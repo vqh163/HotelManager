@@ -4,6 +4,7 @@ using HotelManager.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260925050040_ThemKhoaNgoaiTaiKhoan")]
+    partial class ThemKhoaNgoaiTaiKhoan
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -111,68 +114,6 @@ namespace HotelManager.Migrations
                     b.HasKey("MaChucVu");
 
                     b.ToTable("CHUC_VU");
-
-                    b.HasData(
-                        new
-                        {
-                            MaChucVu = "CV01",
-                            TenChucVu = "Quản trị viên"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV02",
-                            TenChucVu = "Quản lý"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV03",
-                            TenChucVu = "Lễ tân"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV04",
-                            TenChucVu = "Nhân viên Buồng phòng"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV05",
-                            TenChucVu = "Nhân viên Kỹ thuật"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV06",
-                            TenChucVu = "Thu ngân Nhà hàng"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV07",
-                            TenChucVu = "Phục vụ Nhà hàng"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV08",
-                            TenChucVu = "Đầu bếp"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV09",
-                            TenChucVu = "Thủ kho"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV10",
-                            TenChucVu = "Sales"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV11",
-                            TenChucVu = "Kế toán"
-                        },
-                        new
-                        {
-                            MaChucVu = "CV12",
-                            TenChucVu = "Giám đốc"
-                        });
                 });
 
             modelBuilder.Entity("HotelManager.Models.DAT_PHONG", b =>
@@ -604,10 +545,10 @@ namespace HotelManager.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<string>("TrangThai")
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("VaiTro")
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("MaTaiKhoan");
 

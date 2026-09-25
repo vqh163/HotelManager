@@ -26,10 +26,10 @@ namespace HotelManager.Models
         [Column(TypeName = "varchar(50)")] // (Theo mô tả 2.3.1 là varchar 50)
         public string MatKhau { get; set; } = default!;
 
-        [Column(TypeName = "varchar(50)")]
+        [Column(TypeName = "nvarchar(50)")]
         public string? VaiTro { get; set; }
 
-        [Column(TypeName = "varchar(50)")]
+        [Column(TypeName = "nvarchar(50)")]
         public string? TrangThai { get; set; }
     }
 }
