@@ -11,12 +11,19 @@ namespace HotelManager.Models
         [Column(TypeName = "varchar(20)")]
         public string MaTaiKhoan { get; set; } = default!;
 
+        // Bổ sung 2 khóa ngoại theo đúng ERD mục 2.3.2
+        [Column(TypeName = "varchar(20)")]
+        public string? KHACH_HANGMaKH { get; set; }
+
+        [Column(TypeName = "varchar(20)")]
+        public string? NHAN_VIENMaNV { get; set; }
+
         [Required(ErrorMessage = "Tên đăng nhập không được để trống")]
         [Column(TypeName = "varchar(50)")]
         public string TenDangNhap { get; set; } = default!;
 
         [Required(ErrorMessage = "Mật khẩu không được để trống")]
-        [Column(TypeName = "varchar(50)")]
+        [Column(TypeName = "varchar(50)")] // (Theo mô tả 2.3.1 là varchar 50)
         public string MatKhau { get; set; } = default!;
 
         [Column(TypeName = "varchar(50)")]
