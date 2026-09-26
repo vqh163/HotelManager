@@ -1,0 +1,102 @@
+﻿@page
+@model HotelManager.Pages.Auth.QuenMatKhauModel
+@{
+    ViewData["Title"] = "Quên Mật Khẩu";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg border-0 rounded-lg mt-5">
+                <div class="card-header bg-dark text-white text-center py-3">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-shield-lock"></i> KHÔI PHỤC MẬT KHẨU</h4>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Khu vực hiển thị thông báo Lỗi / Thành công -->
+                    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+                    {
+                        <div class="alert alert-danger shadow-sm py-2">
+                            <i class="bi bi-exclamation-triangle-fill"></i> @Model.ThongBaoLoi
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ThongBaoThanhCong))
+                    {
+                        <div class="alert alert-success shadow-sm py-2">
+                            <i class="bi bi-check-circle-fill"></i> @Model.ThongBaoThanhCong
+                        </div>
+                    }
+
+                    <form method="post">
+                        <!-- Lưu lại bước hiện tại -->
+                        <input type="hidden" asp-for="BuocHienTai" />
+
+                        <!-- ================= BƯỚC 1: NHẬP SĐT / EMAIL ================= -->
+                        @if (Model.BuocHienTai == 1)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Số điện thoại hoặc Email khôi phục</label>
+                                <input type="text" class="form-control" asp-for="Input.ThongTinKhoiPhuc" placeholder="Nhập SĐT hoặc Email..." required />
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4 mb-0">
+                                <!-- Gọi tới hàm OnPostGuiYeuCauAsync -->
+                                <button type="submit" asp-page-handler="GuiYeuCau" class="btn btn-dark">Gửi Yêu Cầu</button>
+                            </div>
+                        }
+
+                        <!-- ================= BƯỚC 2: XÁC NHẬN MÃ OTP ================= -->
+                        @if (Model.BuocHienTai == 2)
+                        {
+                            <!-- Giữ lại thông tin tài khoản ẩn -->
+                            <input type="hidden" asp-for="Input.ThongTinKhoiPhuc" />
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted">Tài khoản khôi phục</label>
+                                <input type="text" class="form-control bg-light" disabled value="@Model.Input.ThongTinKhoiPhuc" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Mã xác thực OTP</label>
+                                <input type="text" class="form-control" asp-for="Input.MaOTP" placeholder="Nhập mã 6 số gửi về máy..." required />
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4 mb-0">
+                                <!-- Gọi tới hàm OnPostXacNhanOTP -->
+                                <button type="submit" asp-page-handler="XacNhanOTP" class="btn btn-primary">Xác Nhận OTP</button>
+                            </div>
+                        }
+
+                        <!-- ================= BƯỚC 3: ĐỔI MẬT KHẨU MỚI ================= -->
+                        @if (Model.BuocHienTai == 3)
+                        {
+                            <!-- Giữ lại thông tin tài khoản để truy vấn DB -->
+                            <input type="hidden" asp-for="Input.ThongTinKhoiPhuc" />
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Mật khẩu mới</label>
+                                <input type="password" class="form-control" asp-for="Input.MatKhauMoi" placeholder="Nhập mật khẩu mới..." required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Xác nhận mật khẩu</label>
+                                <input type="password" class="form-control" asp-for="Input.XacNhanMatKhau" placeholder="Nhập lại mật khẩu mới..." required />
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4 mb-0">
+                                <!-- Gọi tới hàm OnPostDoiMatKhauAsync -->
+                                <button type="submit" asp-page-handler="DoiMatKhau" class="btn btn-success">Đổi Mật Khẩu</button>
+                            </div>
+                        }
+                    </form>
+                </div>
+
+                <div class="card-footer text-center py-3 bg-light">
+                    <div class="small">
+                        <a asp-page="/Auth/DangNhap" class="text-decoration-none fw-bold">Quay lại trang Đăng nhập</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
