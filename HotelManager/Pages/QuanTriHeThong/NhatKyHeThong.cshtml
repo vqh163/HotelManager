@@ -1,0 +1,48 @@
+﻿@page
+@model HotelManager.Pages.QuanTriHeThong.NhatKyHeThongModel
+@{
+    ViewData["Title"] = "Nhật ký hệ thống";
+}
+
+<div class="container mt-4">
+    <h2 class="text-primary fw-bold mb-4">Quản trị Hệ thống - Lưu vết thao tác (Audit Trail)</h2>
+    
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-center" style="width: 15%">Thời gian</th>
+                            <th style="width: 15%">Người thực hiện</th>
+                            <th style="width: 25%">Hành động</th>
+                            <th style="width: 45%">Chi tiết (Nhật ký lỗi/Thay đổi)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.DanhSachNhatKy != null && Model.DanhSachNhatKy.Any())
+                        {
+                            foreach (var log in Model.DanhSachNhatKy)
+                            {
+                                <tr>
+                                    <td class="text-center align-middle text-muted">@log.ThoiGian.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                    <td class="align-middle fw-bold text-primary">@log.TenDangNhap</td>
+                                    <td class="align-middle">
+                                        <span class="badge bg-info text-dark px-2 py-1">@log.HanhDong</span>
+                                    </td>
+                                    <td class="align-middle text-secondary">@log.ChiTiet</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-danger py-4">Chưa có dữ liệu nhật ký thao tác nào trong hệ thống.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
