@@ -90,8 +90,7 @@ namespace HotelManager.Pages.Auth
                     TenDangNhap = Input.TenDangNhap,
                     MatKhau = Input.MatKhau, // (Lưu ý: Thực tế cần mã hóa hash mật khẩu tại đây theo chuẩn bảo mật)
                     VaiTro = "Khách hàng",
-                    TrangThai = "Chờ xác thực"
-                    TrangThai = "Hoạt động"
+                    TrangThai = "Chờ xác thực",
                 };
                 _context.TAI_KHOAN.Add(taiKhoanMoi);
 
