@@ -87,6 +87,16 @@ namespace HotelManager.Pages.QuanTriHeThong
                 };
 
                 _context.TAI_KHOAN.Add(taiKhoanMoi);
+                // Khởi tạo đối tượng Nhật ký
+                var nhatKy = new NHAT_KY_HE_THONG
+                {
+                    MaNhatKy = "LOG" + DateTime.Now.ToString("yyyyMMddHHmmss"),
+                    TenDangNhap = User.Identity?.Name ?? "Admin", // Lấy tên người đang đăng nhập
+                    HanhDong = "Thêm tài khoản",
+                    ChiTiet = $"Đã tạo tài khoản {Input.TenDangNhap} với vai trò {Input.VaiTro}"
+                };
+                _context.NHAT_KY_HE_THONG.Add(nhatKy);
+                // Sau đó hệ thống sẽ gọi SaveChangesAsync() để lưu cả tài khoản và nhật ký cùng lúc
                 await _context.SaveChangesAsync();
 
                 return RedirectToPage("./QuanLyTaiKhoan");

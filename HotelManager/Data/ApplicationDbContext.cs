@@ -29,6 +29,7 @@ namespace HotelManager.Data
         public DbSet<HOA_DON_NHA_HANG> HOA_DON_NHA_HANG { get; set; } = default!;
         public DbSet<HOA_DON> HOA_DON { get; set; } = default!;
         public DbSet<THANH_TOAN> THANH_TOAN { get; set; } = default!;
+        public DbSet<NHAT_KY_HE_THONG> NHAT_KY_HE_THONG { get; set; } = default!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
