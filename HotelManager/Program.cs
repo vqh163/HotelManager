@@ -1,28 +1,31 @@
-using HotelManager.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies; // Thêm thư viện này ở đầu file
-
+using HotelManager.Data; // Namespace chứa ApplicationDbContext của nhóm
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Lấy chuỗi kết nối từ appsettings.json
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Không tìm thấy chuỗi kết nối DefaultConnection.");
-
-// Đăng ký ApplicationDbContext vào hệ thống Dependency Injection
+// 1. Cấu hình kết nối CSDL SQL Server (Entity Framework Core)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add services to the container.
-builder.Services.AddRazorPages();
-
-// Đăng ký dịch vụ Cookie Auth
+// 2. Cấu hình Cookie Authentication (Tự code, không dùng Identity)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Auth/DangNhap"; // Trỏ đến trang đăng nhập nếu người dùng chưa auth
-        options.AccessDeniedPath = "/Auth/TruyCapTuChoi"; // Trang báo lỗi nếu không đủ quyền
+        options.LoginPath = "/Auth/DangNhap";
+        options.ExpireTimeSpan = TimeSpan.FromDays(7);
     });
+
+// 3. CẤU HÌNH SESSION (BẮT BUỘC PHẢI CÓ ĐỂ CHẠY ĐƯỢC OTP)
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// Add services to the container.
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
@@ -30,20 +33,20 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseAuthentication();
+// 4. KÍCH HOẠT SESSION MIDDLEWARE (Đặt sau UseRouting và trước UseAuthentication/UseAuthorization)
+app.UseSession();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
-app.MapRazorPages()
-   .WithStaticAssets();
+app.MapRazorPages();
 
 app.Run();

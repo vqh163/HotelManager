@@ -52,7 +52,7 @@ namespace HotelManager.Pages.Auth
 
             try
             {
-                // Dùng LINQ kiểm tra tài khoản trong CSDL (Lưu ý: Thực tế cần so sánh chuỗi hash mật khẩu)
+                // Dùng LINQ kiểm tra tài khoản trong CSDL
                 var taiKhoan = await _context.TAI_KHOAN
                     .FirstOrDefaultAsync(t => t.TenDangNhap == Input.TenDangNhap && t.MatKhau == Input.MatKhau);
 
@@ -73,14 +73,13 @@ namespace HotelManager.Pages.Auth
                 {
                     new Claim(ClaimTypes.Name, taiKhoan.TenDangNhap),
                     new Claim(ClaimTypes.Role, taiKhoan.VaiTro ?? "Khách hàng"),
-                    new Claim("MaTaiKhoan", taiKhoan.MaTaiKhoan) // Lưu thêm mã để dùng cho các truy vấn sau này
+                    new Claim("MaTaiKhoan", taiKhoan.MaTaiKhoan)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
                 var authProperties = new AuthenticationProperties
                 {
-                    // Cho phép duy trì đăng nhập (Remember Me)
                     IsPersistent = true,
                     ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
                 };
