@@ -6,6 +6,9 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace HotelManager.Pages.Auth
 {
@@ -18,7 +21,6 @@ namespace HotelManager.Pages.Auth
             _context = context;
         }
 
-        // Lớp ViewModel nhận dữ liệu từ Form
         public class DangNhapInputModel
         {
             [Required(ErrorMessage = "Vui lòng nhập Tên đăng nhập")]
@@ -35,7 +37,7 @@ namespace HotelManager.Pages.Auth
 
         public IActionResult OnGet()
         {
-            // Nếu người dùng đã đăng nhập rồi thì chuyển hướng về trang chủ, không cho vào lại form đăng nhập
+            // 1. FIX LỖI Ở ĐÂY: Sửa /TrangChu thành /Index
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 return RedirectToPage("/Index");
@@ -52,7 +54,6 @@ namespace HotelManager.Pages.Auth
 
             try
             {
-                // Dùng LINQ kiểm tra tài khoản trong CSDL
                 var taiKhoan = await _context.TAI_KHOAN
                     .FirstOrDefaultAsync(t => t.TenDangNhap == Input.TenDangNhap && t.MatKhau == Input.MatKhau);
 
@@ -68,36 +69,49 @@ namespace HotelManager.Pages.Auth
                     return Page();
                 }
 
-                // TẠO COOKIE AUTHENTICATION (Cấp quyền đăng nhập)
+                // Chuẩn hóa chuỗi để tránh lỗi khoảng trắng trong CSDL
+                string vaiTroNguoiDung = (taiKhoan.VaiTro ?? "Khách hàng").Trim();
+
                 var claims = new List<Claim>
                 {
+                    new Claim(ClaimTypes.NameIdentifier, taiKhoan.MaTaiKhoan),
                     new Claim(ClaimTypes.Name, taiKhoan.TenDangNhap),
-                    new Claim(ClaimTypes.Role, taiKhoan.VaiTro ?? "Khách hàng"),
-                    new Claim("MaTaiKhoan", taiKhoan.MaTaiKhoan)
+                    new Claim(ClaimTypes.Role, vaiTroNguoiDung)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
                 var authProperties = new AuthenticationProperties
                 {
-                    IsPersistent = true,
+                    IsPersistent = false,
                     ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
                 };
 
-                // Đăng nhập hệ thống
                 await HttpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties);
 
-                // Phân luồng chuyển hướng dựa theo vai trò (Role)
-                if (taiKhoan.VaiTro == "Quản trị viên")
+                // 2. FIX LỖI Ở ĐÂY: Trả tất cả các fallback về /Index
+                switch (vaiTroNguoiDung)
                 {
-                    return RedirectToPage("/QuanTriHeThong/QuanLyTaiKhoan");
-                }
+                    case "Quản trị viên":
+                        // Trỏ đến module Quản trị hệ thống (UC_13)
+                        return RedirectToPage("/QuanTriHeThong/Index");
 
-                // Mặc định chuyển về trang chủ
-                return RedirectToPage("/Index");
+                    case "Quản lý":
+                        // Trỏ đến module Quản lý lịch cá nhân (UC_10)
+                        return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
+
+                    case "Lễ tân":
+                        // Trỏ đến module Tiền sảnh (UC_04)
+                        return RedirectToPage("/QuanLyTienSanh/Index");
+
+                    case "Khách hàng":
+                        return RedirectToPage("/Index");
+
+                    default:
+                        return RedirectToPage("/Index");
+                }
             }
             catch (Exception ex)
             {
