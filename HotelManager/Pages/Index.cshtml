@@ -1,5 +1,5 @@
-﻿@page "/"
-@model HotelManager.Pages.TrangChuModel
+﻿@page
+@model HotelManager.Pages.IndexModel
 @{
     ViewData["Title"] = "Trang chủ - Grand Horizon Hotel";
     Layout = null; // Vô hiệu hóa Layout chung để hiển thị trọn vẹn Landing Page thiết kế riêng
@@ -61,8 +61,8 @@
 
             <div class="d-flex gap-2">
                 <!-- 6 & 7. Đăng nhập / Đăng ký (Thuộc UC_01, UC_02 trong Sprint 1) -->
-                <a asp-page="/DangNhap" class="btn btn-outline-primary fw-bold px-4 rounded-pill">Đăng nhập</a>
-                <a asp-page="/DangKy" class="btn btn-primary fw-bold px-4 rounded-pill">Đăng ký</a>
+                <a asp-page="/Auth/DangNhap" class="btn btn-outline-primary fw-bold px-4 rounded-pill position-relative" style="z-index: 1040;">Đăng nhập</a>
+                <a asp-page="/Auth/DangKy" class="btn btn-primary fw-bold px-4 rounded-pill position-relative" style="z-index: 1040;">Đăng ký</a>
             </div>
         </div>
     </nav>
@@ -188,7 +188,7 @@
             <div class="container">
                 <div class="row g-4 mb-4">
                     <div class="col-lg-4">
-                        <img src="~/images/logo.png" alt="Grand Horizon Logo" style="height: 55px; width: auto; margin: center;" class="me-2">
+                        <img src="~/images/logo.png" alt="Grand Horizon Logo" style="height: 55px; width: auto; " class="me-2">
                         <p><i class="bi bi-geo-alt-fill me-2"></i> Số 109, đường A, phường B, thành phố C.</p>
                         <p><i class="bi bi-telephone-fill me-2"></i> Hotline: 1999 9191</p>
                         <p><i class="bi bi-envelope-fill me-2"></i> GrandHorizonRestaurant.vn</p>

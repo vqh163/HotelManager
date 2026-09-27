@@ -1,106 +1,54 @@
 ﻿@page
 @model HotelManager.Pages.Auth.DangNhapModel
 @{
-    ViewData["Title"] = "Đăng nhập (UC_01)";
-    Layout = null; // Tắt layout chung nếu em muốn trang đăng nhập hiển thị dạng độc lập full màn hình
+    ViewData["Title"] = "Đăng nhập hệ thống";
+    // Form này sẽ tự động nằm gọn trong _Layout.cshtml chung của hệ thống
 }
 
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Phần mềm Quản lý Khách sạn</title>
-    <!-- Nhúng Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <!-- Nhúng Bootstrap Icons (BẮT BUỘC PHẢI CÓ ĐỂ HIỂN THỊ CON MẮT) -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
-    <style>
-            body {
-                background-color: #f4f6f9;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 100vh;
-            }
-
-            .auth-card {
-                max-width: 450px;
-                width: 100%;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-                border-radius: 8px;
-                background: white;
-            }
-    </style>
-</head>
-<body>
-    <div class="auth-card">
-        <div class="card shadow-lg border-0 rounded-lg">
-            <div class="card-header bg-dark text-white text-center py-3">
-                <h4 class="mb-0 fw-bold"><i class="bi bi-person-circle"></i> ĐĂNG NHẬP</h4>
-            </div>
-            <div class="card-body p-4">
-
-                <!-- Hiển thị lỗi nếu sai thông tin -->
-                @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
-                {
-                    <div class="alert alert-danger shadow-sm small py-2">
-                        <i class="bi bi-exclamation-triangle-fill"></i> @Model.ThongBaoLoi
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <img src="~/images/logo.png" alt="Grand Horizon Logo" class="img-fluid" style="max-height: 80px; object-fit: contain;" />
                     </div>
-                }
+                    <h5 class="text-center mb-4 text-muted">Đăng nhập tài khoản</h5>
 
-                <form method="post">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small">Tên đăng nhập</label>
-                        <input asp-for="Input.TenDangNhap" class="form-control form-control-lg" placeholder="Nhập tài khoản..." autofocus />
-                        <span asp-validation-for="Input.TenDangNhap" class="text-danger small"></span>
-                    </div>
+                    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+                    {
+                        <div class="alert alert-danger rounded-3">@Model.ThongBaoLoi</div>
+                    }
 
-                    <!-- Ô nhập mật khẩu tích hợp cấu trúc input-group chứa icon con mắt -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold small">Mật khẩu</label>
-                        <div class="input-group">
-                            <input asp-for="Input.MatKhau" type="password" class="form-control form-control-lg" id="matKhauInput" placeholder="Nhập mật khẩu..." />
-                            <span class="input-group-text bg-white text-secondary" id="togglePassword" style="cursor: pointer;" title="Ẩn/Hiện mật khẩu">
-                                <i class="bi bi-eye-slash fs-5" id="eyeIcon"></i>
-                            </span>
+                    <!-- Bắt buộc dùng method="post" và bỏ trống action để post về chính OnPostAsync -->
+                    <form method="post">
+                        <div class="mb-3">
+                            <label asp-for="Input.TenDangNhap" class="form-label fw-semibold">Tên đăng nhập</label>
+                            <input asp-for="Input.TenDangNhap" class="form-control rounded-pill px-4" placeholder="Nhập tên đăng nhập" />
+                            <span asp-validation-for="Input.TenDangNhap" class="text-danger small"></span>
                         </div>
-                        <span asp-validation-for="Input.MatKhau" class="text-danger small"></span>
-                    </div>
 
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <a asp-page="/Auth/QuenMatKhau" class="text-decoration-none small">Quên mật khẩu?</a>
-                    </div>
+                        <div class="mb-4">
+                            <label asp-for="Input.MatKhau" class="form-label fw-semibold">Mật khẩu</label>
+                            <input asp-for="Input.MatKhau" type="password" class="form-control rounded-pill px-4" placeholder="Nhập mật khẩu" />
+                            <span asp-validation-for="Input.MatKhau" class="text-danger small"></span>
+                        </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-dark btn-lg fw-bold">Đăng Nhập</button>
-                    </div>
-                </form>
-            </div>
-            <div class="card-footer text-center py-3 bg-light">
-                <div class="small">
-                    Chưa có tài khoản? <a asp-page="./DangKy" class="text-primary text-decoration-none fw-bold">Đăng ký ngay</a>
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary rounded-pill fw-bold py-2">ĐĂNG NHẬP</button>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <span class="text-muted">Chưa có tài khoản? </span>
+                            <a asp-page="/Auth/DangKy" class="text-decoration-none fw-bold">Đăng ký ngay</a>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Script xử lý sự kiện click vào icon con mắt để ẩn/hiện mật khẩu -->
-    <script>
-            document.getElementById('togglePassword').addEventListener('click', function () {
-                const passwordInput = document.getElementById('matKhauInput');
-                const eyeIcon = document.getElementById('eyeIcon');
-
-                if (passwordInput.type === 'password') {
-                    passwordInput.type = 'text'; // Hiện mật khẩu
-                    eyeIcon.classList.remove('bi-eye-slash');
-                    eyeIcon.classList.add('bi-eye'); // Đổi sang icon mắt mở
-                } else {
-                    passwordInput.type = 'password'; // Ẩn mật khẩu
-                    eyeIcon.classList.remove('bi-eye');
-                    eyeIcon.classList.add('bi-eye-slash'); // Đổi sang icon mắt gạch chéo
-                }
-            });
-    </script>
-</body>
-</html>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
