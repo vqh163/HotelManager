@@ -1,0 +1,51 @@
+﻿@page
+@model HotelManager.Pages.QuanTriHeThong.SaoLuuDuLieuModel
+@{
+    ViewData["Title"] = "Sao lưu Dữ liệu";
+}
+
+<div class="container mt-4">
+    <!-- Nút quay về Trung tâm Quản trị -->
+    <div class="mb-3">
+        <a asp-page="/QuanTriHeThong/Index" class="btn btn-outline-secondary btn-sm shadow-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left fw-bold"></i> Về Trung tâm
+        </a>
+    </div>
+    <h2 class="text-primary fw-bold mb-4"><i class="bi bi-hdd-network"></i>Sao lưu & Khôi phục</h2>
+
+    <!-- Hiển thị thông báo thành công hoặc thất bại -->
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show shadow-sm" role="alert">
+            @if (Model.IsSuccess)
+            {
+                <i class="bi bi-check-circle-fill me-2"></i>
+            }
+            else
+            {
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            }
+            @Model.ThongBao
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm border-0 mt-3">
+        <div class="card-body text-center py-5">
+            <div class="mb-4 text-primary">
+                <i class="bi bi-cloud-arrow-down" style="font-size: 4rem;"></i>
+            </div>
+            <h4 class="card-title text-dark fw-bold mb-3">Tạo bản sao lưu (Backup) Cơ sở dữ liệu</h4>
+            <p class="card-text text-muted mb-4 mx-auto" style="max-width: 600px;">
+                Quá trình này sẽ xuất toàn bộ dữ liệu hiện tại của hệ thống (Danh sách tài khoản, hồ sơ khách hàng, sơ đồ phòng, hóa đơn...) ra một tệp tin .bak. Việc này giúp dự phòng sự cố và bảo vệ an toàn dữ liệu cho khách sạn.
+            </p>
+
+            <!-- Sử dụng Form POST để gọi hàm OnPostAsync xử lý tác vụ sao lưu -->
+            <form method="post">
+                <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm px-5">
+                    <i class="bi bi-shield-lock-fill me-2"></i> Thực hiện Sao lưu ngay
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

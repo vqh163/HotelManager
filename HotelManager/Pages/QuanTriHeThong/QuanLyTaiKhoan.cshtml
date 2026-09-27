@@ -5,7 +5,13 @@
 }
 
 <div class="container mt-4">
-    <h2 class="text-primary mb-4"><i class="bi bi-shield-lock"></i> Quản trị Hệ thống - Danh sách Tài khoản</h2>
+    <!-- Nút quay về Trung tâm Quản trị -->
+    <div class="mb-3">
+        <a asp-page="/QuanTriHeThong/Index" class="btn btn-outline-secondary btn-sm shadow-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left fw-bold"></i> Về Trung tâm
+        </a>
+    </div>
+    <h2 class="text-primary mb-4"><i class="bi bi-shield-lock"></i>Danh sách Tài khoản</h2>
 
     <!-- Hiển thị thông báo lỗi nếu có -->
     @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))

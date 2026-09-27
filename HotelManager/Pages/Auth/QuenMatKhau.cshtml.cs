@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Http; // BẮT BUỘC THÊM: Thư viện để dùng Session
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,6 +17,7 @@ namespace HotelManager.Pages.Auth
             _context = context;
         }
 
+        // Đóng gói dữ liệu đầu vào với BindProperty
         [BindProperty]
         public ForgotPasswordInput Input { get; set; } = new ForgotPasswordInput();
 
@@ -29,7 +30,6 @@ namespace HotelManager.Pages.Auth
         public class ForgotPasswordInput
         {
             public string ThongTinKhoiPhuc { get; set; } = string.Empty;
-            public string MaOTP { get; set; } = string.Empty;
             public string MatKhauMoi { get; set; } = string.Empty;
             public string XacNhanMatKhau { get; set; } = string.Empty;
         }
@@ -39,74 +39,54 @@ namespace HotelManager.Pages.Auth
             BuocHienTai = 1;
         }
 
+        // Hứng luồng từ XacThucOTP trả về
+        public void OnGetChoPhepDoiMatKhau(string taiKhoan)
+        {
+            BuocHienTai = 3;
+            Input.ThongTinKhoiPhuc = taiKhoan;
+            ThongBaoThanhCong = "Xác thực OTP thành công! Vui lòng đặt lại mật khẩu mới.";
+        }
+
         // BƯỚC 1: Xử lý khi nhấn nút "Gửi Yêu Cầu"
-        public async Task<IActionResult> OnPostGuiYeuCauAsync()
+        public IActionResult OnPostGuiYeuCau()
         {
             try
             {
-                // Dùng LINQ truy vấn bảng TAI_KHOAN theo tài liệu thiết kế[cite: 15]
-                var user = _context.TAI_KHOAN.FirstOrDefault(t => t.TenDangNhap == Input.ThongTinKhoiPhuc);
+                // Dùng LINQ thực hiện LEFT JOIN bảng TAI_KHOAN và KHACH_HANG để quét cả Tên đăng nhập, Email và SĐT
+                var user = (from tk in _context.TAI_KHOAN
+                            join kh in _context.KHACH_HANG on tk.KHACH_HANGMaKH equals kh.MaKH into tk_kh
+                            from kh in tk_kh.DefaultIfEmpty()
+                            where tk.TenDangNhap == Input.ThongTinKhoiPhuc ||
+                                  (kh != null && (kh.Email == Input.ThongTinKhoiPhuc || kh.SDT == Input.ThongTinKhoiPhuc))
+                            select tk).FirstOrDefault();
 
                 if (user != null)
                 {
-                    // 1. Tạo mã OTP ngẫu nhiên 6 số
-                    Random rnd = new Random();
-                    string generatedOtp = rnd.Next(100000, 999999).ToString();
+                    // Lấy Tên đăng nhập gốc của hệ thống dù khách hàng có nhập Email hay SĐT
+                    string tenDangNhapChuan = user.TenDangNhap;
 
-                    // 2. Lưu OTP vào Session, gắn kèm Tên đăng nhập để tránh nhầm lẫn
-                    HttpContext.Session.SetString("OTP_" + Input.ThongTinKhoiPhuc, generatedOtp);
+                    // Mã OTP mặc định là 123456 theo yêu cầu test
+                    string generatedOtp = "123456";
 
-                    // GHI CHÚ: Trong thực tế, ở đây sẽ gọi thư viện gửi Email/SMS chứa mã OTP.
-                    // Để nhóm dễ test luồng, anh hiển thị luôn mã OTP lên thông báo.
-                    ThongBaoThanhCong = $"Đã gửi mã xác thực. (Dành cho Test - Mã OTP của bạn là: {generatedOtp})";
+                    // Lưu OTP vào Session theo Tên đăng nhập chuẩn
+                    HttpContext.Session.SetString("OTP_" + tenDangNhapChuan, generatedOtp);
 
-                    BuocHienTai = 2; // Chuyển sang Bước 2
+                    // Chuyển hướng sang trang xác thực
+                    return RedirectToPage("/Auth/XacThucOTP", new
+                    {
+                        Loai = "QuenMatKhau",
+                        TaiKhoan = tenDangNhapChuan
+                    });
                 }
-                else
-                {
-                    ThongBaoLoi = "Tài khoản không tồn tại trong hệ thống.";
-                    BuocHienTai = 1;
-                }
+
+                ThongBaoLoi = "Tài khoản không tồn tại trong hệ thống.";
+                BuocHienTai = 1;
                 return Page();
             }
             catch (Exception ex)
             {
                 ThongBaoLoi = "Lỗi hệ thống: " + ex.Message;
                 BuocHienTai = 1;
-                return Page();
-            }
-        }
-
-        // BƯỚC 2: Xử lý khi nhấn nút "Xác nhận OTP"
-        public IActionResult OnPostXacNhanOTP()
-        {
-            try
-            {
-                // 1. Lấy mã OTP đã lưu trong Session ra
-                string savedOtp = HttpContext.Session.GetString("OTP_" + Input.ThongTinKhoiPhuc);
-
-                // 2. So sánh mã người dùng nhập (Input.MaOTP) với mã trong Session
-                if (!string.IsNullOrEmpty(savedOtp) && savedOtp == Input.MaOTP)
-                {
-                    // Trùng khớp -> Sang Bước 3
-                    ThongBaoThanhCong = "Xác nhận OTP thành công. Vui lòng nhập mật khẩu mới.";
-                    BuocHienTai = 3;
-
-                    // Xóa OTP khỏi Session để đảm bảo an toàn, không cho dùng lại
-                    HttpContext.Session.Remove("OTP_" + Input.ThongTinKhoiPhuc);
-                }
-                else
-                {
-                    // Sai OTP
-                    ThongBaoLoi = "Mã OTP không hợp lệ hoặc đã hết hạn.";
-                    BuocHienTai = 2; // Giữ lại ở Bước 2 để nhập lại
-                }
-                return Page();
-            }
-            catch (Exception ex)
-            {
-                ThongBaoLoi = "Lỗi hệ thống: " + ex.Message;
-                BuocHienTai = 2;
                 return Page();
             }
         }
@@ -123,11 +103,11 @@ namespace HotelManager.Pages.Auth
                     return Page();
                 }
 
-                // Cập nhật CSDL[cite: 15]
+                // Cập nhật Database dựa vào Tên đăng nhập
                 var user = _context.TAI_KHOAN.FirstOrDefault(t => t.TenDangNhap == Input.ThongTinKhoiPhuc);
                 if (user != null)
                 {
-                    user.MatKhau = Input.MatKhauMoi;
+                    user.MatKhau = Input.MatKhauMoi; // Thực tế cần hash mật khẩu
                     await _context.SaveChangesAsync();
 
                     TempData["SuccessMessage"] = "Đổi mật khẩu thành công. Vui lòng đăng nhập lại.";

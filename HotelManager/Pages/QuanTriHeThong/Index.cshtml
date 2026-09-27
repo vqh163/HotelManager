@@ -1,0 +1,101 @@
+﻿@page
+@model HotelManager.Pages.QuanTriHeThong.IndexModel
+@{
+    ViewData["Title"] = "Trung tâm Quản trị";
+}
+
+<div class="container-fluid mt-4">
+    <h2 class="text-primary fw-bold mb-4"><i class="bi bi-speedometer2"></i> Trung tâm Quản trị Hệ thống</h2>
+    <p class="text-muted mb-4">Chào mừng Quản trị viên. Vui lòng chọn phân hệ chức năng cần thao tác bên dưới.</p>
+
+    <!-- Khung thống kê nhanh (Widget) -->
+    <div class="row mb-5">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary shadow-sm h-100 rounded-3 border-0">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-people-fill"></i> Tổng Tài khoản</h5>
+                    <h2 class="fw-bold mt-2">@Model.TongSoTaiKhoan</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info shadow-sm h-100 rounded-3 border-0">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-journal-text"></i> Ghi log hôm nay</h5>
+                    <h2 class="fw-bold mt-2">@Model.SoLuotThaoTacHomNay</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Các ô chức năng chính (Menu) -->
+    <h5 class="fw-bold text-dark mb-3">Danh mục chức năng</h5>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+
+        <!-- Chức năng 1: Quản lý Tài khoản -->
+        <div class="col">
+            <a asp-page="/QuanTriHeThong/QuanLyTaiKhoan" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-0 border-start border-primary border-4 text-center action-card">
+                    <div class="card-body py-4">
+                        <i class="bi bi-person-lines-fill text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3 text-dark fw-bold">Quản lý Tài khoản</h5>
+                        <p class="card-text text-muted small">Thêm, sửa, khóa và phân quyền truy cập cho người dùng.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Chức năng 2: Nhật ký Hệ thống -->
+        <div class="col">
+            <a asp-page="/QuanTriHeThong/NhatKyHeThong" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-0 border-start border-info border-4 text-center action-card">
+                    <div class="card-body py-4">
+                        <i class="bi bi-clock-history text-info" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3 text-dark fw-bold">Nhật ký Hệ thống</h5>
+                        <p class="card-text text-muted small">Xem lịch sử thao tác (Audit Trail) của toàn bộ nhân viên.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Chức năng 3: Sao lưu Dữ liệu -->
+        <div class="col">
+            <a asp-page="/QuanTriHeThong/SaoLuuDuLieu" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-0 border-start border-success border-4 text-center action-card">
+                    <div class="card-body py-4">
+                        <i class="bi bi-database-fill-down text-success" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3 text-dark fw-bold">Sao lưu Dữ liệu</h5>
+                        <p class="card-text text-muted small">Tạo bản backup CSDL SQL Server thủ công đảm bảo an toàn.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Chức năng 4: Chính sách & Bảo mật (Chờ phát triển) -->
+        <div class="col">
+            <a asp-page="/QuanTriHeThong/ChinhSachBaoMat" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-0 border-start border-warning border-4 text-center action-card">
+                    <div class="card-body py-4">
+                        <i class="bi bi-shield-lock-fill text-warning" style="font-size: 3rem;"></i>
+                        <h5 class="card-title mt-3 text-dark fw-bold">Bảo mật & Mã hóa</h5>
+                        <p class="card-text text-muted small">Thiết lập bảo mật và quản lý mã hóa dữ liệu nhạy cảm.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* CSS hiệu ứng tương tác (Hover) cho các ô chức năng */
+    .action-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        cursor: pointer;
+    }
+
+        .action-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important;
+        }
+</style>
