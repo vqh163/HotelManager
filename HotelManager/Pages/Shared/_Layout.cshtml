@@ -27,6 +27,50 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
                         </li>
+
+                        <!-- ĐÂY LÀ DÒNG MỚI ĐƯỢC THÊM VÀO Ở BƯỚC 5 -->
+                        <li class="nav-item">
+                            <a class="nav-link text-primary fw-bold" asp-area="" asp-page="/Schedule">📅 Lịch Cá Nhân</a>
+                        </li>
+
+                    </ul>
+
+                    <!-- BỔ SUNG: Menu Xác thực nằm bên phải -->
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        <!-- Kiểm tra trạng thái đăng nhập của Identity -->
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <!-- Trạng thái: ĐÃ ĐĂNG NHẬP -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-dark fw-bold" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle"></i> Xin chào, @User.Identity.Name!
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item" asp-page="/Auth/HoSo">Hồ sơ của tôi</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <!-- Nút Đăng xuất phải dùng Form POST để đảm bảo bảo mật -->
+                                        <form class="form-inline" asp-page="/Auth/DangXuat" method="post">
+                                            <button type="submit" class="dropdown-item text-danger fw-bold">
+                                                <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <!-- Trạng thái: CHƯA ĐĂNG NHẬP -->
+                            <li class="nav-item me-2">
+                                <!-- Chuyển hướng sang trang Đăng nhập (UC_01) -->
+                                <a class="btn btn-outline-primary rounded-pill px-4" asp-page="/Auth/DangNhap">Đăng nhập</a>
+                            </li>
+                            <li class="nav-item">
+                                <!-- Chuyển hướng sang trang Đăng ký (UC_02) -->
+                                <a class="btn btn-primary rounded-pill px-4 shadow-sm" asp-page="/Auth/DangKy">Đăng ký</a>
+                            </li>
+                        }
                     </ul>
 
                     <!-- BỔ SUNG: Menu Xác thực nằm bên phải -->

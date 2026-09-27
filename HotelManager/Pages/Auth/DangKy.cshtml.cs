@@ -84,7 +84,12 @@ namespace HotelManager.Pages.Auth
                     TenDangNhap = Input.TenDangNhap,
                     MatKhau = Input.MatKhau, // Hệ thống thực tế sẽ hash mật khẩu ở bước này
                     VaiTro = "Khách hàng",
+<<<<<<< HEAD
                     TrangThai = "Chờ xác thực" // Trạng thái chờ kích hoạt OTP
+=======
+                    TrangThai = "Chờ xác thực",
+                    TrangThai = "Chờ xác thực"
+>>>>>>> 5786684d18364ac52d569f4425b8d04b2ba41520
                 };
                 _context.TAI_KHOAN.Add(taiKhoan);
 
@@ -107,6 +112,10 @@ namespace HotelManager.Pages.Auth
                 ThongBaoLoi = "Lỗi hệ thống trong quá trình đăng ký: " + ex.Message;
                 return Page();
             }
+<<<<<<< HEAD
+=======
+            return RedirectToPage("./XacThucOTP", new { TenDangNhap = Input.TenDangNhap });
+>>>>>>> 5786684d18364ac52d569f4425b8d04b2ba41520
         }
     }
 }
