@@ -42,7 +42,7 @@ namespace HotelManager.Pages.Auth
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // Bọc toàn bộ thao tác thêm dữ liệu trong try...catch
+            // Bọc toàn bộ thao tác thêm dữ liệu trong try...catch để đảm bảo ổn định
             try
             {
                 // Kiểm tra xác nhận mật khẩu
@@ -82,25 +82,20 @@ namespace HotelManager.Pages.Auth
                     MaTaiKhoan = maTaiKhoanMoi,
                     KHACH_HANGMaKH = maKhachHangMoi, // Khóa ngoại liên kết tới khách hàng
                     TenDangNhap = Input.TenDangNhap,
-                    MatKhau = Input.MatKhau, // Hệ thống thực tế sẽ hash mật khẩu ở bước này
+                    MatKhau = Input.MatKhau, // Lưu ý: Thực tế sẽ hash mật khẩu ở bước này
                     VaiTro = "Khách hàng",
-<<<<<<< HEAD
-                    TrangThai = "Chờ xác thực" // Trạng thái chờ kích hoạt OTP
-=======
-                    TrangThai = "Chờ xác thực",
-                    TrangThai = "Chờ xác thực"
->>>>>>> 5786684d18364ac52d569f4425b8d04b2ba41520
+                    TrangThai = "Chờ xác thực", // Trạng thái chờ kích hoạt OTP
                 };
                 _context.TAI_KHOAN.Add(taiKhoan);
 
-                // Lưu thay đổi đồng thời vào 2 bảng
+                // Lưu thay đổi đồng thời vào 2 bảng thông qua Transaction ngầm định của EF Core
                 await _context.SaveChangesAsync();
 
-                // 3. Xử lý cấp mã OTP mặc định (123456) và lưu vào Session
+                // 3. Xử lý cấp mã OTP mặc định (123456) và lưu vào Session cho mục đích phát triển
                 string generatedOtp = "123456";
                 HttpContext.Session.SetString("OTP_" + Input.TenDangNhap, generatedOtp);
 
-                // 4. Chuyển hướng sang trang dùng chung XacThucOTP, truyền đúng 2 tham số
+                // 4. Chuyển hướng sang trang dùng chung XacThucOTP, truyền đúng 2 tham số theo luồng UC_02
                 return RedirectToPage("/Auth/XacThucOTP", new
                 {
                     Loai = "DangKy",
@@ -112,10 +107,6 @@ namespace HotelManager.Pages.Auth
                 ThongBaoLoi = "Lỗi hệ thống trong quá trình đăng ký: " + ex.Message;
                 return Page();
             }
-<<<<<<< HEAD
-=======
-            return RedirectToPage("./XacThucOTP", new { TenDangNhap = Input.TenDangNhap });
->>>>>>> 5786684d18364ac52d569f4425b8d04b2ba41520
         }
     }
 }

@@ -1,13 +1,6 @@
-<<<<<<< HEAD
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using HotelManager.Data; // Namespace chứa ApplicationDbContext của nhóm
-=======
-using HotelManager.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies; // Thêm thư viện này ở đầu file
-
->>>>>>> 5786684d18364ac52d569f4425b8d04b2ba41520
 
 var builder = WebApplication.CreateBuilder(args);
 
