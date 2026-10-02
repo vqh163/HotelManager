@@ -38,9 +38,12 @@
                             <button type="submit" class="btn btn-primary rounded-pill fw-bold py-2">ĐĂNG NHẬP</button>
                         </div>
                         
-                        <div class="text-center mt-3">
-                            <span class="text-muted">Chưa có tài khoản? </span>
-                            <a asp-page="/Auth/DangKy" class="text-decoration-none fw-bold">Đăng ký ngay</a>
+                        <div class="d-flex justify-content-between mt-4 border-top pt-4 small fw-bold">
+                        <!-- Trỏ đến chức năng Quên mật khẩu vừa làm -->
+                        <a asp-page="/Auth/QuenMatKhau" class="text-decoration-none text-secondary">Quên mật khẩu?</a>
+                        
+                        <!-- Trỏ đến UC_02 Đăng ký -->
+                        <span>Chưa có tài khoản? <a asp-page="/Auth/DangKy" class="text-decoration-none text-primary">Đăng ký ngay</a></span>
                         </div>
                     </form>
                 </div>
