@@ -24,7 +24,8 @@ namespace HotelManager.Models
 
         [Required(ErrorMessage = "Mật khẩu không được để trống")]
         [Column(TypeName = "varchar(50)")] // (Theo mô tả 2.3.1 là varchar 50)
-        public string MatKhau { get; set; } = default!;
+        [MaxLength(255)]
+        public string? MatKhau { get; set; }
 
         [Column(TypeName = "nvarchar(50)")]
         public string? VaiTro { get; set; }
