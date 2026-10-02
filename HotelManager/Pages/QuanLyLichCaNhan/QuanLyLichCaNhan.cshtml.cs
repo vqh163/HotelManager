@@ -35,15 +35,44 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             int targetYear = ViewYear ?? DateTime.Today.Year;
             CurrentDate = new DateTime(targetYear, targetMonth, 1);
 
+            // Đặt mặc định ngày giờ Hôm nay cho ScheduleData
+            ScheduleData.ThoiGianBatDau = DateTime.Today.AddHours(6);
+            ScheduleData.ThoiGianKetThuc = DateTime.Today.AddHours(14);
+
             MySchedules = DatabaseMock.OrderBy(x => x.ThoiGianBatDau).ToList();
 
             DaysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
             StartDayOfWeek = CurrentDate.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)CurrentDate.DayOfWeek - 1;
         }
 
-        // 1. Thêm lịch mới
+        // 1. Thêm lịch mới (Kiểm tra ngày quá khứ, giờ hợp lệ và chống trùng lịch)
         public IActionResult OnPostCreate()
         {
+            // Chặn chọn ngày đã qua
+            if (ScheduleData.ThoiGianBatDau.Date < DateTime.Today)
+            {
+                AlertMessage = "⚠️ Lỗi: Không được chọn ngày đã qua! Vui lòng chọn từ ngày hôm nay trở đi.";
+                return RedirectToPage(new { ViewMonth = DateTime.Today.Month, ViewYear = DateTime.Today.Year });
+            }
+
+            // Kiểm tra giờ kết thúc phải sau giờ bắt đầu
+            if (ScheduleData.ThoiGianKetThuc <= ScheduleData.ThoiGianBatDau)
+            {
+                AlertMessage = "⚠️ Lỗi: Giờ kết thúc phải lớn hơn giờ bắt đầu. Vui lòng chọn lại!";
+                return RedirectToPage(new { ViewMonth = DateTime.Today.Month, ViewYear = DateTime.Today.Year });
+            }
+
+            // Kiểm tra trùng giờ với các ca đã có
+            var conflict = DatabaseMock.FirstOrDefault(x =>
+                ScheduleData.ThoiGianBatDau < x.ThoiGianKetThuc &&
+                ScheduleData.ThoiGianKetThuc > x.ThoiGianBatDau);
+
+            if (conflict != null)
+            {
+                AlertMessage = $"⚠️ Bị trùng giờ với ca: {conflict.TenNhanVien} ({conflict.ThoiGianBatDau:HH:mm} - {conflict.ThoiGianKetThuc:HH:mm}). Vui lòng chọn lại!";
+                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
+            }
+
             ScheduleData.Id = DatabaseMock.Any() ? DatabaseMock.Max(x => x.Id) + 1 : 1;
             ScheduleData.TrangThai = "Sắp diễn ra";
             DatabaseMock.Add(ScheduleData);
@@ -52,9 +81,32 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
         }
 
-        // 2. Sửa thông tin lịch
+        // 2. Sửa thông tin lịch (Kiểm tra ngày quá khứ, giờ hợp lệ và chống trùng lịch)
         public IActionResult OnPostEdit()
         {
+            if (ScheduleData.ThoiGianBatDau.Date < DateTime.Today)
+            {
+                AlertMessage = "⚠️ Lỗi: Không được đổi lịch về ngày đã qua! Vui lòng chọn lại.";
+                return RedirectToPage(new { ViewMonth = DateTime.Today.Month, ViewYear = DateTime.Today.Year });
+            }
+
+            if (ScheduleData.ThoiGianKetThuc <= ScheduleData.ThoiGianBatDau)
+            {
+                AlertMessage = "⚠️ Lỗi: Giờ kết thúc phải lớn hơn giờ bắt đầu. Vui lòng chọn lại!";
+                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
+            }
+
+            var conflict = DatabaseMock.FirstOrDefault(x =>
+                x.Id != ScheduleData.Id &&
+                ScheduleData.ThoiGianBatDau < x.ThoiGianKetThuc &&
+                ScheduleData.ThoiGianKetThuc > x.ThoiGianBatDau);
+
+            if (conflict != null)
+            {
+                AlertMessage = $"⚠️ Bị trùng giờ với ca: {conflict.TenNhanVien} ({conflict.ThoiGianBatDau:HH:mm} - {conflict.ThoiGianKetThuc:HH:mm}). Vui lòng chọn lại!";
+                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
+            }
+
             var item = DatabaseMock.FirstOrDefault(x => x.Id == ScheduleData.Id);
             if (item != null)
             {
@@ -102,8 +154,8 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         public string TieuDe { get; set; } = string.Empty;
         public string LoaiCa { get; set; } = string.Empty;
         public string KhuVuc { get; set; } = string.Empty;
-        public DateTime ThoiGianBatDau { get; set; }
-        public DateTime ThoiGianKetThuc { get; set; }
+        public DateTime ThoiGianBatDau { get; set; } = DateTime.Today.AddHours(6);
+        public DateTime ThoiGianKetThuc { get; set; } = DateTime.Today.AddHours(14);
         public string TrangThai { get; set; } = "Sắp diễn ra";
 
         // Chi tiết công việc
