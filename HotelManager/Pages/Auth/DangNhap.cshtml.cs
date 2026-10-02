@@ -83,7 +83,8 @@ namespace HotelManager.Pages.Auth
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = false,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60),
+                    AllowRefresh = true
                 };
 
                 await HttpContext.SignInAsync(

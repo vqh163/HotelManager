@@ -1,164 +1,41 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+// using HotelManager.Data; // Uncomment khi kết nối CSDL
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace HotelManager.Pages.QuanLyLichCaNhan
 {
     public class QuanLyLichCaNhanModel : PageModel
     {
-        public string EmployeeName { get; set; } = "Lê Thị D";
+        // Khai báo DbContext ở đây để truy vấn bảng LICH_LAM_VIEC (UC_10)
 
-        [BindProperty(SupportsGet = true)]
-        public int? ViewMonth { get; set; }
-        [BindProperty(SupportsGet = true)]
-        public int? ViewYear { get; set; }
-
-        public DateTime CurrentDate { get; set; }
-
-        public static List<LICH_LAM_VIEC> DatabaseMock = new List<LICH_LAM_VIEC>();
-        public List<LICH_LAM_VIEC> MySchedules { get; set; } = new List<LICH_LAM_VIEC>();
-
-        public int DaysInMonth { get; set; }
-        public int StartDayOfWeek { get; set; }
-
-        [BindProperty]
-        public LICH_LAM_VIEC ScheduleData { get; set; } = new LICH_LAM_VIEC();
-
-        [TempData]
-        public string AlertMessage { get; set; }
-
-        public void OnGet()
+        public IActionResult OnGet()
         {
-            int targetMonth = ViewMonth ?? DateTime.Today.Month;
-            int targetYear = ViewYear ?? DateTime.Today.Year;
-            CurrentDate = new DateTime(targetYear, targetMonth, 1);
+            try
+            {
+                // 1. Kiểm tra vòng ngoài: Chưa đăng nhập thì đá về Trang đăng nhập
+                if (User.Identity == null || !User.Identity.IsAuthenticated)
+                {
+                    return RedirectToPage("/Auth/DangNhap");
+                }
 
-            // Đặt mặc định ngày giờ Hôm nay cho ScheduleData
-            ScheduleData.ThoiGianBatDau = DateTime.Today.AddHours(6);
-            ScheduleData.ThoiGianKetThuc = DateTime.Today.AddHours(14);
+                // 2. Chặn Admin: UC_10 chỉ dành cho Nhân viên, Lễ tân, Quản lý, Buồng phòng...
+                if (User.IsInRole("Quản trị viên"))
+                {
+                    TempData["ThongBaoLoi"] = "Quản trị viên không tham gia vào ca làm việc vận hành.";
+                    return RedirectToPage("/QuanTriHeThong/QuanLyTaiKhoan");
+                }
 
-            MySchedules = DatabaseMock.OrderBy(x => x.ThoiGianBatDau).ToList();
+                // 3. Logic truy xuất bảng LICH_LAM_VIEC của bạn Ký sẽ viết bằng LINQ tại đây
+                // VD: Lấy danh sách lịch làm việc của User đang đăng nhập...
 
-            DaysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
-            StartDayOfWeek = CurrentDate.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)CurrentDate.DayOfWeek - 1;
+                return Page();
+            }
+            catch (Exception ex)
+            {
+                TempData["ThongBaoLoi"] = "Lỗi tải lịch làm việc: " + ex.Message;
+                return RedirectToPage("/Index");
+            }
         }
-
-        // 1. Thêm lịch mới (Kiểm tra ngày quá khứ, giờ hợp lệ và chống trùng lịch)
-        public IActionResult OnPostCreate()
-        {
-            // Chặn chọn ngày đã qua
-            if (ScheduleData.ThoiGianBatDau.Date < DateTime.Today)
-            {
-                AlertMessage = "⚠️ Lỗi: Không được chọn ngày đã qua! Vui lòng chọn từ ngày hôm nay trở đi.";
-                return RedirectToPage(new { ViewMonth = DateTime.Today.Month, ViewYear = DateTime.Today.Year });
-            }
-
-            // Kiểm tra giờ kết thúc phải sau giờ bắt đầu
-            if (ScheduleData.ThoiGianKetThuc <= ScheduleData.ThoiGianBatDau)
-            {
-                AlertMessage = "⚠️ Lỗi: Giờ kết thúc phải lớn hơn giờ bắt đầu. Vui lòng chọn lại!";
-                return RedirectToPage(new { ViewMonth = DateTime.Today.Month, ViewYear = DateTime.Today.Year });
-            }
-
-            // Kiểm tra trùng giờ với các ca đã có
-            var conflict = DatabaseMock.FirstOrDefault(x =>
-                ScheduleData.ThoiGianBatDau < x.ThoiGianKetThuc &&
-                ScheduleData.ThoiGianKetThuc > x.ThoiGianBatDau);
-
-            if (conflict != null)
-            {
-                AlertMessage = $"⚠️ Bị trùng giờ với ca: {conflict.TenNhanVien} ({conflict.ThoiGianBatDau:HH:mm} - {conflict.ThoiGianKetThuc:HH:mm}). Vui lòng chọn lại!";
-                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
-            }
-
-            ScheduleData.Id = DatabaseMock.Any() ? DatabaseMock.Max(x => x.Id) + 1 : 1;
-            ScheduleData.TrangThai = "Sắp diễn ra";
-            DatabaseMock.Add(ScheduleData);
-
-            AlertMessage = "✅ Đã phân công ca làm việc thành công!";
-            return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
-        }
-
-        // 2. Sửa thông tin lịch (Kiểm tra ngày quá khứ, giờ hợp lệ và chống trùng lịch)
-        public IActionResult OnPostEdit()
-        {
-            if (ScheduleData.ThoiGianBatDau.Date < DateTime.Today)
-            {
-                AlertMessage = "⚠️ Lỗi: Không được đổi lịch về ngày đã qua! Vui lòng chọn lại.";
-                return RedirectToPage(new { ViewMonth = DateTime.Today.Month, ViewYear = DateTime.Today.Year });
-            }
-
-            if (ScheduleData.ThoiGianKetThuc <= ScheduleData.ThoiGianBatDau)
-            {
-                AlertMessage = "⚠️ Lỗi: Giờ kết thúc phải lớn hơn giờ bắt đầu. Vui lòng chọn lại!";
-                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
-            }
-
-            var conflict = DatabaseMock.FirstOrDefault(x =>
-                x.Id != ScheduleData.Id &&
-                ScheduleData.ThoiGianBatDau < x.ThoiGianKetThuc &&
-                ScheduleData.ThoiGianKetThuc > x.ThoiGianBatDau);
-
-            if (conflict != null)
-            {
-                AlertMessage = $"⚠️ Bị trùng giờ với ca: {conflict.TenNhanVien} ({conflict.ThoiGianBatDau:HH:mm} - {conflict.ThoiGianKetThuc:HH:mm}). Vui lòng chọn lại!";
-                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
-            }
-
-            var item = DatabaseMock.FirstOrDefault(x => x.Id == ScheduleData.Id);
-            if (item != null)
-            {
-                item.TenNhanVien = ScheduleData.TenNhanVien;
-                item.MaNhanVien = ScheduleData.MaNhanVien;
-                item.BoPhan = ScheduleData.BoPhan;
-                item.ChucVu = ScheduleData.ChucVu;
-                item.TieuDe = ScheduleData.TieuDe;
-                item.LoaiCa = ScheduleData.LoaiCa;
-                item.KhuVuc = ScheduleData.KhuVuc;
-                item.ThoiGianBatDau = ScheduleData.ThoiGianBatDau;
-                item.ThoiGianKetThuc = ScheduleData.ThoiGianKetThuc;
-                item.GhiChu = ScheduleData.GhiChu;
-
-                AlertMessage = "✅ Cập nhật thông tin ca làm việc thành công!";
-            }
-            return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
-        }
-
-        // 3. Xóa lịch
-        public IActionResult OnPostDelete(int id, int month, int year)
-        {
-            var item = DatabaseMock.FirstOrDefault(x => x.Id == id);
-            if (item != null)
-            {
-                DatabaseMock.Remove(item);
-                AlertMessage = "🗑 Đã xóa ca làm việc khỏi hệ thống!";
-            }
-            return RedirectToPage(new { ViewMonth = month, ViewYear = year });
-        }
-    }
-
-    // Class Model chứa dữ liệu lịch làm việc
-    public class LICH_LAM_VIEC
-    {
-        public int Id { get; set; }
-
-        // Thông tin nhân viên
-        public string MaNhanVien { get; set; } = string.Empty;
-        public string TenNhanVien { get; set; } = string.Empty;
-        public string BoPhan { get; set; } = string.Empty;
-        public string ChucVu { get; set; } = string.Empty;
-
-        // Thông tin ca làm việc
-        public string TieuDe { get; set; } = string.Empty;
-        public string LoaiCa { get; set; } = string.Empty;
-        public string KhuVuc { get; set; } = string.Empty;
-        public DateTime ThoiGianBatDau { get; set; } = DateTime.Today.AddHours(6);
-        public DateTime ThoiGianKetThuc { get; set; } = DateTime.Today.AddHours(14);
-        public string TrangThai { get; set; } = "Sắp diễn ra";
-
-        // Chi tiết công việc
-        public string GhiChu { get; set; } = string.Empty;
     }
 }

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using HotelManager.Data; // Namespace chứa ApplicationDbContext của nhóm
+using HotelManager.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,12 +24,21 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// Add services to the container.
-builder.Services.AddRazorPages();
+// 4. CẤU HÌNH PHÂN QUYỀN (BẮT BUỘC ĐỂ KHÓA CÁC TRANG NỘI BỘ)
+// Vai trò lưu trong TAI_KHOAN.VaiTro ("Quản trị viên", "Quản lý", "Lễ tân"...)
+// được đưa vào Claim Role khi đăng nhập (xem DangNhap.cshtml.cs).
+
+builder.Services.AddRazorPages(options =>
+{
+    // Toàn bộ thư mục Quản trị hệ thống chỉ cho phép vai trò "Quản trị viên".
+    options.Conventions.AuthorizeFolder("/QuanTriHeThong", "QuanTriVienOnly");
+});
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("QuanTriVienOnly", policy => policy.RequireRole("Quản trị viên"));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -41,7 +50,6 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// 4. KÍCH HOẠT SESSION MIDDLEWARE (Đặt sau UseRouting và trước UseAuthentication/UseAuthorization)
 app.UseSession();
 
 app.UseAuthentication();
