@@ -75,10 +75,14 @@
                                     <i class="bi bi-person-circle text-warning me-1"></i> Xin chào, @User.Identity.Name!
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
-                                    <!-- Liên kết đến UC_10 -->
-                                    <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch cá nhân (UC_10)</a></li>
-                                    
-                                    <!-- Liên kết đến UC_13 (Chỉ hiển thị nếu là admin) -->
+
+                                    <!-- LUỒNG 1: Nếu KHÔNG PHẢI Quản trị viên thì mới hiển thị Lịch cá nhân -->
+                                    @if (!User.IsInRole("Quản trị viên"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch cá nhân (UC_10)</a></li>
+                                    }
+
+                                    <!-- LUỒNG 2: Liên kết đến UC_13 (Chỉ hiển thị nếu LÀ Quản trị viên) -->
                                     @if (User.IsInRole("Quản trị viên"))
                                     {
                                         <li><a class="dropdown-item py-2 text-primary" asp-page="/QuanTriHeThong/QuanLyTaiKhoan"><i class="bi bi-gear me-2"></i>Quản trị hệ thống (UC_13)</a></li>
@@ -97,7 +101,7 @@
                         }
                         else
                         {
-                            <!-- Nút điều hướng Đăng nhập / Đăng ký -->
+                            <!-- Nút điều hướng Đăng nhập / Đăng ký (Giữ nguyên) -->
                             <li class="nav-item me-2">
                                 <a class="btn btn-outline-primary rounded-pill px-4 fw-bold" asp-page="/Auth/DangNhap">Đăng nhập</a>
                             </li>
