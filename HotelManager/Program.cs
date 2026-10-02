@@ -30,11 +30,21 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-builder.Services.AddRazorPages();
+// 4. CẤU HÌNH PHÂN QUYỀN (BẮT BUỘC ĐỂ KHÓA CÁC TRANG NỘI BỘ)
+// Vai trò lưu trong TAI_KHOAN.VaiTro ("Quản trị viên", "Quản lý", "Lễ tân"...)
+// được đưa vào Claim Role khi đăng nhập (xem DangNhap.cshtml.cs).
+
+builder.Services.AddRazorPages(options =>
+{
+    // Toàn bộ thư mục Quản trị hệ thống chỉ cho phép vai trò "Quản trị viên".
+    options.Conventions.AuthorizeFolder("/QuanTriHeThong", "QuanTriVienOnly");
+});
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("QuanTriVienOnly", policy => policy.RequireRole("Quản trị viên"));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");

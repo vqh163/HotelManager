@@ -1,56 +1,98 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - HotelManager</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - Grand Horizon Hotel</title>
+    <!-- Thư viện CSS Bootstrap 5 & Bootstrap Icons -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <!-- Thêm Bootstrap Icons để hỗ trợ hiển thị icon hệ thống -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/HotelManager.styles.css" asp-append-version="true" />
+    <style>
+        /* Đảm bảo hiệu ứng cuộn mượt cho Landing Page */
+        html { scroll-behavior: smooth; }
+    </style>
 </head>
 <body>
+    <!-- Mốc định vị đầu trang -->
+    <div id="top-trang-chu"></div>
+
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-0 sticky-top" style="z-index: 1030;">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">HotelManager</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                
+                <!-- 1. LOGO KHÁCH SẠN -->
+                <a class="navbar-brand d-flex align-items-center" asp-page="/Index">
+                    <img src="~/images/logo.png" alt="Grand Horizon Logo" style="height: 50px; width: auto;" class="me-2">
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <!-- Menu chính nằm bên trái -->
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-primary fw-bold" asp-area="" asp-page="/Schedule">📅 Lịch Cá Nhân</a>
-                        </li>
-                    </ul>
 
-                    <!-- Menu Xác thực nằm bên phải (ĐÃ LƯỢC BỎ PHẦN TRÙNG LẶP) -->
-                    <ul class="navbar-nav ms-auto align-items-center">
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    
+                    @{
+                        // Lấy tên trang hiện tại (Routing) mà người dùng đang truy cập
+                        var trangHienTai = ViewContext.RouteData.Values["page"]?.ToString();
+                        
+                        // Kiểm tra xem có đúng là đang đứng ở trang chủ không
+                        bool laTrangChu = (trangHienTai == "/Index" || trangHienTai == "/");
+                    }
+
+                    <!-- 2. MENU CHÍNH (Chỉ hiển thị khi đang đứng ở trang chủ /Index) -->
+                    @if (laTrangChu)
+                    {
+                        <ul class="navbar-nav gap-3 fw-semibold mx-auto">
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-page="/Index">Trang chủ</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-page="/Index" fragment="trang-2-phong-standard">Phòng</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-page="/Index" fragment="trang-7-am-thuc">Ẩm thực</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-page="/Index" fragment="trang-8-lien-he">Liên hệ</a>
+                            </li>
+                        </ul>
+                    }
+                    else
+                    {
+                        <!-- Nếu không phải trang chủ -> Dùng khoảng trống đẩy khối Xác thực sang bên phải -->
+                        <ul class="navbar-nav mx-auto"></ul>
+                    }
+
+                    <!-- 3. MENU XÁC THỰC (Phần khoanh đỏ: Luôn luôn hiển thị trên mọi trang) -->
+                    <ul class="navbar-nav align-items-center">
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
-                            <!-- Trạng thái: ĐÃ ĐĂNG NHẬP -->
+                            <!-- Dropdown của người dùng đã đăng nhập -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-dark fw-bold" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle"></i> Xin chào, @User.Identity.Name!
+                                    <i class="bi bi-person-circle text-warning me-1"></i> Xin chào, @User.Identity.Name!
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" asp-page="/Auth/HoSo">Hồ sơ của tôi</a></li>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
+
+                                    <!-- LUỒNG 1: Nếu KHÔNG PHẢI Quản trị viên thì mới hiển thị Lịch cá nhân -->
+                                    @if (!User.IsInRole("Quản trị viên"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch cá nhân (UC_10)</a></li>
+                                    }
+
+                                    <!-- LUỒNG 2: Liên kết đến UC_13 (Chỉ hiển thị nếu LÀ Quản trị viên) -->
+                                    @if (User.IsInRole("Quản trị viên"))
+                                    {
+                                        <li><a class="dropdown-item py-2 text-primary" asp-page="/QuanTriHeThong/QuanLyTaiKhoan"><i class="bi bi-gear me-2"></i>Quản trị hệ thống (UC_13)</a></li>
+                                    }
+
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <!-- Nút Đăng xuất dùng Form POST đảm bảo bảo mật theo quy chuẩn -->
-                                        <form class="form-inline" asp-page="/Auth/DangXuat" method="post">
-                                            <button type="submit" class="dropdown-item text-danger fw-bold">
-                                                <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                                        <form class="form-inline m-0" asp-page="/Auth/DangXuat" method="post">
+                                            <button type="submit" class="dropdown-item text-danger fw-bold py-2">
+                                                <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
                                             </button>
                                         </form>
                                     </li>
@@ -59,14 +101,12 @@
                         }
                         else
                         {
-                            <!-- Trạng thái: CHƯA ĐĂNG NHẬP -->
+                            <!-- Nút điều hướng Đăng nhập / Đăng ký (Giữ nguyên) -->
                             <li class="nav-item me-2">
-                                <!-- Chuyển hướng sang trang Đăng nhập (UC_01) -->
-                                <a class="btn btn-outline-primary rounded-pill px-4" asp-page="/Auth/DangNhap">Đăng nhập</a>
+                                <a class="btn btn-outline-primary rounded-pill px-4 fw-bold" asp-page="/Auth/DangNhap">Đăng nhập</a>
                             </li>
                             <li class="nav-item">
-                                <!-- Chuyển hướng sang trang Đăng ký (UC_02) -->
-                                <a class="btn btn-primary rounded-pill px-4 shadow-sm" asp-page="/Auth/DangKy">Đăng ký</a>
+                                <a class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" asp-page="/Auth/DangKy">Đăng ký</a>
                             </li>
                         }
                     </ul>
@@ -74,18 +114,22 @@
             </div>
         </nav>
     </header>
-    <div class="container">
+
+    <!-- Khu vực hiển thị nội dung các trang con -->
+    <div class="container-fluid p-0">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - HotelManager - <a asp-area="" asp-page="/Privacy">Privacy</a>
+    <!-- Footer chuẩn dự án -->
+    <footer class="border-top footer text-muted bg-light py-3 mt-auto">
+        <div class="container text-center">
+            &copy; 2026 - Grand Horizon Hotel - <a asp-area="" asp-page="/Privacy" class="text-decoration-none">Chính sách bảo mật</a>
         </div>
     </footer>
 
+    <!-- Khai báo các thư viện Script -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
