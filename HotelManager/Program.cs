@@ -4,19 +4,25 @@ using HotelManager.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Cấu hình kết nối CSDL SQL Server (Entity Framework Core)
+// Cấu hình kết nối CSDL SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Cấu hình Cookie Authentication (Tự code, không dùng Identity)
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Auth/DangNhap";
-        options.ExpireTimeSpan = TimeSpan.FromDays(7);
-    });
+// KHAI BÁO COOKIE AUTHENTICATION (CHỈ ĐƯỢC KHAI BÁO 1 LẦN DUY NHẤT)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.LoginPath = "/Auth/DangNhap";
+    options.AccessDeniedPath = "/Index";
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+});
 
-// 3. CẤU HÌNH SESSION (BẮT BUỘC PHẢI CÓ ĐỂ CHẠY ĐƯỢC OTP)
+// Kích hoạt Session
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -50,10 +56,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();
-
-app.UseAuthentication();
-app.UseAuthorization();
+// 2. MIDDLEWARE BẢO MẬT: Bắt buộc nằm giữa UseRouting và MapRazorPages
+app.UseAuthentication(); // Bước A: Xác định "Anh là ai?" (Đọc Cookie)
+app.UseAuthorization();  // Bước B: Xác định "Anh có quyền không?" (Kiểm tra Role)
+app.UseSession();        // Kích hoạt phiên làm việc
 
 app.MapRazorPages();
 
