@@ -1,35 +1,26 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HotelManager.Models
 {
-    [Table("LICH_LAM_VIEC")]
     public class LICH_LAM_VIEC
     {
-        [Key]
-        [Column(TypeName = "varchar(20)")]
-        public string MaLich { get; set; } = default!;
+        public int Id { get; set; }
 
-        [Column(TypeName = "varchar(20)")]
-        public string? NHAN_VIENMaNV { get; set; }
+        // Thông tin nhân viên
+        public string MaNhanVien { get; set; } = string.Empty;
+        public string TenNhanVien { get; set; } = string.Empty;
+        public string BoPhan { get; set; } = string.Empty;
+        public string ChucVu { get; set; } = string.Empty;
 
-        [Column(TypeName = "date")]
-        public DateTime? NgayLamViec { get; set; }
+        // Thông tin ca làm việc
+        public string TieuDe { get; set; } = string.Empty;
+        public string LoaiCa { get; set; } = string.Empty;
+        public string KhuVuc { get; set; } = string.Empty;
+        public DateTime ThoiGianBatDau { get; set; }
+        public DateTime ThoiGianKetThuc { get; set; }
+        public string TrangThai { get; set; } = "Sắp diễn ra";
 
-        [Column(TypeName = "nvarchar(50)")]
-        public string? CaLamViec { get; set; }
-
-        [Column(TypeName = "datetime")]
-        public DateTime? GioCheckIn { get; set; }
-
-        [Column(TypeName = "datetime")]
-        public DateTime? GioCheckOut { get; set; }
-
-        [Column(TypeName = "nvarchar(50)")]
-        public string? TrangThai { get; set; }
-
-        [Column(TypeName = "nvarchar(255)")]
-        public string? GhiChu { get; set; }
+        // Chi tiết công việc
+        public string GhiChu { get; set; } = string.Empty;
     }
 }

@@ -1,0 +1,150 @@
+﻿@page
+@model HotelManager.Pages.Auth.DangKyModel
+@{
+    ViewData["Title"] = "Đăng Ký Tài Khoản";
+    Layout = null; // Tắt Layout mặc định để tạo trang full màn hình
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Phần mềm Quản lý Khách sạn</title>
+    <!-- Tích hợp Bootstrap 5 và Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <style>
+            body {
+                background-color: #f4f6f9;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                padding: 20px 0;
+            }
+
+            .auth-card {
+                max-width: 550px;
+                width: 100%;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                border-radius: 8px;
+                background: white;
+            }
+
+            .auth-header {
+                background-color: #0d6efd;
+                color: white;
+                text-align: center;
+                padding: 20px;
+                font-weight: bold;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+            }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="auth-header text-uppercase fs-5">
+            <i class="fas fa-user-plus me-2"></i> TẠO TÀI KHOẢN MỚI
+        </div>
+
+        <div class="p-4">
+            <!-- Khu vực hiển thị cảnh báo lỗi -->
+            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+            {
+                <div class="alert alert-danger py-2 small"><i class="fas fa-exclamation-triangle me-2"></i> @Model.ThongBaoLoi</div>
+            }
+
+            <form method="post">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold small">Họ và tên</label>
+                        <input type="text" class="form-control" asp-for="Input.HoTen" placeholder="Nhập đầy đủ họ tên..." required />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold small">Số điện thoại</label>
+                        <input type="tel" class="form-control" asp-for="Input.SDT" placeholder="Nhập số điện thoại..." required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold small">Email</label>
+                        <input type="email" class="form-control" asp-for="Input.Email" placeholder="Nhập địa chỉ email..." required />
+                    </div>
+                </div>
+
+                <div class="mb-3 mt-2 border-top pt-3">
+                    <label class="form-label fw-bold small">Tên đăng nhập</label>
+                    <input type="text" class="form-control" asp-for="Input.TenDangNhap" placeholder="Nhập tên đăng nhập..." required />
+                </div>
+
+                <div class="row">
+                    <!-- Ô Mật khẩu tích hợp icon ẩn/hiện -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold small">Mật khẩu</label>
+                        <div class="input-group">
+                            <input asp-for="Input.MatKhau" type="password" class="form-control" id="matKhauInput" placeholder="Mật khẩu..." minlength="6" required />
+                            <span class="input-group-text bg-white text-secondary" id="toggleMatKhau" style="cursor: pointer;" title="Ẩn/Hiện mật khẩu">
+                                <i class="bi bi-eye-slash" id="eyeIconMatKhau"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Ô Xác nhận mật khẩu tích hợp icon ẩn/hiện -->
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label fw-bold small">Xác nhận mật khẩu</label>
+                        <div class="input-group">
+                            <input asp-for="Input.XacNhanMatKhau" type="password" class="form-control" id="xacNhanMatKhauInput" placeholder="Nhập lại mật khẩu..." minlength="6" required />
+                            <span class="input-group-text bg-white text-secondary" id="toggleXacNhan" style="cursor: pointer;" title="Ẩn/Hiện mật khẩu">
+                                <i class="bi bi-eye-slash" id="eyeIconXacNhan"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">ĐĂNG KÝ TÀI KHOẢN</button>
+            </form>
+        </div>
+
+        <div class="text-center p-3 border-top bg-light" style="border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+            <span class="small text-muted">Đã có tài khoản?</span>
+            <a asp-page="/Auth/DangNhap" class="text-decoration-none fw-bold small ms-1">Đăng nhập ngay</a>
+        </div>
+    </div>
+
+    <!-- Script xử lý ẩn/hiện mật khẩu cho cả 2 ô -->
+    <script>
+            // Xử lý cho ô Mật khẩu
+            document.getElementById('toggleMatKhau').addEventListener('click', function () {
+                const input = document.getElementById('matKhauInput');
+                const icon = document.getElementById('eyeIconMatKhau');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                }
+            });
+
+            // Xử lý cho ô Xác nhận mật khẩu
+            document.getElementById('toggleXacNhan').addEventListener('click', function () {
+                const input = document.getElementById('xacNhanMatKhauInput');
+                const icon = document.getElementById('eyeIconXacNhan');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                }
+            });
+    </script>
+</body>
+</html>

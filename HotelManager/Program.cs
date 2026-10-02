@@ -1,35 +1,36 @@
-using HotelManager.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
+using HotelManager.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Lấy chuỗi kết nối từ appsettings.json
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Không tìm thấy chuỗi kết nối DefaultConnection.");
-
-// Đăng ký ApplicationDbContext vào hệ thống Dependency Injection
+// Cấu hình kết nối CSDL SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add services to the container.
-builder.Services.AddRazorPages();
-// 1. CẤU HÌNH COOKIE AUTHENTICATION VÀ ĐẶT LÀM MẶC ĐỊNH CHO TOÀN HỆ THỐNG
+// KHAI BÁO COOKIE AUTHENTICATION (CHỈ ĐƯỢC KHAI BÁO 1 LẦN DUY NHẤT)
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme; // Dòng này sẽ sửa triệt để lỗi màu đỏ của bạn
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
 .AddCookie(options =>
 {
-    // Cấu hình đường dẫn điều hướng thông minh
-    options.LoginPath = "/Auth/DangNhap"; // Trục xuất về trang này nếu chưa đăng nhập
-    options.AccessDeniedPath = "/Index";  // Trục xuất về trang chủ nếu ĐÃ đăng nhập nhưng SAI QUYỀN (VD: Lễ tân cố vào trang Admin)
+    options.LoginPath = "/Auth/DangNhap";
+    options.AccessDeniedPath = "/Index";
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
 });
 
-// Kích hoạt Session (Hỗ trợ luồng Quên mật khẩu UC_01 mà bạn Trần làm)
-builder.Services.AddSession();
+// Kích hoạt Session
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
@@ -37,7 +38,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
