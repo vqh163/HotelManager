@@ -1,22 +1,28 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using HotelManager.Data; // Namespace chứa ApplicationDbContext của nhóm
+using HotelManager.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Cấu hình kết nối CSDL SQL Server (Entity Framework Core)
+// Cấu hình kết nối CSDL SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Cấu hình Cookie Authentication (Tự code, không dùng Identity)
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Auth/DangNhap";
-        options.ExpireTimeSpan = TimeSpan.FromDays(7);
-    });
+// KHAI BÁO COOKIE AUTHENTICATION (CHỈ ĐƯỢC KHAI BÁO 1 LẦN DUY NHẤT)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.LoginPath = "/Auth/DangNhap";
+    options.AccessDeniedPath = "/Index";
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+});
 
-// 3. CẤU HÌNH SESSION (BẮT BUỘC PHẢI CÓ ĐỂ CHẠY ĐƯỢC OTP)
+// Kích hoạt Session
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -24,12 +30,21 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// Add services to the container.
-builder.Services.AddRazorPages();
+// 4. CẤU HÌNH PHÂN QUYỀN (BẮT BUỘC ĐỂ KHÓA CÁC TRANG NỘI BỘ)
+// Vai trò lưu trong TAI_KHOAN.VaiTro ("Quản trị viên", "Quản lý", "Lễ tân"...)
+// được đưa vào Claim Role khi đăng nhập (xem DangNhap.cshtml.cs).
+
+builder.Services.AddRazorPages(options =>
+{
+    // Toàn bộ thư mục Quản trị hệ thống chỉ cho phép vai trò "Quản trị viên".
+    options.Conventions.AuthorizeFolder("/QuanTriHeThong", "QuanTriVienOnly");
+});
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("QuanTriVienOnly", policy => policy.RequireRole("Quản trị viên"));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -41,11 +56,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// 4. KÍCH HOẠT SESSION MIDDLEWARE (Đặt sau UseRouting và trước UseAuthentication/UseAuthorization)
-app.UseSession();
-
-app.UseAuthentication();
-app.UseAuthorization();
+// 2. MIDDLEWARE BẢO MẬT: Bắt buộc nằm giữa UseRouting và MapRazorPages
+app.UseAuthentication(); // Bước A: Xác định "Anh là ai?" (Đọc Cookie)
+app.UseAuthorization();  // Bước B: Xác định "Anh có quyền không?" (Kiểm tra Role)
+app.UseSession();        // Kích hoạt phiên làm việc
 
 app.MapRazorPages();
 

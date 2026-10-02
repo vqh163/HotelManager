@@ -1,0 +1,102 @@
+﻿@page
+@model HotelManager.Pages.QuanLySoDoPhong.ThemPhongModel
+@{
+    ViewData["Title"] = "Thêm Phòng Mới";
+}
+
+<div class="container mt-5">
+    <div class="card shadow border-0 rounded-3">
+        <div class="card-header bg-warning text-dark py-3">
+            <h4 class="fw-bold mb-0 text-center">THÊM PHÒNG MỚI</h4>
+        </div>
+        <div class="card-body p-4">
+
+            <!-- Bắt buộc có enctype để upload ảnh -->
+            <form method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="InputPhong.MaPhong" class="form-label fw-bold">Mã Phòng</label>
+                        <input asp-for="InputPhong.MaPhong" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="InputPhong.SoPhong" class="form-label fw-bold">Số Phòng</label>
+                        <input asp-for="InputPhong.SoPhong" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="InputPhong.LoaiPhong" class="form-label fw-bold">Hạng Phòng</label>
+                        <select asp-for="InputPhong.LoaiPhong" class="form-select">
+                            <option value="Standard">Standard</option>
+                            <option value="Superior">Superior</option>
+                            <option value="Deluxe">Deluxe</option>
+                            <option value="Suite">Suite</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Giá Theo Ngày</label>
+                        <!-- Ô hiển thị cho người dùng (Định dạng VND) -->
+                        <input type="text" id="displayPrice" class="form-control" placeholder="Ví dụ: 2.000.000 VND" />
+                        <!-- Ô ẩn lưu giá trị số thực để gửi về C# -->
+                        <input type="hidden" id="actualPrice" asp-for="InputPhong.GiaTheoNgay" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Hình Ảnh Phòng</label>
+                    <input type="file" asp-for="HinhAnhUpload" class="form-control" accept="image/*" />
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="InputPhong.SoGiuong" class="form-label fw-bold">Số Giường</label>
+                        <input asp-for="InputPhong.SoGiuong" type="number" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="InputPhong.SucChuaToiDa" class="form-label fw-bold">Sức Chứa Tối Đa</label>
+                        <input asp-for="InputPhong.SucChuaToiDa" type="number" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="InputPhong.MoTa" class="form-label fw-bold">Mô Tả</label>
+                    <textarea asp-for="InputPhong.MoTa" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/QuanLySoDoPhong/TimPhong" class="btn btn-secondary px-4">Quay lại</a>
+                    <button type="submit" class="btn btn-warning text-white fw-bold px-5">LƯU PHÒNG</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const displayInput = document.getElementById('displayPrice');
+            const hiddenInput = document.getElementById('actualPrice');
+
+            displayInput.addEventListener('input', function () {
+                // Xóa bỏ tất cả ký tự không phải số
+                let rawValue = this.value.replace(/[^0-9]/g, '');
+
+                if (rawValue) {
+                    // Cập nhật giá trị thật vào thẻ hidden
+                    hiddenInput.value = rawValue;
+                    // Format lại số và thêm đuôi VND
+                    this.value = new Intl.NumberFormat('vi-VN').format(rawValue) + ' VND';
+                } else {
+                    hiddenInput.value = '';
+                    this.value = '';
+                }
+            });
+        });
+    </script>
+}

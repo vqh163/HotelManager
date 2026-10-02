@@ -1,6 +1,10 @@
 ﻿@page
 @model HotelManager.Pages.Auth.DangXuatModel
 @{
-    // Trang này không có giao diện HTML.
-    // File này chỉ tồn tại để ASP.NET Core nhận diện được route /Auth/DangXuat và kích hoạt hàm OnPostAsync.
+    ViewData["Title"] = "Đăng xuất";
 }
+
+<!-- Trang này chủ yếu xử lý logic Backend, người dùng sẽ không thấy giao diện này do được Redirect ngay lập tức -->
+<div class="container py-5 text-center">
+    <h3 class="text-muted">Đang xử lý đăng xuất hệ thống...</h3>
+</div>

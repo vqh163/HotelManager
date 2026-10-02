@@ -1,10 +1,223 @@
 ﻿@page
-@model IndexModel
+@model HotelManager.Pages.IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Trang chủ - Grand Horizon Hotel";
+    Layout = null; // Vô hiệu hóa Layout chung để hiển thị trọn vẹn Landing Page thiết kế riêng
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <!-- Thư viện CSS Bootstrap 5 -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+            /* Tạo hiệu ứng cuộn trang mượt mà (Smooth Scrolling) */
+            html {
+                scroll-behavior: smooth;
+            }
+    </style>
+</head>
+<body>
+
+    <!-- Mốc định vị ở đầu trang để nút Trang chủ và Logo cuộn lên -->
+    <div id="top-trang-chu"></div>
+
+    <!-- Thanh công cụ (Navbar) gắn cố định trên cùng -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top shadow-sm">
+        <div class="container">
+            <!-- 4. Logo (Grand Horizon): Bấm vào sẽ cuộn mượt lên đầu trang (#top-trang-chu) -->
+            <a class="navbar-brand d-flex align-items-center" href="#trang-1-gioi-thieu">
+                <img src="~/images/logo.png" alt="Grand Horizon Logo" style="height: 50px; width: auto;" class="me-2">
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+                <ul class="navbar-nav gap-3 fw-semibold">
+                    <!-- 1. Trang chủ: Bấm vào sẽ cuộn mượt lên đầu trang (#top-trang-chu) -->
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="#top-trang-chu">Trang chủ</a>
+                    </li>
+                    <!-- 2. Phòng: Cuộn đến khu vực phòng Superior/Standard -->
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="#trang-2-phong-standard">Phòng</a>
+                    </li>
+                    <!-- 3. Ẩm thực: Cuộn đến khu vực nhà hàng -->
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="#trang-6-am-thuc">Ẩm thực</a>
+                    </li>
+                    <!-- 5. Liên hệ: Cuộn đến chân trang (Footer) -->
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="#trang-7-lien-he">Liên hệ</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="d-flex gap-2">
+                <!-- 6 & 7. Đăng nhập / Đăng ký (Thuộc UC_01, UC_02 trong Sprint 1) -->
+                <a asp-page="/Auth/DangNhap" class="btn btn-outline-primary fw-bold px-4 rounded-pill position-relative" style="z-index: 1040;">Đăng nhập</a>
+                <a asp-page="/Auth/DangKy" class="btn btn-primary fw-bold px-4 rounded-pill position-relative" style="z-index: 1040;">Đăng ký</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Xử lý hiển thị lỗi Backend nếu có -->
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="container mt-3">
+            <div class="alert alert-danger shadow-sm">@Model.ThongBaoLoi</div>
+        </div>
+    }
+
+    <main data-bs-spy="scroll" data-bs-target="#navbarNav" tabindex="0">
+        <div class="position-relative">
+            <img src="~/images/banner.png" alt="Grand Horizon Banner" class="img-fluid w-100" style="height: 700px; object-fit: cover;">
+        </div>
+
+        <!-- TRANG 1: GIỚI THIỆU CHUNG & LOGO -->
+        <section id="trang-1-gioi-thieu" class="container-fluid py-5 bg-light">
+            <div class="container row align-items-center py-5 mx-auto">
+                <div class="col-lg-6">
+                    <img src="~/images/logo.png" alt="Grand Horizon Logo" style="height: 250px; width: auto; " class="me-2">
+                    <h1 class="display-4 fw-bold text-dark mb-4" style="text-align: center;">Feel at Home,<br>Away from Home.</h1>
+                    <h4 class="text-secondary fst-italic mb-4" style="text-align: center;">"Xa nhà nhưng vẫn cảm thấy như ở nhà"</h4>
+                </div>
+                <div class="col-lg-6">
+                    <div>
+                        <p class="fs-5 text-muted lh-lg">
+                        Khách sạn Grand Horizon thành lập năm 2026 bởi các nhà đồng sáng lập thuộc cổ đông của khách sạn.<br>Tọa lạc tại số 109, đường A, phường B, thành phố C.<br>Với quy mô gồm 100 phòng, sức chứa lên đến hơn 200 khách và bao gồm hơn 50 nhân sự cả khách sạn, chúng tôi đã sẵn sàng mang đến cho bạn những trải nghiệm tuyệt vời với sự phục vụ tận tình và ấm áp như tại ngôi nhà của chính bạn.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRANG 2 & 3 & 4 & 5:  -->
+        <section id="trang-2-phong-standard" class="container py-5">
+            <div class="row align-items-center flex-row-reverse py-4">
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold mb-3">Standard</h2>
+                    <h5 class="text-muted mb-4">Phòng tiêu chuẩn - Tiện nghi, thoải mái, giá hợp lý</h5>
+                    <p class="text-muted" style="text-align: justify;">Phòng Standard mang phong cách hiện đại, thanh lịch và thoải mái, phù hợp cho khách du lịch cá nhân hoặc các cặp đôi. Không gian được thiết kế gọn gàng nhưng đầy đủ tiện nghi, sử dụng tông màu kem, gỗ sáng và xanh teal tạo cảm giác thư giãn, tươi mát. Phòng bố trí 1 giường đôi hoặc 2 giường đơn với nệm cao cấp, chăn ga trắng sạch và các điểm nhấn màu xanh đặc trưng của Grand Horizon. Khu vực làm việc có bàn gỗ, ghế bọc nệm và đầy đủ tiện ích cho khách nghỉ ngơi hoặc làm việc. Cửa kính lớn mở ra ban công với tầm nhìn hướng vườn nhiệt đới và biển, mang nhiều ánh sáng tự nhiên vào phòng. Nội thất gồm TV màn hình lớn, tủ quần áo, bàn làm việc, ghế thư giãn, minibar và khu vực để hành lý. Phòng tắm được thiết kế hiện đại với vật liệu đá sáng màu và các thiết bị vệ sinh cao cấp.</p>
+                </div>
+                <div class="col-lg-6">
+                    <div class="bg-secondary rounded-4 shadow" style="height: 400px; background: url('/images/standard.png') center/cover;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="trang-3-phong-superior" class="container py-5 bg-white">
+            <div class="row align-items-center py-4">
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold mb-3">Superior</h2>
+                    <h5 class="text-muted mb-4">Không gian rộng rãi hơn, tầm nhìn đẹp hơn</h5>
+                    <p class="text-muted" style="text-align: justify;">Phòng Superior mang phong cách hiện đại, tinh tế và rộng rãi hơn Standard, phù hợp cho các cặp đôi, gia đình nhỏ hoặc khách lưu trú dài ngày. Không gian được thiết kế thoáng đãng với tông màu kem, gỗ tự nhiên và xanh teal, tạo cảm giác sang trọng nhưng vẫn gần gũi và thư giãn. Phòng bố trí 1 giường đôi hoặc 2 giường đơn với nệm cao cấp, chăn ga trắng sạch và các chi tiết xanh teal đặc trưng của Grand Horizon. Không gian sinh hoạt được mở rộng với khu vực ghế sofa và bàn trà, mang đến sự thoải mái hơn cho khách nghỉ ngơi. Khu vực làm việc có bàn gỗ, ghế bọc nệm và đầy đủ tiện ích. Cửa kính lớn mở ra ban công riêng với tầm nhìn đẹp hơn về vườn nhiệt đới và biển, giúp căn phòng luôn tràn ngập ánh sáng tự nhiên. Nội thất gồm TV màn hình lớn, tủ quần áo, bàn làm việc, ghế sofa, minibar và khu vực để hành lý. Phòng tắm được thiết kế hiện đại với vật liệu đá sáng màu và các thiết bị vệ sinh cao cấp.</p>
+                </div>
+                <div class="col-lg-6">
+                    <div class="bg-secondary rounded-4 shadow" style="height: 400px; background: url('/images/superior.png') center/cover;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="trang-4-phong-deluxe" class="container py-5">
+            <div class="row align-items-center flex-row-reverse py-4">
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold mb-3">Deluxe</h2>
+                    <h5 class="text-muted mb-4">Sang trọng, thoáng đãng, trải nghiệm đẳng cấp</h5>
+                    <p class="text-muted" style="text-align: justify;">Phòng Deluxe mang phong cách hiện đại, sang trọng và tinh tế, phù hợp cho các cặp đôi, gia đình nhỏ hoặc khách lưu trú dài ngày. Không gian được thiết kế rộng rãi hơn Superior, sử dụng tông màu kem, gỗ tự nhiên và xanh teal đậm tạo cảm giác cao cấp nhưng vẫn gần gũi và thư giãn. Phòng bố trí 1 giường đôi lớn hoặc 2 giường đơn với nệm cao cấp, chăn ga trắng tinh và các điểm nhấn xanh teal đặc trưng của Grand Horizon. Khu vực nghỉ ngơi được mở rộng với ghế sofa và bàn trà, kết hợp bàn làm việc riêng, mang đến sự thuận tiện cho cả nghỉ dưỡng và làm việc. Cửa kính lớn mở ra ban công riêng với tầm nhìn rộng hướng biển và khu vườn nhiệt đới, đón nhiều ánh sáng tự nhiên và tạo cảm giác thoáng đãng. Nội thất gồm TV màn hình lớn, tủ quần áo, bàn làm việc, sofa, minibar, khu vực để hành lý và bàn trà. Phòng tắm được nâng cấp với đá sáng màu, vòi sen cao cấp và các thiết bị vệ sinh hiện đại, mang lại trải nghiệm lưu trú tiện nghi và sang trọng hơn.</p>
+                </div>
+                <div class="col-lg-6">
+                    <div class="bg-secondary rounded-4 shadow" style="height: 400px; background: url('/images/deluxe.png') center/cover;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="trang-5-phong-suite" class="container py-5 bg-white">
+            <div class="row align-items-center py-4">
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold mb-3">Suite</h2>
+                    <h5 class="text-muted mb-4">Không gian riêng tư, đẳng cấp thượng lưu</h5>
+                    <p class="text-muted" style="text-align: justify;">Phòng Suite mang phong cách thượng lưu, xa hoa và đẳng cấp, là lựa chọn hoàn hảo cho giới tinh hoa, gia đình nghỉ dưỡng hoặc những vị khách yêu cầu sự hoàn mỹ tuyệt đối. Không gian riêng tư được thiết kế vô cùng rộng rãi với diện tích lớn, sử dụng vách ốp gỗ tự nhiên, sàn đá cẩm thạch sang trọng, tạo nên một tổng thể lộng lẫy nhưng vẫn vô cùng thư thái và ấm cúng. Phòng nổi bật với thiết kế không gian mở nhưng vẫn đảm bảo sự riêng tư thông qua hệ cửa trượt kính viền gỗ ngăn cách tinh tế giữa phòng khách và phòng ngủ.Khu vực phòng khách cực kỳ bề thế với bộ sofa êm ái và bàn trà mặt đá đôi, mang đến không gian sinh hoạt chung lý tưởng và xứng tầm. Hệ thống cửa kính trong suốt sát trần trải dài ở cả phòng khách và phòng ngủ mở ra ban công rộng lớn, thu trọn tầm nhìn bao quát hướng ra đại dương xanh mát, giúp căn phòng luôn bừng sáng bởi ánh sáng tự nhiên. Nội thất được trang bị tối tân gồm hệ thống đèn chùm lộng lẫy, TV màn hình siêu lớn, kệ tủ sang trọng và không gian lưu trữ rộng rãi.</p>
+                </div>
+                <div class="col-lg-6">
+                    <div class="bg-secondary rounded-4 shadow" style="height: 400px; background: url('/images/suite.png') center/cover;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRANG 6: ẨM THỰC (Thiết kế bám sát mẫu thiết kế) -->
+        <section id="trang-6-am-thuc" class="container py-5 my-5">
+            <div class="row align-items-center g-5">
+                <!-- Cột trái: Hình ảnh không gian nhà hàng & thông tin chi tiết -->
+                <div class="col-lg-6">
+                    <div class="mb-4 shadow-sm rounded-4 overflow-hidden border">
+                        <img src="~/images/am-thuc-1.jpg" alt="Không gian nhà hàng Grand Horizon" class="img-fluid w-100" style="height: 380px; object-fit: cover;" />
+                    </div>
+                    <div class="p-4 bg-light rounded-4 shadow-sm border-start border-warning border-4">
+                        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle text-warning me-2"></i>Thông tin chi tiết:</h5>
+                        <ul class="list-unstyled mb-0 lh-lg text-secondary">
+                            <li><i class="bi bi-geo-alt-fill text-primary me-2"></i><strong>Vị trí:</strong> Tầng 1 (Tầng trệt)</li>
+                            <li><i class="bi bi-people-fill text-primary me-2"></i><strong>Sức chứa:</strong> 100 thực khách</li>
+                            <li><i class="bi bi-clock-fill text-primary me-2"></i><strong>Giờ phục vụ:</strong> 06:00 – 22:00</li>
+                            <li><i class="bi bi-cup-hot-fill text-primary me-2"></i><small class="fst-italic">(Buffet sáng phục vụ từ 06:00 – 10:00)</small></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Cột phải: Tiêu đề, trích dẫn văn bản & ảnh thực khách -->
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold mb-3" style="text-align: right;" >Ẩm thực</h2>
+                    <blockquote class="blockquote fs-5 text-secondary fst-italic mb-4 p-3 bg-white shadow-sm rounded-3 border-start border-primary border-3">
+                        "Thưởng thức ẩm thực đỉnh cao tại không gian sang trọng của Grand Horizon, nơi ánh sáng tự nhiên hòa quyện tinh tế cùng nội thất trắng, vàng kim và xanh biển."
+                    </blockquote>
+                    <div class="shadow-sm rounded-4 overflow-hidden border">
+                        <img src="~/images/am-thuc-2.jpg" alt="Thực khách dùng bữa tại nhà hàng" class="img-fluid w-100" style="height: 320px; object-fit: cover;" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRANG 7: LIÊN HỆ / FOOTER -->
+        <section id="trang-7-lien-he" class="bg-dark text-white pt-5 pb-3">
+            <div class="container">
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-4">
+                        <img src="~/images/logo.png" alt="Grand Horizon Logo" style="height: 55px; width: auto; " class="me-2">
+                        <p><i class="bi bi-geo-alt-fill me-2"></i> Số 109, đường A, phường B, thành phố C.</p>
+                        <p><i class="bi bi-telephone-fill me-2"></i> Hotline: 1999 9191</p>
+                        <p><i class="bi bi-envelope-fill me-2"></i> GrandHorizonRestaurant.vn</p>
+                    </div>
+                    <div class="col-lg-4">
+                        <h5 class="fw-bold mb-4">Điều khoản & Quy định</h5>
+                        <ul class="list-unstyled lh-lg">
+                            <li><a href="#" class="text-white text-decoration-none">Điều khoản chung</a></li>
+                            <li><a href="#" class="text-white text-decoration-none">Quy định chung</a></li>
+                            <li><a href="#" class="text-white text-decoration-none">Quy định thanh toán</a></li>
+                            <li><a href="#" class="text-white text-decoration-none">Chính sách thanh toán</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-lg-4">
+                        <h5 class="fw-bold mb-4">Hỗ trợ khách hàng</h5>
+                        <p>Bạn cần giúp đỡ?</p>
+                        <p>Bạn muốn đặt chỗ?</p>
+                        <p class="text-muted mt-4">Lĩnh vực kinh doanh:<br>Khách sạn, căn hộ kinh doanh dịch vụ lưu trú ngắn ngày[cite: 17]</p>
+                    </div>
+                </div>
+                <hr class="border-secondary">
+                <div class="text-center text-muted small">
+                    &copy; 2026 Grand Horizon Hotel. Tất cả các quyền được bảo lưu.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Thư viện JS Bootstrap 5 -->
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

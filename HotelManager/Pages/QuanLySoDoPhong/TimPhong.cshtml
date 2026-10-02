@@ -1,0 +1,89 @@
+﻿@page
+@model HotelManager.Pages.QuanLySoDoPhong.TimPhongModel
+@{
+    ViewData["Title"] = "Tìm Kiếm Phòng - Grand Horizon";
+}
+
+<div class="container bg-light py-5">
+    <!-- Form Tìm kiếm -->
+    <div class="card shadow-sm border-0 rounded-3 mb-5 p-2">
+        <div class="card-body">
+            <form method="post" class="row align-items-center">
+                <div class="col-md-4 border-end">
+                    <label class="form-label text-muted small mb-0">Nhận phòng - Trả phòng</label>
+                    <div class="d-flex align-items-center">
+                        <input asp-for="Input.NgayNhan" type="date" class="form-control border-0 fw-bold shadow-none p-0" />
+                        <span class="mx-2">—</span>
+                        <input asp-for="Input.NgayTra" type="date" class="form-control border-0 fw-bold shadow-none p-0" />
+                    </div>
+                </div>
+
+                <div class="col-md-3 border-end px-4">
+                    <label class="form-label text-muted small mb-0">Số khách</label>
+                    <input asp-for="Input.SoKhach" type="number" min="1" class="form-control border-0 fw-bold shadow-none p-0" placeholder="Số lượng khách" />
+                </div>
+
+                <div class="col-md-3 px-4">
+                    <label class="form-label text-muted small mb-0">Hạng phòng</label>
+                    <select asp-for="Input.LoaiPhongTimKiem" class="form-select border-0 fw-bold shadow-none p-0">
+                        <option value="Tất cả">Tất cả hạng phòng</option>
+                        <option value="Standard">Phòng Standard</option>
+                        <option value="Superior">Phòng Superior</option>
+                        <option value="Deluxe">Phòng Deluxe</option>
+                        <option value="Suite">Phòng Suite</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 text-end">
+                    <button type="submit" class="btn btn-warning text-white fw-bold w-100 py-2 rounded-3">TÌM KIẾM</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hiển thị lỗi hệ thống nếu có -->
+    @if (!ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All"></div>
+    }
+
+    <!-- Danh sách phòng kết quả -->
+    <div class="row g-4">
+        @if (Model.DanhSachPhong != null && Model.DanhSachPhong.Any())
+        {
+            foreach (var phong in Model.DanhSachPhong)
+            {
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <img src="https://via.placeholder.com/400x250?text=@phong.LoaiPhong" class="card-img-top rounded-top" alt="Room Image">
+
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="fw-bold mb-1">Phòng @phong.SoPhong - @phong.LoaiPhong</h5>
+                            <p class="text-muted small mb-3">@phong.MoTa</p>
+
+                            <ul class="list-inline small text-secondary mb-4">
+                                <li class="list-inline-item me-3"><i class="bi bi-bed"></i> @phong.SoGiuong Giường</li>
+                                <li class="list-inline-item me-3"><i class="bi bi-arrows-fullscreen"></i> Tối đa @phong.SucChuaToiDa khách</li>
+                                <li class="list-inline-item"><i class="bi bi-wifi"></i> Wifi miễn phí</li>
+                            </ul>
+
+                            <h5 class="fw-bold text-success mt-auto">
+                                @(phong.GiaTheoNgay.HasValue ? phong.GiaTheoNgay.Value.ToString("N0") : "0") VND <span class="text-muted small fw-normal">/ Đêm</span>
+                            </h5>
+                        </div>
+
+                        <div class="card-footer bg-white border-0 pb-3 pt-0">
+                            <a asp-page="/QuanLySoDoPhong/ChiTietPhong" asp-route-id="@phong.MaPhong" class="btn btn-outline-primary w-100 fw-bold">Xem chi tiết & Đặt phòng</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center text-muted py-5">
+                <p>Không tìm thấy phòng nào phù hợp với tiêu chí tìm kiếm.</p>
+            </div>
+        }
+    </div>
+</div>
