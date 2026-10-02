@@ -33,5 +33,9 @@ namespace HotelManager.Models
 
         [Column(TypeName = "nvarchar(255)")]
         public string? MoTa { get; set; }
+
+        // Bổ sung cột lưu đường dẫn hình ảnh
+        [Column(TypeName = "nvarchar(255)")]
+        public string? HinhAnh { get; set; }
     }
 }
