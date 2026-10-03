@@ -62,5 +62,5 @@ app.UseAuthorization();  // Bước B: Xác định "Anh có quyền không?" (K
 app.UseSession();        // Kích hoạt phiên làm việc
 
 app.MapRazorPages();
-
+app.UseStaticFiles();
 app.Run();

@@ -77,15 +77,16 @@
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
 
                                     <!-- LUỒNG 1: Nếu KHÔNG PHẢI Quản trị viên thì mới hiển thị Lịch cá nhân -->
-                                    @if (!User.IsInRole("Quản trị viên"))
+                                    @if (User.IsInRole("Quản lý"))
                                     {
-                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch cá nhân (UC_10)</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Quản lý Lịch làm việc</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/QuanLyDSPhong"><i class="bi bi-door-open me-2"></i>Quản lý Danh sách phòng</a></li>
                                     }
 
                                     <!-- LUỒNG 2: Liên kết đến UC_13 (Chỉ hiển thị nếu LÀ Quản trị viên) -->
                                     @if (User.IsInRole("Quản trị viên"))
                                     {
-                                        <li><a class="dropdown-item py-2 text-primary" asp-page="/QuanTriHeThong/QuanLyTaiKhoan"><i class="bi bi-gear me-2"></i>Quản trị hệ thống (UC_13)</a></li>
+                                        <li><a class="dropdown-item py-2 text-primary" asp-page="/QuanTriHeThong/QuanLyTaiKhoan"><i class="bi bi-gear me-2"></i>Quản trị hệ thống</a></li>
                                     }
 
                                     <li><hr class="dropdown-divider"></li>
