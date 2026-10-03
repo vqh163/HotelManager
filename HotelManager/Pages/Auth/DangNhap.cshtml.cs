@@ -108,7 +108,7 @@ namespace HotelManager.Pages.Auth
                         return RedirectToPage("/QuanLyTienSanh/Index");
 
                     case "Khách hàng":
-                        return RedirectToPage("/Index");
+                        return RedirectToPage("/QuanLySoDoPhong/TimPhong");
 
                     default:
                         return RedirectToPage("/Index");
