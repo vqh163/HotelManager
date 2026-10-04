@@ -1,7 +1,7 @@
 @page
 @model HotelManager.Pages.QuanLyLichCaNhan.QuanLyLichCaNhanModel
 @{
-    ViewData["Title"] = "Quản lý Lịch & Ca Làm Việc";
+    ViewData["Title"] = "Lịch phân ca";
     var today = DateTime.Today;
     var prevMonth = Model.CurrentDate.AddMonths(-1);
     var nextMonth = Model.CurrentDate.AddMonths(1);
@@ -14,14 +14,21 @@
         .OrderByDescending(x => x.Id)
         .ToList();
 
+    // ==========================================
+    // BIẾN GIẢ LẬP ROLE
     bool isLoggedIn = true;
-    bool isManager = true;
+    bool isManager = true; // Đổi thành false để xem góc nhìn nhân viên
+    // ==========================================
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
 <style>
     header {
+        display: none !important;
+    }
+
+    footer {
         display: none !important;
     }
 
@@ -37,8 +44,8 @@
         min-height: 100vh;
     }
 
-    /* Sidebar */
-    .app-sidebar {
+    /* Sidebar Quản lý */
+    .manager-sidebar {
         width: 265px;
         background-color: #ffffff;
         border-right: 1px solid #e0e0e0;
@@ -131,16 +138,19 @@
     .submenu {
         background-color: #fafbfc;
         padding: 2px 0;
+        display: flex;
+        flex-direction: column;
     }
 
     .submenu-item {
         padding: 8px 20px 8px 50px;
-        color: #6c757d;
-        text-decoration: none;
+        color: #6c757d !important;
+        text-decoration: none !important;
         display: block;
         font-size: 0.84rem;
         transition: 0.2s;
         position: relative;
+        width: 100%;
     }
 
         .submenu-item::before {
@@ -168,12 +178,12 @@
         }
 
         .submenu-item:hover {
-            color: #3f51b5;
+            color: #3f51b5 !important;
             background-color: #f1f3f9;
         }
 
         .submenu-item.active {
-            color: #3f51b5;
+            color: #3f51b5 !important;
             font-weight: 600;
             background-color: #e8eaf6;
             border-right: 3px solid #3f51b5;
@@ -190,7 +200,6 @@
         min-width: 0;
     }
 
-    /* Navbar & User Profile */
     .pms-navbar {
         background-color: #ffffff;
         border-bottom: 1px solid #e0e0e0;
@@ -227,104 +236,276 @@
         padding: 24px 30px;
         overflow-y: auto;
         height: calc(100vh - 70px);
+        background: white;
     }
 
-    /* Custom cho Tab Button */
-    .nav-pills .nav-link {
-        color: #0d6efd;
-        font-weight: 600;
-        padding: 6px 20px;
+    .calendar-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .view-tabs {
+        display: inline-flex;
+        border: 1px solid #dee2e6;
         border-radius: 6px;
+        overflow: hidden;
     }
 
-        .nav-pills .nav-link:hover {
-            background-color: #e9ecef;
+        .view-tabs .nav-link {
+            border-radius: 0;
+            color: #495057;
+            font-weight: 500;
+            padding: 6px 16px;
+            border-right: 1px solid #dee2e6;
+            background: white;
         }
 
-        .nav-pills .nav-link.active {
-            background-color: #0d6efd;
-            color: white;
+            .view-tabs .nav-link:last-child {
+                border-right: none;
+            }
+
+            .view-tabs .nav-link:hover {
+                background-color: #f8f9fa;
+            }
+
+            .view-tabs .nav-link.active {
+                background-color: #0d6efd;
+                color: white;
+                border-color: #0d6efd;
+            }
+
+    .nav-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-today {
+        border: 1px solid #dee2e6;
+        background: white;
+        color: #0d6efd;
+        font-weight: 500;
+        padding: 6px 16px;
+        border-radius: 6px;
+        transition: 0.2s;
+        cursor: pointer;
+    }
+
+        .btn-today:hover {
+            background: #f8f9fa;
         }
+
+    .nav-arrow-group {
+        display: inline-flex;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .nav-arrow-btn {
+        background: white;
+        border: none;
+        padding: 6px 12px;
+        color: #0d6efd;
+        border-right: 1px solid #dee2e6;
+        transition: 0.2s;
+        cursor: pointer;
+        outline: none;
+    }
+
+        .nav-arrow-btn:last-child {
+            border-right: none;
+        }
+
+        .nav-arrow-btn:hover {
+            background: #f8f9fa;
+        }
+
+    .custom-date-picker {
+        position: relative;
+    }
+
+        .custom-date-picker input[type="date"] {
+            opacity: 0;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+    input[type="date"]::-webkit-clear-button,
+    input[type="date"]::-webkit-inner-spin-button {
+        display: none;
+        -webkit-appearance: none;
+    }
 
     .calendar-table {
-        background-color: white;
-        border-radius: 8px;
         table-layout: fixed;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        width: 100%;
+        border-collapse: collapse;
     }
 
         .calendar-table th {
             font-weight: 600;
-            color: #6c757d;
+            color: #495057;
             text-align: center;
             font-size: 0.85rem;
-            padding: 12px 0;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 15px 0;
+            border: 1px solid #dee2e6;
         }
 
         .calendar-table td {
-            height: 120px;
+            height: 140px;
             vertical-align: top;
-            padding: 8px;
-            border: 1px solid #f1f3f5;
+            padding: 35px 6px 6px 6px;
+            border: 1px solid #dee2e6;
+            position: relative;
         }
 
     .date-number {
-        font-size: 0.85rem;
-        font-weight: 600;
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        font-size: 0.95rem;
+        font-weight: 500;
         color: #495057;
     }
 
         .date-number.today {
-            color: white;
-            background-color: #0d6efd;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            color: #0d6efd;
+            font-weight: 800;
+            background: none;
         }
 
         .date-number.empty {
-            color: #ced4da;
-            font-weight: 400;
+            color: #adb5bd;
         }
 
     .shift-block {
         border-radius: 4px;
-        padding: 6px;
-        font-size: 0.7rem;
+        padding: 4px 6px;
+        font-size: 0.75rem;
         color: white;
-        margin-top: 4px;
+        margin-bottom: 3px;
         cursor: pointer;
-        transition: transform 0.1s;
-        line-height: 1.2;
+        transition: filter 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
     }
 
         .shift-block:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            filter: brightness(1.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-    .bg-morning {
-        background-color: #0d6efd;
+    .shift-span-start {
+        margin-right: -7px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        padding-right: 10px;
+        position: relative;
+        z-index: 2;
     }
 
-    .bg-afternoon {
+    .shift-span-end {
+        margin-left: -7px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        padding-left: 10px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .bg-letan {
+        background-color: #dc3545;
+    }
+
+    .bg-buongphong {
         background-color: #fd7e14;
     }
 
-    .bg-night {
-        background-color: #343a40;
+    .bg-baotri {
+        background-color: #0d6efd;
     }
 
-    .bg-admin {
-        background-color: #6f42c1;
+    .bg-fnb {
+        background-color: #198754;
     }
+
+    .bg-default {
+        background-color: #6c757d;
+    }
+
+    #quickViewPopup {
+        position: absolute;
+        z-index: 1050;
+        width: 320px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        display: none;
+    }
+
+        #quickViewPopup.show {
+            display: block;
+        }
+
+    .qv-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 12px 15px 5px 15px;
+    }
+
+    .qv-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #333;
+        margin: 0;
+        line-height: 1.3;
+    }
+
+    .qv-body {
+        padding: 5px 15px 15px 15px;
+        font-size: 0.85rem;
+        color: #495057;
+        line-height: 1.6;
+    }
+
+    .qv-footer {
+        padding: 8px 15px;
+        text-align: right;
+        border-top: 1px solid #f1f3f5;
+    }
+
+    .qv-btn {
+        background: none;
+        border: none;
+        font-size: 1.1rem;
+        color: #6c757d;
+        cursor: pointer;
+        margin-left: 10px;
+        transition: 0.2s;
+    }
+
+        .qv-btn:hover {
+            color: #0d6efd;
+        }
+
+        .qv-btn.text-danger:hover {
+            color: #dc3545 !important;
+        }
 
     .time-slot-table th {
-        width: 90px;
+        width: 100px;
         text-align: center;
         background-color: #f8f9fa;
         font-size: 0.85rem;
@@ -332,20 +513,24 @@
 
     .shift-bar {
         color: white;
-        padding: 6px 12px;
+        padding: 8px 12px;
         border-radius: 6px;
         font-size: 0.85rem;
         cursor: pointer;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        display: inline-block;
+        width: 100%;
     }
+
+        .shift-bar:hover {
+            filter: brightness(1.1);
+        }
 </style>
 
 <div class="app-container">
-    <!-- ================= CỘT TRÁI: SIDEBAR ================= -->
     <div class="app-sidebar shadow-sm">
         <div class="sidebar-header">
-            <i class="bi bi-buildings me-2" style="font-size: 1.3rem;"></i>
-            Hotel Manager
+            <i class="bi bi-buildings me-2" style="font-size: 1.3rem;"></i> Hotel Manager
         </div>
         <div class="sidebar-menu">
             <a href="#" class="menu-item"><span class="menu-item-left"><i class="bi bi-columns-gap main-icon"></i> Tổng quan</span></a>
@@ -353,7 +538,6 @@
             <div class="collapse submenu" id="menuQuanLyPhong">
                 <a href="#" class="submenu-item">Sơ đồ phòng</a><a href="#" class="submenu-item">Danh sách phòng</a><a href="#" class="submenu-item">Loại phòng</a>
             </div>
-            <!-- ... Các menu khác ... -->
             <a class="menu-item active-parent" data-bs-toggle="collapse" href="#menuNhanVien" aria-expanded="true"><span class="menu-item-left"><i class="bi bi-people main-icon"></i> Nhân viên</span><i class="bi bi-chevron-down text-muted chevron-icon"></i></a>
             <div class="collapse show submenu" id="menuNhanVien">
                 <a href="#" class="submenu-item">Danh sách nhân viên</a>
@@ -362,39 +546,29 @@
         </div>
     </div>
 
-    <!-- ================= CỘT PHẢI: MAIN CONTENT ================= -->
     <div class="main-content">
-        <!-- NAVBAR -->
         <nav class="pms-navbar shadow-sm">
             <div class="d-flex align-items-center">
-                <a href="/">
-                    <!-- Logo khách sạn -->
-                    <img src="~/images/logo.png" alt="Grand Horizon Hotel Logo" style="height: 45px; object-fit: contain;" />
-                </a>
+                <a href="/"><img src="~/images/logo.png" alt="Grand Horizon Hotel Logo" style="height: 45px; object-fit: contain;" /></a>
             </div>
-
             <div class="user-profile">
                 @if (isLoggedIn)
                 {
                     <div class="d-flex align-items-center">
-                        <a href="#" class="text-muted position-relative me-4 mt-1">
-                            <i class="bi bi-bell fs-5"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
-                        </a>
+                        <a href="#" class="text-muted position-relative me-4 mt-1"><i class="bi bi-bell fs-5"></i><span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span></a>
                         <div class="dropdown">
                             <a href="#" class="d-flex align-items-center gap-2 text-decoration-none text-dark" data-bs-toggle="dropdown">
-                                <!-- Avatar tài khoản -->
-                                <img src="https://ui-avatars.com/api/?name=Lê+Thị+D&background=e8eaf6&color=3f51b5&bold=true&rounded=true" alt="Avatar" style="width: 40px; height: 40px;">
+                                <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.EmployeeName)&background=e8eaf6&color=3f51b5&bold=true&rounded=true" alt="Avatar" style="width: 40px; height: 40px;">
                                 <div class="d-flex flex-column lh-1">
                                     <span class="fw-bold" style="font-size: 0.95rem;">@Model.EmployeeName</span>
-                                    <span class="text-muted mt-1" style="font-size: 0.8rem;">@(isManager ? "Quản lý" : "Lễ tân")</span>
+                                    <span class="text-muted mt-1" style="font-size: 0.8rem;">@(isManager ? "Quản lý" : "Nhân viên")</span>
                                 </div>
                                 <i class="bi bi-chevron-down text-muted ms-2" style="font-size: 0.75rem;"></i>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end profile-dropdown-menu mt-2">
                                 <li><a class="dropdown-item profile-dropdown-item text-dark" href="#" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-person-vcard text-primary fs-6"></i> Hồ sơ</a></li>
                                 <li><hr class="dropdown-divider my-1"></li>
-                                <li><a class="dropdown-item profile-dropdown-item text-danger" href="#" onclick="handleLogout()"><i class="bi bi-box-arrow-right fs-6"></i> Đăng xuất</a></li>
+                                <li><a class="dropdown-item profile-dropdown-item text-danger" href="/Auth/DangXuat"><i class="bi bi-box-arrow-right fs-6"></i> Đăng xuất</a></li>
                             </ul>
                         </div>
                     </div>
@@ -403,67 +577,65 @@
         </nav>
 
         <div class="page-wrapper">
-            <!-- TOOLBAR LỊCH -->
-            <div class="d-flex justify-content-between align-items-center mb-4 pb-3">
-                <h4 class="mb-0 fw-bold text-dark">Lịch phân ca</h4>
+            <div class="calendar-toolbar">
+                <ul class="nav view-tabs shadow-sm" id="calendarTabs" role="tablist">
+                    <li class="nav-item" role="presentation"><button class="nav-link active" id="month-tab" data-bs-toggle="tab" data-bs-target="#month-view" type="button" role="tab" onclick="changeTab('month')">Tháng</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="week-tab" data-bs-toggle="tab" data-bs-target="#week-view" type="button" role="tab" onclick="changeTab('week')">Tuần</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="day-tab" data-bs-toggle="tab" data-bs-target="#day-view" type="button" role="tab" onclick="changeTab('day')">Ngày</button></li>
+                </ul>
 
-                <div class="d-flex align-items-center gap-3">
-                    <!-- Bộ lọc bộ phận -->
-                    <select class="form-select fw-bold border-0 shadow-sm" id="departmentFilter" onchange="filterSchedules()" style="width: auto;">
-                        <option value="ALL">🔍 Tất cả bộ phận</option>
-                        <option value="Lễ tân">Lễ tân</option>
-                        <option value="Buồng phòng">Buồng phòng</option>
-                        <option value="Bảo trì">Bảo trì</option>
-                        <option value="F&B">F&B Nhà hàng</option>
-                    </select>
+                <h4 class="fw-bold m-0 text-dark" id="calendarMainTitle">Tháng ...</h4>
 
-                    <!-- Chọn ngày Datepicker -->
-                    <form method="get" class="d-flex align-items-center bg-white border rounded shadow-sm m-0 p-1">
-                        <i class="bi bi-calendar3 ms-2 text-muted"></i>
-                        <input type="date" class="form-control border-0 fw-bold text-primary" name="SelectedDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" style="outline: none; box-shadow: none;" />
-                    </form>
-
-                    <!-- Tabs Ngày / Tuần / Tháng -->
-                    <ul class="nav nav-pills bg-white border rounded shadow-sm p-1" id="calendarTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="day-tab" data-bs-toggle="tab" data-bs-target="#day-view" type="button" role="tab">Ngày</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="week-tab" data-bs-toggle="tab" data-bs-target="#week-view" type="button" role="tab">Tuần</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="month-tab" data-bs-toggle="tab" data-bs-target="#month-view" type="button" role="tab">Tháng</button>
-                        </li>
-                    </ul>
-
-                    @if (isManager)
-                    {
-                        <button class="btn btn-primary shadow-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#createModal">
-                            <i class="bi bi-plus-circle me-1"></i> Giao việc
-                        </button>
-                    }
+                <div class="nav-controls">
+                    <button class="btn-today" onclick="navigateCalendar(0)">Hôm nay</button>
+                    <div class="nav-arrow-group shadow-sm">
+                        <button class="nav-arrow-btn" onclick="navigateCalendar(-1)"><i class="bi bi-chevron-left"></i></button>
+                        <div class="nav-arrow-btn custom-date-picker">
+                            <i class="bi bi-calendar3"></i>
+                            <input type="date" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" onchange="datePickerChanged(this.value)" required />
+                        </div>
+                        <button class="nav-arrow-btn" onclick="navigateCalendar(1)"><i class="bi bi-chevron-right"></i></button>
+                    </div>
                 </div>
             </div>
 
-            <!-- THÔNG BÁO CHO NHÂN VIÊN (Ẩn khi là Quản lý) -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-bold text-muted small">Lọc theo bộ phận:</span>
+                    <select class="form-select form-select-sm border-0 shadow-sm fw-bold bg-white" id="departmentFilter" onchange="filterSchedules()" style="width: auto;">
+                        <option value="ALL">Tất cả</option>
+                        <option value="Lễ tân">🔴 Lễ tân</option>
+                        <option value="Buồng phòng">🟡 Buồng phòng</option>
+                        <option value="Bảo trì">🔵 Bảo trì</option>
+                        <option value="F&B">🟢 F&B Nhà hàng</option>
+                    </select>
+                </div>
+
+                @if (isManager)
+                {
+                    <button class="btn btn-primary shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#createModal">
+                        <i class="bi bi-plus-circle me-1"></i> Giao việc
+                    </button>
+                }
+            </div>
+
             @if (!isManager)
             {
                 <div class="alert alert-info rounded-3 d-flex align-items-center shadow-sm bg-white border-info border-start border-4 mb-4">
                     <i class="bi bi-info-circle-fill me-3 fs-3 text-info"></i>
                     <div>
-                        <strong class="text-dark">Lịch làm việc hôm nay:</strong> Ngày @Model.SelectedDate.ToString("dd/MM/yyyy") bạn có <strong>1</strong> ca làm việc.<br />
+                        <strong class="text-dark">Lịch làm việc đang chọn:</strong> Ngày @Model.SelectedDate.Value.ToString("dd/MM/yyyy") bạn có <strong>1</strong> ca làm việc.<br />
                         <small class="text-muted">Vui lòng có mặt tại khu vực phân công trước 10 phút để nhận bàn giao.</small>
                     </div>
                 </div>
             }
 
-            <!-- NỘI DUNG TAB LỊCH -->
             <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-body p-4 tab-content" id="calendarTabContent">
 
-                    <!-- ================= 1. TAB THÁNG ================= -->
+                    <!-- TAB THÁNG -->
                     <div class="tab-pane fade show active" id="month-view" role="tabpanel">
-                        <table class="table table-bordered calendar-table mb-0">
+                        <table class="calendar-table">
                             <thead class="bg-light">
                                 <tr><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>CN</th></tr>
                             </thead>
@@ -489,17 +661,41 @@
                                             {
                                                 bool isToday = (dayCounter == today.Day && Model.CurrentDate.Month == today.Month && Model.CurrentDate.Year == today.Year);
                                                 <td class="@(isToday ? "bg-light" : "")">
-                                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                                        <div class="date-number @(isToday ? "today" : "") shadow-sm">@dayCounter</div>
-                                                    </div>
+                                                    <div class="date-number @(isToday ? "today" : "")">@dayCounter</div>
 
-                                                    @foreach (var s in Model.MySchedules.Where(x => x.ThoiGianBatDau.Day == dayCounter && x.ThoiGianBatDau.Month == Model.CurrentDate.Month))
+                                                    @{
+                                                        DateTime loopDate = new DateTime(Model.CurrentDate.Year, Model.CurrentDate.Month, dayCounter);
+                                                        var daySchedules = Model.MySchedules.Where(x =>
+                                                            x.ThoiGianBatDau.Date == loopDate ||
+                                                            (x.ThoiGianKetThuc.Date == loopDate && x.ThoiGianBatDau.Date != x.ThoiGianKetThuc.Date)
+                                                        ).OrderBy(x => x.ThoiGianBatDau).ToList();
+                                                    }
+
+                                                    @foreach (var s in daySchedules)
                                                     {
-                                                        string colorClass = s.LoaiCa == "Ca sáng" ? "bg-morning" : s.LoaiCa == "Ca chiều" ? "bg-afternoon" : s.LoaiCa == "Ca đêm" ? "bg-night" : "bg-admin";
-                                                        <div class="shift-block @colorClass" data-department="@s.BoPhan" onclick="openDetailModal(@s.Id, '@s.MaNhanVien', '@s.TenNhanVien', '@s.BoPhan', '@s.ChucVu', '@s.TieuDe', '@s.LoaiCa', '@s.KhuVuc', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("\r\n", "\\n").Replace("'", "\\'"))')">
-                                                            <div class="fw-bold text-truncate">@s.LoaiCa</div>
+                                                        string colorClass = s.ChucVu == "Lễ tân" ? "bg-letan" : s.ChucVu == "Buồng phòng" ? "bg-buongphong" : s.ChucVu == "Bảo trì" ? "bg-baotri" : s.ChucVu == "F&B" ? "bg-fnb" : "bg-default";
+                                                        string spanClass = "";
+                                                        string displayTime = $"{s.ThoiGianBatDau:HH:mm} - {s.ThoiGianKetThuc:HH:mm}";
+
+                                                        if (s.ThoiGianBatDau.Date != s.ThoiGianKetThuc.Date)
+                                                        {
+                                                            if (s.ThoiGianBatDau.Date == loopDate)
+                                                            {
+                                                                spanClass = "shift-span-start";
+                                                                displayTime = $"{s.ThoiGianBatDau:HH:mm} ➔";
+                                                            }
+                                                            else if (s.ThoiGianKetThuc.Date == loopDate)
+                                                            {
+                                                                spanClass = "shift-span-end";
+                                                                displayTime = $"➔ {s.ThoiGianKetThuc:HH:mm}";
+                                                            }
+                                                        }
+
+                                                        <div class="shift-block @colorClass @spanClass" data-department="@s.ChucVu"
+                                                             onclick="showQuickView(event, @s.Id, '@s.MaNhanVien', '@s.TenNhanVien', '@s.ChucVu', '@s.TieuDe', '@s.LoaiCa', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("\r\n", "\\n").Replace("'", "\\'"))', '@s.TrangThaiHienTai')">
+                                                            <div class="fw-bold"><i class="bi bi-clock me-1"></i> @s.LoaiCa</div>
                                                             <div class="text-truncate">@s.TenNhanVien</div>
-                                                            <div style="font-size: 0.6rem; opacity: 0.8">@s.ThoiGianBatDau.ToString("HH:mm") - @s.ThoiGianKetThuc.ToString("HH:mm")</div>
+                                                            <div style="font-size: 0.65rem; opacity: 0.8">@displayTime</div>
                                                         </div>
                                                     }
                                                 </td>
@@ -513,26 +709,23 @@
                         </table>
                     </div>
 
-                    <!-- ================= 2. TAB TUẦN (Hiển thị 7 ngày của tuần chứa ngày được chọn) ================= -->
+                    <!-- TAB TUẦN -->
                     <div class="tab-pane fade" id="week-view" role="tabpanel">
                         @{
-                            // Tính toán ngày Thứ 2 của tuần hiện tại
-                            int diff = (7 + (Model.SelectedDate.DayOfWeek - DayOfWeek.Monday)) % 7;
-                            DateTime startOfWeek = Model.SelectedDate.AddDays(-1 * diff).Date;
+                            int diff = (7 + (Model.SelectedDate.Value.DayOfWeek - DayOfWeek.Monday)) % 7;
+                            DateTime startOfWeek = Model.SelectedDate.Value.AddDays(-1 * diff).Date;
                         }
-                        <h6 class="fw-bold mb-3">Tuần từ <span class="text-primary">@startOfWeek.ToString("dd/MM/yyyy")</span> đến <span class="text-primary">@startOfWeek.AddDays(6).ToString("dd/MM/yyyy")</span></h6>
-
                         <div class="table-responsive">
-                            <table class="table table-bordered calendar-table mb-0">
+                            <table class="calendar-table mb-0">
                                 <thead class="bg-light">
                                     <tr>
-                                        <th>T2<br /><small class="text-muted">@startOfWeek.ToString("dd/MM")</small></th>
-                                        <th>T3<br /><small class="text-muted">@startOfWeek.AddDays(1).ToString("dd/MM")</small></th>
-                                        <th>T4<br /><small class="text-muted">@startOfWeek.AddDays(2).ToString("dd/MM")</small></th>
-                                        <th>T5<br /><small class="text-muted">@startOfWeek.AddDays(3).ToString("dd/MM")</small></th>
-                                        <th>T6<br /><small class="text-muted">@startOfWeek.AddDays(4).ToString("dd/MM")</small></th>
-                                        <th>T7<br /><small class="text-muted">@startOfWeek.AddDays(5).ToString("dd/MM")</small></th>
-                                        <th>CN<br /><small class="text-muted">@startOfWeek.AddDays(6).ToString("dd/MM")</small></th>
+                                        <th>T2 <span class="fw-normal">@startOfWeek.ToString("dd/MM")</span></th>
+                                        <th>T3 <span class="fw-normal">@startOfWeek.AddDays(1).ToString("dd/MM")</span></th>
+                                        <th>T4 <span class="fw-normal">@startOfWeek.AddDays(2).ToString("dd/MM")</span></th>
+                                        <th>T5 <span class="fw-normal">@startOfWeek.AddDays(3).ToString("dd/MM")</span></th>
+                                        <th>T6 <span class="fw-normal">@startOfWeek.AddDays(4).ToString("dd/MM")</span></th>
+                                        <th>T7 <span class="fw-normal">@startOfWeek.AddDays(5).ToString("dd/MM")</span></th>
+                                        <th>CN <span class="fw-normal">@startOfWeek.AddDays(6).ToString("dd/MM")</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -542,18 +735,38 @@
                                             DateTime currentDay = startOfWeek.AddDays(i);
                                             bool isCurrentToday = currentDay.Date == DateTime.Today;
                                             <td class="@(isCurrentToday ? "bg-light" : "")" style="min-height: 250px;">
-                                                @if (isCurrentToday)
-                                                {
-                                                    <span class="badge bg-primary mb-2">Hôm nay</span>
+                                                <div class="date-number @(isCurrentToday ? "today" : "")">@currentDay.Day</div>
+
+                                                @{
+                                                    var weekSchedules = Model.MySchedules.Where(x =>
+                                                        x.ThoiGianBatDau.Date == currentDay.Date ||
+                                                        (x.ThoiGianKetThuc.Date == currentDay.Date && x.ThoiGianBatDau.Date != x.ThoiGianKetThuc.Date)
+                                                    ).OrderBy(x => x.ThoiGianBatDau).ToList();
                                                 }
 
-                                                @foreach (var s in Model.MySchedules.Where(x => x.ThoiGianBatDau.Date == currentDay.Date))
+                                                @foreach (var s in weekSchedules)
                                                 {
-                                                    string colorClass = s.LoaiCa == "Ca sáng" ? "bg-morning" : s.LoaiCa == "Ca chiều" ? "bg-afternoon" : s.LoaiCa == "Ca đêm" ? "bg-night" : "bg-admin";
-                                                    <div class="shift-block @colorClass mb-2" data-department="@s.BoPhan" onclick="openDetailModal(@s.Id, '@s.MaNhanVien', '@s.TenNhanVien', '@s.BoPhan', '@s.ChucVu', '@s.TieuDe', '@s.LoaiCa', '@s.KhuVuc', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("\r\n", "\\n").Replace("'", "\\'"))')">
-                                                        <div class="fw-bold text-truncate">@s.LoaiCa</div>
+                                                    string colorClass = s.ChucVu == "Lễ tân" ? "bg-letan" : s.ChucVu == "Buồng phòng" ? "bg-buongphong" : s.ChucVu == "Bảo trì" ? "bg-baotri" : s.ChucVu == "F&B" ? "bg-fnb" : "bg-default";
+                                                    string spanClass = "";
+                                                    string displayTime = $"{s.ThoiGianBatDau:HH:mm} - {s.ThoiGianKetThuc:HH:mm}";
+
+                                                    if (s.ThoiGianBatDau.Date != s.ThoiGianKetThuc.Date)
+                                                    {
+                                                        if (s.ThoiGianBatDau.Date == currentDay.Date)
+                                                        {
+                                                            spanClass = "shift-span-start"; displayTime = $"{s.ThoiGianBatDau:HH:mm} ➔";
+                                                        }
+                                                        else if (s.ThoiGianKetThuc.Date == currentDay.Date)
+                                                        {
+                                                            spanClass = "shift-span-end"; displayTime = $"➔ {s.ThoiGianKetThuc:HH:mm}";
+                                                        }
+                                                    }
+
+                                                    <div class="shift-block @colorClass @spanClass mb-2" data-department="@s.ChucVu"
+                                                         onclick="showQuickView(event, @s.Id, '@s.MaNhanVien', '@s.TenNhanVien', '@s.ChucVu', '@s.TieuDe', '@s.LoaiCa', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("\r\n", "\\n").Replace("'", "\\'"))', '@s.TrangThaiHienTai')">
+                                                        <div class="fw-bold"><i class="bi bi-clock me-1"></i> @s.LoaiCa</div>
                                                         <div class="text-truncate">@s.TenNhanVien</div>
-                                                        <div style="font-size: 0.6rem; opacity: 0.8">@s.ThoiGianBatDau.ToString("HH:mm") - @s.ThoiGianKetThuc.ToString("HH:mm")</div>
+                                                        <div style="font-size: 0.65rem; opacity: 0.8">@displayTime</div>
                                                     </div>
                                                 }
                                             </td>
@@ -564,25 +777,24 @@
                         </div>
                     </div>
 
-                    <!-- ================= 3. TAB NGÀY (Khung giờ) ================= -->
+                    <!-- TAB NGÀY -->
                     <div class="tab-pane fade" id="day-view" role="tabpanel">
-                        <h6 class="fw-bold mb-3">Lịch khung giờ ngày: <span class="text-primary">@Model.SelectedDate.ToString("dd/MM/yyyy")</span></h6>
-                        <div class="table-responsive border rounded">
+                        <div class="table-responsive border rounded bg-white">
                             <table class="table table-bordered time-slot-table mb-0">
                                 <tbody>
                                     @{
-                                        var daySchedules = Model.MySchedules.Where(x => x.ThoiGianBatDau.Date == Model.SelectedDate.Date).ToList();
+                                        var hourlySchedules = Model.MySchedules.Where(x => x.ThoiGianBatDau.Date == Model.SelectedDate.Value.Date).ToList();
                                     }
                                     @for (int hour = 6; hour <= 22; hour += 2)
                                     {
                                         <tr>
-                                            <th class="text-muted py-3">@hour.ToString("00"):00</th>
-                                            <td class="p-1 align-middle position-relative">
-                                                @foreach (var s in daySchedules.Where(x => x.ThoiGianBatDau.Hour <= hour && x.ThoiGianKetThuc.Hour > hour))
+                                            <th class="text-muted py-3 align-middle">@hour.ToString("00"):00</th>
+                                            <td class="p-2 align-middle position-relative">
+                                                @foreach (var s in hourlySchedules.Where(x => x.ThoiGianBatDau.Hour >= hour && x.ThoiGianBatDau.Hour < hour + 2))
                                                 {
-                                                    string colorClass = s.LoaiCa == "Ca sáng" ? "bg-morning" : s.LoaiCa == "Ca chiều" ? "bg-afternoon" : s.LoaiCa == "Ca đêm" ? "bg-night" : "bg-admin";
-                                                    <div class="shift-bar @colorClass mb-1" data-department="@s.BoPhan" onclick="openDetailModal(@s.Id, '@s.MaNhanVien', '@s.TenNhanVien', '@s.BoPhan', '@s.ChucVu', '@s.TieuDe', '@s.LoaiCa', '@s.KhuVuc', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("\r\n", "\\n").Replace("'", "\\'"))')">
-                                                        <strong>@s.LoaiCa (@s.ThoiGianBatDau.ToString("HH:mm") - @s.ThoiGianKetThuc.ToString("HH:mm"))</strong> - @s.TenNhanVien - @s.KhuVuc
+                                                    string colorClass = s.ChucVu == "Lễ tân" ? "bg-letan" : s.ChucVu == "Buồng phòng" ? "bg-buongphong" : s.ChucVu == "Bảo trì" ? "bg-baotri" : s.ChucVu == "F&B" ? "bg-fnb" : "bg-default";
+                                                    <div class="shift-bar @colorClass mb-1" data-department="@s.ChucVu" onclick="showQuickView(event, @s.Id, '@s.MaNhanVien', '@s.TenNhanVien', '@s.ChucVu', '@s.TieuDe', '@s.LoaiCa', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("\r\n", "\\n").Replace("'", "\\'"))', '@s.TrangThaiHienTai')">
+                                                        <strong><i class="bi bi-clock me-1"></i> @s.ThoiGianBatDau.ToString("HH:mm") - @s.ThoiGianKetThuc.ToString("HH:mm")</strong> | @s.TenNhanVien - @s.TieuDe
                                                     </div>
                                                 }
                                             </td>
@@ -599,205 +811,134 @@
     </div>
 </div>
 
-<!-- ================= MODAL TẠO CA LÀM VIỆC NÂNG CAO ================= -->
+<!-- POPUP THÔNG TIN NHANH MÀU TRẮNG KHI CLICK VÀO LỊCH -->
+<div id="quickViewPopup">
+    <div class="qv-header">
+        <h6 class="qv-title" id="qvTitle">[HCM] Tiêu đề</h6>
+        <button type="button" class="btn-close" style="font-size: 0.7rem;" onclick="closeQuickView()"></button>
+    </div>
+    <div class="qv-body">
+        <div><strong class="text-dark">Người phụ trách:</strong> <span id="qvEmp">Administrator</span></div>
+        <div><strong class="text-dark">Thời gian:</strong> <span id="qvTime">02:30 pm - 04:30 pm</span></div>
+        <div class="mt-1"><strong class="text-dark">Tình trạng:</strong> <span id="qvStatus" class="fw-bold text-success">Chưa bắt đầu</span></div>
+        <div class="mt-2"><strong class="text-dark">Mô tả:</strong> <span id="qvNotes">...</span></div>
+    </div>
+    <div class="qv-footer">
+        @if (isManager)
+        {
+            <form id="qvDeleteForm" method="post" asp-page-handler="Delete" class="d-inline">
+                <input type="hidden" id="qvDeleteId" name="deleteId" />
+                <input type="hidden" name="selectedDate" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="activeTab" value="@Model.ActiveTab" />
+                <button type="submit" class="qv-btn text-danger" title="Xóa" onclick="return confirm('Bạn có chắc chắn muốn xóa tác vụ này?')"><i class="bi bi-trash"></i></button>
+            </form>
+            <button class="qv-btn" title="Chỉnh sửa" onclick="openEditFromPopup()"><i class="bi bi-pencil"></i></button>
+        }
+    </div>
+</div>
+
+<!-- ================= MODAL TẠO & SỬA CA LÀM VIỆC (2 CỘT) ================= -->
 @if (isManager)
 {
     <div class="modal fade" id="createModal" tabindex="-1">
         <div class="modal-dialog modal-xl">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white border-0">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-clipboard-plus me-2"></i>Phân công tác vụ & Ca làm việc</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-white border-bottom pb-3">
+                    <h5 class="modal-title fw-bold text-primary" id="modalMainTitle"><i class="bi bi-clipboard-plus me-2"></i>Phân công tác vụ & Ca làm việc</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                <form method="post" asp-page-handler="Create" id="createForm" enctype="multipart/form-data" onsubmit="return validateScheduleTime(event, 'create')">
-                    <div class="modal-body bg-light p-4">
+                <form method="post" asp-page-handler="Create" id="createForm" enctype="multipart/form-data" onsubmit="return validateScheduleTime(event)">
+                    <input type="hidden" name="ActiveTab" id="hiddenActiveTab" value="month" />
+                    <input type="hidden" name="SelectedDate" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" />
+
+                    <div class="modal-body bg-white p-4 pt-4">
                         <div id="createTimeError" class="alert alert-danger d-none align-items-center gap-2 py-2 px-3 mb-3 shadow-sm"><i class="bi bi-exclamation-octagon-fill fs-5 text-danger"></i><div id="createTimeErrorText" class="small fw-bold"></div></div>
 
-                        <div class="row g-4">
-                            <!-- CỘT 1: THÔNG TIN CƠ BẢN -->
-                            <div class="col-lg-4">
-                                <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-header bg-white fw-bold text-primary border-bottom-0 pt-3 pb-0">1. THÔNG TIN CƠ BẢN</div>
-                                    <div class="card-body">
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold text-muted">Người thực hiện <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" asp-for="ScheduleData.TenNhanVien" placeholder="Tên nhân viên..." required />
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-6 mb-3">
-                                                <label class="form-label small fw-bold text-muted">Mã NV</label>
-                                                <input type="text" class="form-control" asp-for="ScheduleData.MaNhanVien" required />
-                                            </div>
-                                            <div class="col-6 mb-3">
-                                                <label class="form-label small fw-bold text-muted">Bộ phận</label>
-                                                <select class="form-select" asp-for="ScheduleData.BoPhan">
-                                                    <option value="Lễ tân">Lễ tân</option>
-                                                    <option value="Buồng phòng">Buồng phòng</option>
-                                                    <option value="Bảo trì">Bảo trì</option>
-                                                    <option value="F&B">F&B</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold text-muted">Khu vực / Địa điểm <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" asp-for="ScheduleData.KhuVuc" placeholder="VD: Quầy Lễ tân, Tầng 3..." required />
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold text-muted">Ca làm việc</label>
-                                            <select class="form-select" id="createShift" asp-for="ScheduleData.LoaiCa" onchange="autoAdjustShiftHours('create')">
-                                                <option value="Ca sáng">Ca sáng (06:00 - 14:00)</option>
-                                                <option value="Ca chiều">Ca chiều (14:00 - 22:00)</option>
-                                                <option value="Ca đêm">Ca đêm (22:00 - 06:00)</option>
-                                                <option value="Hành chính">Hành chính (08:00 - 17:00)</option>
-                                            </select>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-6 mb-3">
-                                                <label class="form-label small fw-bold text-muted">Bắt đầu</label>
-                                                <input type="datetime-local" class="form-control" id="createStart" asp-for="ScheduleData.ThoiGianBatDau" value="@defaultStartToday" required />
-                                            </div>
-                                            <div class="col-6 mb-3">
-                                                <label class="form-label small fw-bold text-muted">Kết thúc</label>
-                                                <input type="datetime-local" class="form-control" id="createEnd" asp-for="ScheduleData.ThoiGianKetThuc" value="@defaultEndToday" required />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <input type="hidden" id="mainFormId" name="ScheduleData.Id" value="0" />
 
-                            <!-- CỘT 2: NỘI DUNG TÁC VỤ -->
+                        <div class="row g-5">
                             <div class="col-lg-5">
-                                <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-header bg-white fw-bold text-primary border-bottom-0 pt-3 pb-0">2. NỘI DUNG TÁC VỤ</div>
-                                    <div class="card-body d-flex flex-column">
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold text-muted">Tiêu đề tác vụ <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control fw-bold text-dark" asp-for="ScheduleData.TieuDe" placeholder="VD: Setup phòng VIP đón khách đoàn..." required />
-                                        </div>
-                                        <div class="mb-3 flex-grow-1 d-flex flex-column">
-                                            <label class="form-label small fw-bold text-muted">Checklist công việc (Nhập & Nhấn Enter)</label>
-                                            <div class="input-group mb-2">
-                                                <input type="text" id="checklistInput" class="form-control" placeholder="VD: Thay ga giường, Đổ rác...">
-                                                <button class="btn btn-outline-primary fw-bold" type="button" onclick="addChecklistItem()">Thêm</button>
-                                            </div>
-                                            <ul class="list-group list-group-flush border rounded flex-grow-1 overflow-auto bg-white" id="checklistBox" style="max-height: 140px;"></ul>
-                                            <input type="hidden" id="hiddenChecklistData" asp-for="ScheduleData.Checklist" />
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold text-muted">Mô tả / Hướng dẫn thêm</label>
-                                            <textarea class="form-control" asp-for="ScheduleData.GhiChu" rows="2"></textarea>
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label small fw-bold text-muted">Vật tư / Công cụ mang theo</label>
-                                            <input type="text" class="form-control" asp-for="ScheduleData.VatTu" placeholder="VD: Cờ lê, Thang nhôm..." />
-                                        </div>
+                                <h6 class="fw-bold text-primary mb-4">1. THÔNG TIN CƠ BẢN</h6>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark">Ngày làm việc <span class="text-danger">*</span></label>
+                                    <input type="date" id="mDate" class="form-control form-control-lg" name="InputNgayLamViec" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" onchange="validateScheduleTime(null)" required />
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark">Chức vụ <span class="text-danger">*</span></label>
+                                    <select class="form-select form-select-lg" id="mPos" asp-for="ScheduleData.ChucVu" onchange="loadEmployees()" required>
+                                        <option value="">-- Chọn chức vụ --</option>
+                                        <option value="Lễ tân">Lễ tân</option>
+                                        <option value="Buồng phòng">Buồng phòng</option>
+                                        <option value="Bảo trì">Bảo trì</option>
+                                        <option value="F&B">F&B</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark">Người thực hiện <span class="text-danger">*</span></label>
+                                    <select class="form-select form-select-lg" id="mEmpName" asp-for="ScheduleData.TenNhanVien" onchange="fillEmpCode()" required>
+                                        <option value="">-- Chọn nhân viên --</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark">Mã NV <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-lg bg-light" id="mEmpCode" asp-for="ScheduleData.MaNhanVien" readonly required />
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark">Ca làm việc</label>
+                                    <select class="form-select form-select-lg" id="mShift" asp-for="ScheduleData.LoaiCa" onchange="autoAdjustShiftHours()">
+                                        <option value="Ca sáng">Ca sáng (06:00 - 14:00)</option>
+                                        <option value="Ca chiều">Ca chiều (14:00 - 22:00)</option>
+                                        <option value="Ca đêm">Ca đêm (22:00 - 06:00)</option>
+                                        <option value="Khác">Khác (Tùy chọn giờ)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Khung giờ tùy chỉnh chỉ hiện khi chọn "Khác" -->
+                                <div class="row d-none" id="customTimeSection">
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label small fw-bold text-muted">Bắt đầu</label>
+                                        <input type="time" class="form-control" id="mCustomStart" name="CustomStartTime" value="06:00" onchange="validateScheduleTime(null)" />
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label small fw-bold text-muted">Kết thúc</label>
+                                        <input type="time" class="form-control" id="mCustomEnd" name="CustomEndTime" value="14:00" onchange="validateScheduleTime(null)" />
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- CỘT 3: QUẢN TRỊ -->
-                            <div class="col-lg-3">
-                                <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-header bg-white fw-bold text-primary border-bottom-0 pt-3 pb-0">3. QUẢN TRỊ</div>
-                                    <div class="card-body">
-                                        <div class="mb-4">
-                                            <label class="form-label small fw-bold text-muted">Độ ưu tiên</label>
-                                            <select class="form-select fw-bold" asp-for="ScheduleData.DoUuTien" id="prioritySelect" onchange="changePriorityColor(this)">
-                                                <option value="Bình thường" data-color="#198754">🟢 Bình thường</option>
-                                                <option value="Quan trọng" data-color="#fd7e14">🟡 Quan trọng</option>
-                                                <option value="Khẩn cấp" data-color="#dc3545">🔴 Khẩn cấp</option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-4">
-                                            <label class="form-label small fw-bold text-muted">Trạng thái</label>
-                                            <select class="form-select bg-light" asp-for="ScheduleData.TrangThai" style="pointer-events: none;">
-                                                <option value="Chưa bắt đầu" selected>Chưa bắt đầu</option>
-                                            </select>
-                                            <small class="text-muted" style="font-size: 0.7rem;">Nhân viên sẽ tự cập nhật khi thực hiện.</small>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold text-muted">Hình ảnh đính kèm</label>
-                                            <input class="form-control form-control-sm" type="file" name="UploadedImage" accept="image/*">
-                                            <small class="text-muted" style="font-size: 0.7rem;">Sơ đồ phòng, tài liệu hướng dẫn...</small>
-                                        </div>
+                            </div>
+                            <div class="col-lg-7 bg-light rounded-4 p-4">
+                                <h6 class="fw-bold text-primary mb-4">2. NỘI DUNG TÁC VỤ</h6>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark">Tiêu đề tác vụ <span class="text-danger">*</span></label>
+                                    <input type="text" id="mTitle" class="form-control form-control-lg" asp-for="ScheduleData.TieuDe" required />
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark">Checklist công việc</label>
+                                    <div class="input-group mb-2">
+                                        <input type="text" id="checklistInput" class="form-control form-control-lg">
+                                        <button class="btn btn-outline-primary fw-bold px-4" type="button" onclick="addChecklistItem()">Thêm</button>
                                     </div>
+                                    <ul class="list-group list-group-flush border rounded overflow-auto bg-white" id="checklistBox" style="max-height: 200px; min-height: 80px;"></ul>
+                                    <input type="hidden" id="hiddenChecklistData" asp-for="ScheduleData.Checklist" />
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-dark">Mô tả thêm</label>
+                                    <textarea class="form-control" id="mNotes" asp-for="ScheduleData.GhiChu" rows="4"></textarea>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-white border-top-0 pt-0">
-                        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
-                        <button type="submit" class="btn btn-primary fw-bold px-5 shadow-sm" onclick="prepareSubmit()"><i class="bi bi-send-check me-2"></i> Giao việc</button>
+                    <input type="hidden" asp-for="ScheduleData.TrangThai" value="Chưa bắt đầu" />
+                    <div class="modal-footer bg-white border-top-0 justify-content-between p-4">
+                        <button type="button" class="btn btn-light fw-bold px-4 py-2" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-5 py-2 shadow-sm" onclick="prepareSubmit()"><i class="bi bi-send-check me-2"></i> Xác nhận</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 }
-
-<!-- MODAL CHI TIẾT CA LÀM (SỬA/XÓA) -->
-<div class="modal fade" id="detailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title fw-bold"><i class="bi bi-info-square me-2"></i>Thông tin chi tiết tác vụ</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="post" id="detailForm">
-                <div class="modal-body bg-light">
-                    <div id="editTimeError" class="alert alert-danger d-none align-items-center gap-2 py-2 px-3 mb-3 shadow-sm" role="alert">
-                        <i class="bi bi-exclamation-octagon-fill fs-5 text-danger"></i>
-                        <div id="editTimeErrorText" class="small fw-bold"></div>
-                    </div>
-
-                    <input type="hidden" id="editId" name="ScheduleData.Id" />
-                    <input type="hidden" name="month" value="@Model.CurrentDate.Month" />
-                    <input type="hidden" name="year" value="@Model.CurrentDate.Year" />
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3"><label class="form-label small fw-bold text-muted">Họ và tên</label><input type="text" class="form-control" id="editEmpName" name="ScheduleData.TenNhanVien" required /></div>
-                        <div class="col-md-6 mb-3"><label class="form-label small fw-bold text-muted">Mã nhân sự</label><input type="text" class="form-control" id="editEmpCode" name="ScheduleData.MaNhanVien" required /></div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label small fw-bold text-muted">Bộ phận</label>
-                            <select class="form-select" id="editDept" name="ScheduleData.BoPhan">
-                                <option value="Lễ tân">Lễ tân</option>
-                                <option value="Buồng phòng">Buồng phòng</option>
-                                <option value="Bảo trì">Bảo trì</option>
-                                <option value="F&B">F&B Nhà hàng</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3"><label class="form-label small fw-bold text-muted">Chức vụ</label><input type="text" class="form-control" id="editPos" name="ScheduleData.ChucVu" required /></div>
-
-                        <div class="col-12 mb-3 mt-2"><hr></div>
-
-                        <div class="col-md-12 mb-3"><label class="form-label small fw-bold text-muted">Tiêu đề nhiệm vụ</label><input type="text" class="form-control fw-bold" id="editTitle" name="ScheduleData.TieuDe" required /></div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label small fw-bold text-muted">Ca làm việc</label>
-                            <select class="form-select" id="editShift" name="ScheduleData.LoaiCa" onchange="autoAdjustShiftHours('edit')">
-                                <option value="Ca sáng">Ca sáng</option>
-                                <option value="Ca chiều">Ca chiều</option>
-                                <option value="Ca đêm">Ca đêm</option>
-                                <option value="Hành chính">Hành chính</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3"><label class="form-label small fw-bold text-muted">Khu vực</label><input type="text" class="form-control" id="editArea" name="ScheduleData.KhuVuc" required /></div>
-                        <div class="col-md-6 mb-3"><label class="form-label small fw-bold text-muted">Bắt đầu</label><input type="datetime-local" class="form-control" id="editStart" name="ScheduleData.ThoiGianBatDau" onchange="validateScheduleTime(null, 'edit')" required /></div>
-                        <div class="col-md-6 mb-3"><label class="form-label small fw-bold text-muted">Kết thúc</label><input type="datetime-local" class="form-control" id="editEnd" name="ScheduleData.ThoiGianKetThuc" onchange="validateScheduleTime(null, 'edit')" required /></div>
-                        <div class="col-12 mb-3"><label class="form-label small fw-bold text-muted">Chi tiết công việc</label><textarea class="form-control" id="editNotes" name="ScheduleData.GhiChu" rows="2"></textarea></div>
-                    </div>
-                </div>
-                <div class="modal-footer bg-white d-flex justify-content-between border-top-0 pt-2">
-                    <button type="submit" asp-page-handler="Delete" name="id" class="btn btn-outline-danger fw-bold shadow-sm" onclick="return confirmDelete()"><i class="bi bi-trash"></i> Xóa ca này</button>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" asp-page-handler="Edit" class="btn btn-success fw-bold px-4 shadow-sm" onclick="return validateScheduleTime(event, 'edit')"><i class="bi bi-save me-1"></i> Lưu thông tin</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- TOAST THÔNG BÁO -->
 <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
@@ -807,35 +948,293 @@
 </div>
 
 <script>
-    // 1. TÍNH NĂNG LỌC THEO BỘ PHẬN
+    let currentTab = '@Model.ActiveTab';
+    let currentDateStr = '@Model.SelectedDate.Value.ToString("yyyy-MM-dd")';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('ActiveTab')) {
+        currentTab = urlParams.get('ActiveTab');
+    }
+
+    function updateTitle() {
+        let d = new Date(currentDateStr);
+        let titleEl = document.getElementById('calendarMainTitle');
+        if (currentTab === 'month') {
+            titleEl.innerText = `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`;
+        } else if (currentTab === 'week') {
+            let day = d.getDay();
+            let diff = day === 0 ? 6 : day - 1;
+            let start = new Date(d); start.setDate(start.getDate() - diff);
+            let end = new Date(start); end.setDate(end.getDate() + 6);
+            titleEl.innerText = `Tuần ${start.getDate()}/${start.getMonth() + 1} - ${end.getDate()}/${end.getMonth() + 1}, ${d.getFullYear()}`;
+        } else {
+            titleEl.innerText = `Ngày ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+        }
+
+        let activeTabInput = document.getElementById('hiddenActiveTab');
+        if (activeTabInput) activeTabInput.value = currentTab;
+    }
+
+    function changeTab(tabName) {
+        currentTab = tabName;
+        updateTitle();
+        let newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('ActiveTab', currentTab);
+        newUrl.searchParams.set('SelectedDate', currentDateStr);
+        window.history.replaceState({}, '', newUrl);
+    }
+
+    function navigateCalendar(direction) {
+        let d = new Date(currentDateStr);
+        if (direction === 0) {
+            d = new Date('@DateTime.Today.ToString("yyyy-MM-dd")');
+        } else {
+            if (currentTab === 'month') {
+                d.setMonth(d.getMonth() + direction);
+            } else if (currentTab === 'week') {
+                d.setDate(d.getDate() + (direction * 7));
+            } else if (currentTab === 'day') {
+                d.setDate(d.getDate() + direction);
+            }
+        }
+        let year = d.getFullYear();
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let day = String(d.getDate()).padStart(2, '0');
+        let newDate = `${year}-${month}-${day}`;
+
+        window.location.href = `?SelectedDate=${newDate}&ActiveTab=${currentTab}`;
+    }
+
+    function datePickerChanged(val) {
+        window.location.href = `?SelectedDate=${val}&ActiveTab=${currentTab}`;
+    }
+
+    const employeeData = {
+        "Lễ tân": [{ id: "LT001", name: "Lê Thị D" }, { id: "LT002", name: "Nguyễn Văn A" }],
+        "Buồng phòng": [{ id: "BP001", name: "Trần Thị B" }, { id: "BP002", name: "Phạm Văn C" }],
+        "Bảo trì": [{ id: "BT001", name: "Lê Văn E" }],
+        "F&B": [{ id: "FB001", name: "Hoàng Thị F" }]
+    };
+
+    function loadEmployees(selectedName = "") {
+        const dept = document.getElementById('mPos').value;
+        const empSelect = document.getElementById('mEmpName');
+        const codeInput = document.getElementById('mEmpCode');
+
+        empSelect.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
+        codeInput.value = "";
+
+        if (dept && employeeData[dept]) {
+            employeeData[dept].forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.name;
+                option.dataset.code = emp.id;
+                option.textContent = emp.name;
+                empSelect.appendChild(option);
+            });
+        }
+
+        if (selectedName) {
+            empSelect.value = selectedName;
+            fillEmpCode();
+        }
+    }
+
+    function fillEmpCode() {
+        const empSelect = document.getElementById('mEmpName');
+        const codeInput = document.getElementById('mEmpCode');
+        if (empSelect.selectedIndex > 0) {
+            const selectedOption = empSelect.options[empSelect.selectedIndex];
+            codeInput.value = selectedOption.dataset.code;
+        } else {
+            codeInput.value = "";
+        }
+        validateScheduleTime(null);
+    }
+
     function filterSchedules() {
         const selectedDept = document.getElementById('departmentFilter').value;
         const shifts = document.querySelectorAll('.shift-block, .shift-bar');
-
         shifts.forEach(shift => {
             const dept = shift.getAttribute('data-department');
-            if (selectedDept === 'ALL' || dept === selectedDept) {
-                shift.classList.remove('d-none');
-            } else {
-                shift.classList.add('d-none');
-            }
+            if (selectedDept === 'ALL' || dept === selectedDept) { shift.classList.remove('d-none'); }
+            else { shift.classList.add('d-none'); }
         });
     }
 
-    // 2. XÁC NHẬN TRƯỚC KHI XÓA
-    function confirmDelete() {
-        setIdForDelete();
-        return confirm("Bạn có chắc chắn muốn XÓA ca làm việc này không? Hành động này không thể hoàn tác.");
+    let currentShiftData = null;
+
+    function showQuickView(event, id, empCode, empName, dept, title, shift, start, end, notes, status) {
+        event.stopPropagation();
+
+        currentShiftData = { id, empCode, empName, dept, title, shift, start, end, notes, status };
+
+        document.getElementById('qvTitle').innerText = title || 'Không có tiêu đề';
+        document.getElementById('qvEmp').innerText = empName;
+
+        let sTime = new Date(start);
+        let eTime = new Date(end);
+        document.getElementById('qvTime').innerText = sTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + " - " + eTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+        // --- ĐOẠN XỬ LÝ TRẠNG THÁI TỰ ĐỘNG THEO THỜI GIAN THỰC ---
+        let now = new Date(); // Lấy ngày giờ hiện tại
+        let statusEl = document.getElementById('qvStatus');
+
+        if (now >= sTime && now <= eTime) {
+            statusEl.innerText = 'Đang hoạt động';
+            statusEl.className = 'fw-bold text-success'; // Chữ màu xanh lá
+        } else if (now > eTime) {
+            statusEl.innerText = 'Đã kết thúc';
+            statusEl.className = 'fw-bold text-secondary'; // Chữ màu xám
+        } else {
+            statusEl.innerText = 'Chưa bắt đầu';
+            statusEl.className = 'fw-bold text-muted'; // Chữ màu nhạt
+        }
+        // ---------------------------------------------------------
+
+        document.getElementById('qvNotes').innerText = notes || 'Không có ghi chú';
+
+        let deleteIdInput = document.getElementById('qvDeleteId');
+        if (deleteIdInput) deleteIdInput.value = id;
+
+        const popup = document.getElementById('quickViewPopup');
+        popup.classList.add('show');
+
+        // Canh chỉnh vị trí hiển thị của popup
+        let x = event.pageX + 10;
+        let y = event.pageY + 10;
+        if (x + 320 > window.innerWidth) { x = event.pageX - 330; }
+
+        popup.style.left = x + 'px';
+        popup.style.top = y + 'px';
     }
 
-    // 3. XỬ LÝ DATE PICKER & THÔNG BÁO TOAST
-    document.addEventListener("DOMContentLoaded", function() {
-        // Tự động mở tab Ngày hoặc Tuần nếu URL thay đổi (có thể tùy chỉnh)
-        const dateInput = document.querySelector('input[name="SelectedDate"]');
-        if (dateInput && dateInput.value !== '@DateTime.Today.ToString("yyyy-MM-dd")') {
-            var dayTab = new bootstrap.Tab(document.querySelector('#day-tab'));
-            dayTab.show();
+    function closeQuickView() {
+        document.getElementById('quickViewPopup').classList.remove('show');
+    }
+
+    document.addEventListener('click', function(e) {
+        const popup = document.getElementById('quickViewPopup');
+        if (popup && popup.classList.contains('show') && !popup.contains(e.target) && !e.target.closest('.shift-block') && !e.target.closest('.shift-bar')) {
+            closeQuickView();
         }
+    });
+
+    function openEditFromPopup() {
+        closeQuickView();
+        if (!currentShiftData) return;
+
+        const form = document.getElementById('createForm');
+        form.setAttribute('action', form.getAttribute('action').replace('Create', 'Edit'));
+        document.getElementById('modalMainTitle').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Chỉnh sửa tác vụ';
+
+        document.getElementById('mainFormId').value = currentShiftData.id;
+        document.getElementById('mPos').value = currentShiftData.dept;
+        loadEmployees(currentShiftData.empName);
+
+        document.getElementById('mShift').value = currentShiftData.shift;
+
+        let startDateObj = new Date(currentShiftData.start);
+        let d = String(startDateObj.getDate()).padStart(2, '0');
+        let m = String(startDateObj.getMonth() + 1).padStart(2, '0');
+        let y = startDateObj.getFullYear();
+        document.getElementById('mDate').value = `${y}-${m}-${d}`;
+
+        document.getElementById('mTitle').value = currentShiftData.title;
+        document.getElementById('mNotes').value = currentShiftData.notes;
+
+        autoAdjustShiftHours();
+
+        var modal = new bootstrap.Modal(document.getElementById('createModal'));
+        modal.show();
+    }
+
+    const existingSchedules = [
+                @foreach (var s in Model.MySchedules)
+        {
+            @:{ id: @s.Id, empCode: '@Html.Raw(s.MaNhanVien)', empName: '@Html.Raw((s.TenNhanVien ?? "").Replace("'", "\\'"))', start: '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', end: '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")' },
+        }
+            ];
+
+    function validateScheduleTime(event) {
+        const dateInput = document.getElementById('mDate');
+        const shiftInput = document.getElementById('mShift');
+        const empCodeInput = document.getElementById('mEmpCode');
+        const errorBox = document.getElementById('createTimeError');
+        const errorText = document.getElementById('createTimeErrorText');
+
+        errorBox.classList.add('d-none'); errorBox.classList.remove('d-flex');
+        dateInput.classList.remove('is-invalid');
+
+        if (!dateInput.value) return true;
+
+        const dateVal = new Date(dateInput.value);
+        const todayStart = new Date('@today.ToString("yyyy-MM-dd")T00:00:00');
+        const currentEmpCode = empCodeInput ? empCodeInput.value.trim() : "";
+
+        if (dateVal < todayStart && shiftInput.value !== 'Khác') {
+            if (event) event.preventDefault();
+            errorText.innerText = "⚠️ Không được chọn ngày làm việc trong quá khứ!";
+            errorBox.classList.remove('d-none'); errorBox.classList.add('d-flex'); dateInput.classList.add('is-invalid');
+            return false;
+        }
+
+        let shiftStr = shiftInput.value;
+        let tempStart, tempEnd;
+
+        if (shiftStr === 'Khác') {
+            let startT = document.getElementById('mCustomStart').value;
+            let endT = document.getElementById('mCustomEnd').value;
+
+            // ĐÃ XÓA KHUNG IF CHẶN LỖI CA KHÁC Ở ĐÂY
+
+            tempStart = new Date(dateInput.value + 'T' + startT);
+            tempEnd = new Date(dateInput.value + 'T' + endT);
+            if (tempEnd <= tempStart) tempEnd.setDate(tempEnd.getDate() + 1); // Xử lý qua ngày
+        } else {
+            let sHour = 6, eHour = 14, addDays = 0;
+            if (shiftStr === 'Ca chiều') { sHour = 14; eHour = 22; }
+            else if (shiftStr === 'Ca đêm') { sHour = 22; eHour = 6; addDays = 1; }
+
+            tempStart = new Date(dateVal); tempStart.setHours(sHour, 0, 0);
+            tempEnd = new Date(dateVal); tempEnd.setDate(tempEnd.getDate() + addDays); tempEnd.setHours(eHour, 0, 0);
+        }
+
+        for (let i = 0; i < existingSchedules.length; i++) {
+            const item = existingSchedules[i];
+            const exStart = new Date(item.start); const exEnd = new Date(item.end);
+
+            if (item.id === parseInt(document.getElementById('mainFormId').value)) continue;
+
+            if (item.empCode === currentEmpCode && tempStart < exEnd && tempEnd > exStart) {
+                if (event) event.preventDefault();
+                errorText.innerText = "⚠ Nhân viên [" + item.empName + "] đã có lịch làm việc trùng lặp trong khung giờ này!";
+                errorBox.classList.remove('d-none'); errorBox.classList.add('d-flex'); dateInput.classList.add('is-invalid');
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function autoAdjustShiftHours() {
+        const shiftSelect = document.getElementById('mShift');
+        const customTimeSec = document.getElementById('customTimeSection');
+
+        if (shiftSelect.value === 'Khác') {
+            customTimeSec.classList.remove('d-none');
+        } else {
+            customTimeSec.classList.add('d-none');
+        }
+        validateScheduleTime(null);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const targetTab = document.querySelector(`#${currentTab}-tab`);
+        if (targetTab) {
+            var tabInstance = new bootstrap.Tab(targetTab);
+            tabInstance.show();
+        }
+        updateTitle();
 
         var msg = '@Html.Raw(TempData["AlertMessage"])';
         if (msg !== '') {
@@ -845,11 +1244,22 @@
             var toast = new bootstrap.Toast(toastEl, { delay: 3500 }); toast.show();
         }
 
-        var priSelect = document.getElementById('prioritySelect');
-        if (priSelect) changePriorityColor(priSelect);
+        const createModalEl = document.getElementById('createModal');
+        if (createModalEl) {
+            createModalEl.addEventListener('hidden.bs.modal', function() {
+                document.getElementById('mainFormId').value = "0";
+                const form = document.getElementById('createForm');
+                form.setAttribute('action', form.getAttribute('action').replace('Edit', 'Create'));
+                document.getElementById('modalMainTitle').innerHTML = '<i class="bi bi-clipboard-plus me-2"></i>Phân công tác vụ & Ca làm việc';
+                document.getElementById('createTimeError').classList.add('d-none');
+                form.reset();
+                document.getElementById('mEmpName').innerHTML = '<option value="">-- Chọn nhân viên --</option>';
+                document.getElementById('customTimeSection').classList.add('d-none');
+                checklistArray = []; renderChecklist();
+            });
+        }
     });
 
-    // 4. CHECKLIST LOGIC
     let checklistArray = [];
     function addChecklistItem() {
         const input = document.getElementById('checklistInput');
@@ -883,97 +1293,6 @@
     function prepareSubmit() {
         const hiddenChecklist = document.getElementById('hiddenChecklistData');
         if (hiddenChecklist) hiddenChecklist.value = checklistArray.join('|');
-    }
-
-    // 5. COLOR SELECT & TIME VALIDATION
-    function changePriorityColor(obj) { obj.style.color = obj.options[obj.selectedIndex].getAttribute('data-color'); }
-
-    function autoAdjustShiftHours(mode) {
-        const shiftSelect = document.getElementById(mode + 'Shift');
-        const startInput = document.getElementById(mode + 'Start');
-        const endInput = document.getElementById(mode + 'End');
-        if (!startInput.value) return;
-        const currentDatePart = startInput.value.split('T')[0];
-        if (shiftSelect.value === 'Ca sáng') { startInput.value = currentDatePart + 'T06:00'; endInput.value = currentDatePart + 'T14:00'; }
-        else if (shiftSelect.value === 'Ca chiều') { startInput.value = currentDatePart + 'T14:00'; endInput.value = currentDatePart + 'T22:00'; }
-        else if (shiftSelect.value === 'Hành chính') { startInput.value = currentDatePart + 'T08:00'; endInput.value = currentDatePart + 'T17:00'; }
-        else if (shiftSelect.value === 'Ca đêm') {
-            startInput.value = currentDatePart + 'T22:00';
-            let nextDay = new Date(currentDatePart); nextDay.setDate(nextDay.getDate() + 1);
-            endInput.value = nextDay.toISOString().split('T')[0] + 'T06:00';
-        }
-    }
-
-    const existingSchedules = [
-            @foreach (var s in Model.MySchedules)
-        {
-            @:{ id: @s.Id, empName: '@Html.Raw((s.TenNhanVien ?? "").Replace("'", "\\'"))', start: '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', end: '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")' },
-        }
-        ];
-
-    function validateScheduleTime(event, mode) {
-        const startInput = document.getElementById(mode + 'Start');
-        const endInput = document.getElementById(mode + 'End');
-        const errorBox = document.getElementById(mode + 'TimeError');
-        const errorText = document.getElementById(mode + 'TimeErrorText');
-
-        errorBox.classList.add('d-none'); errorBox.classList.remove('d-flex');
-        startInput.classList.remove('is-invalid'); endInput.classList.remove('is-invalid');
-
-        const startTime = new Date(startInput.value); const endTime = new Date(endInput.value);
-        const todayStart = new Date('@today.ToString("yyyy-MM-dd")T00:00:00');
-
-        if (startTime < todayStart) {
-            if (event) event.preventDefault();
-            errorText.innerText = "⚠️ Không được chọn ngày đã qua!";
-            errorBox.classList.remove('d-none'); errorBox.classList.add('d-flex'); startInput.classList.add('is-invalid');
-            return false;
-        }
-        if (endTime <= startTime) {
-            if (event) event.preventDefault();
-            errorText.innerText = "⚠️ Giờ kết thúc phải lớn hơn giờ bắt đầu.";
-            errorBox.classList.remove('d-none'); errorBox.classList.add('d-flex'); endInput.classList.add('is-invalid');
-            return false;
-        }
-
-        for (let i = 0; i < existingSchedules.length; i++) {
-            const item = existingSchedules[i];
-            const exStart = new Date(item.start); const exEnd = new Date(item.end);
-            if (mode === 'edit' && item.id === parseInt(document.getElementById('editId').value)) continue;
-
-            if (startTime < exEnd && endTime > exStart) {
-                if (event) event.preventDefault();
-                errorText.innerText = "⚠️ Trùng giờ làm việc với ca của [" + item.empName + "]. Vui lòng chọn lại!";
-                errorBox.classList.remove('d-none'); errorBox.classList.add('d-flex'); startInput.classList.add('is-invalid'); endInput.classList.add('is-invalid');
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function openDetailModal(id, empCode, empName, dept, pos, title, shift, area, start, end, notes) {
-        const errorBox = document.getElementById('editTimeError');
-        errorBox.classList.add('d-none'); errorBox.classList.remove('d-flex');
-        document.getElementById('editStart').classList.remove('is-invalid'); document.getElementById('editEnd').classList.remove('is-invalid');
-
-        document.getElementById('editId').value = id;
-        document.getElementById('editEmpCode').value = empCode;
-        document.getElementById('editEmpName').value = empName;
-        document.getElementById('editDept').value = dept;
-        document.getElementById('editPos').value = pos;
-        document.getElementById('editTitle').value = title;
-        document.getElementById('editShift').value = shift;
-        document.getElementById('editArea').value = area;
-        document.getElementById('editStart').value = start;
-        document.getElementById('editEnd').value = end;
-        document.getElementById('editNotes').value = notes;
-
-        var detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
-        detailModal.show();
-    }
-
-    function setIdForDelete() {
-        document.getElementById('editId').value = event.currentTarget.value = document.getElementById('editId').value;
     }
 
     function handleLogout() {
