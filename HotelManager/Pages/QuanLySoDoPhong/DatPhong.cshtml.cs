@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using HotelManager.Data;
 using HotelManager.Models;
 
@@ -15,89 +16,113 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             _context = context;
         }
 
-        // Bắt buộc dùng BindProperty để hứng dữ liệu từ Form HTML
-        [BindProperty]
+        // Chứa thông tin phòng để hiển thị tóm tắt
         public PHONG PhongDuocChon { get; set; } = new PHONG();
 
+        // Chứa thông tin khách hàng lấy tự động từ CSDL
+        public KHACH_HANG KhachHangInfo { get; set; } = new KHACH_HANG();
+
+        // Binding dữ liệu form đặt phòng
         [BindProperty]
         public DAT_PHONG ThongTinDatPhong { get; set; } = new DAT_PHONG();
 
-        [BindProperty]
-        public int SoNgayO { get; set; }
-
         public async Task<IActionResult> OnGetAsync(string id)
         {
-            if (string.IsNullOrEmpty(id)) return NotFound();
+            // Kiểm tra bảo mật: Nếu chưa đăng nhập thì đẩy về trang Đăng nhập kèm ReturnUrl
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return RedirectToPage("/Auth/DangNhap", new { ReturnUrl = $"/QuanLySoDoPhong/DatPhong/{id}" });
+            }
+
+            if (string.IsNullOrEmpty(id)) return RedirectToPage("/QuanLySoDoPhong/TimPhong");
 
             try
             {
-                // Ưu tiên dùng LINQ truy xuất dữ liệu phòng
-                var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == id);
+                // 1. Lấy thông tin phòng
+                var phong = await _context.PHONG.AsNoTracking().FirstOrDefaultAsync(p => p.MaPhong == id);
                 if (phong == null) return NotFound();
-
                 PhongDuocChon = phong;
 
-                // Khởi tạo các giá trị thời gian mặc định
-                ThongTinDatPhong.NgayNhan = DateTime.Now;
-                ThongTinDatPhong.NgayTra = DateTime.Now.AddDays(1);
-                SoNgayO = 1;
+                // 2. Tự động lấy thông tin Khách hàng từ tài khoản đang đăng nhập
+                var tenDangNhap = User.Identity.Name;
+                var taiKhoan = await _context.TAI_KHOAN.AsNoTracking().FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap);
+
+                if (taiKhoan != null)
+                {
+                    // Lấy hồ sơ khách hàng dựa trên khóa ngoại (Điều chỉnh tên thuộc tính KHACH_HANGMaKH theo đúng Model thực tế của nhóm)
+                    var khachHang = await _context.KHACH_HANG.AsNoTracking().FirstOrDefaultAsync(k => k.MaKH == taiKhoan.KHACH_HANGMaKH);
+                    if (khachHang != null)
+                    {
+                        KhachHangInfo = khachHang;
+                    }
+                }
+
+                // 3. Khởi tạo giá trị mặc định cho form
+                ThongTinDatPhong.NgayNhan = DateTime.Now.Date.AddHours(14); // Mặc định check-in 14:00
+                ThongTinDatPhong.NgayTra = DateTime.Now.Date.AddDays(1).AddHours(12); // Mặc định check-out 12:00 hôm sau
+                ThongTinDatPhong.SoLuongKhach = 1;
 
                 return Page();
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Lỗi tải dữ liệu phòng: " + ex.Message);
+                ModelState.AddModelError(string.Empty, "Lỗi truy xuất dữ liệu: " + ex.Message);
                 return Page();
             }
         }
 
         public async Task<IActionResult> OnPostAsync(string id)
         {
-            if (!ModelState.IsValid)
-            {
-                var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == id);
-                if (phong != null) PhongDuocChon = phong;
-                return Page();
-            }
+            if (User.Identity == null || !User.Identity.IsAuthenticated) return RedirectToPage("/Auth/DangNhap");
 
             try
             {
-                // 1. Thêm mới dữ liệu vào bảng DAT_PHONG
+                var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == id);
+                if (phong == null) return NotFound();
+
+                // Sinh mã đặt phòng tự động (Ví dụ: DP20261004143000)
                 ThongTinDatPhong.MaDatPhong = "DP" + DateTime.Now.ToString("yyyyMMddHHmmss");
                 ThongTinDatPhong.NgayDat = DateTime.Now;
-                ThongTinDatPhong.TrangThaiDatPhong = "Chờ xác nhận";
-                ThongTinDatPhong.KenhDatPhong ??= "Trực tiếp (Walk-in)";
+                ThongTinDatPhong.TrangThaiDatPhong = "Chờ xác nhận"; // Sẽ đổi thành "Thành công" sau khi quét QR thanh toán
+                ThongTinDatPhong.KenhDatPhong = "Website Trực tuyến";
 
+                // Tính toán số ngày ở
+                int soNgayO = 1;
+                if (ThongTinDatPhong.NgayTra.HasValue && ThongTinDatPhong.NgayNhan.HasValue)
+                {
+                    soNgayO = (ThongTinDatPhong.NgayTra.Value.Date - ThongTinDatPhong.NgayNhan.Value.Date).Days;
+                }
+                if (soNgayO <= 0) soNgayO = 1;
+
+                // Lưu vào bảng DAT_PHONG
                 _context.DAT_PHONG.Add(ThongTinDatPhong);
 
-                // 2. Thêm mới chi tiết vào bảng CHI_TIET_DAT_PHONG
+                // Lưu vào bảng CHI_TIET_DAT_PHONG
                 var chiTiet = new CHI_TIET_DAT_PHONG
                 {
                     MaChiTietDatPhong = "CT" + ThongTinDatPhong.MaDatPhong,
-                    // ĐÃ SỬA LỖI CS0029: Gán trực tiếp biến int, loại bỏ .ToString()
-                    SoNgayO = this.SoNgayO
+                    DAT_PHONGMaDatPhong = ThongTinDatPhong.MaDatPhong,
+                    PHONGMaPhong = phong.MaPhong,
+                    DonGia = phong.GiaTheoNgay,
+
+                    // Gán trực tiếp biến soNgayO (kiểu int) thay vì gọi .ToString()
+                    SoNgayO = soNgayO
                 };
                 _context.CHI_TIET_DAT_PHONG.Add(chiTiet);
 
-                // 3. Cập nhật trạng thái trong bảng PHONG (Khóa phòng)
-                var phongToUpdate = await _context.PHONG.FindAsync(id);
-                if (phongToUpdate != null)
-                {
-                    phongToUpdate.MaTrangThai = "TT02"; // Mã TT02 quy định là Đã đặt/Đang có khách
-                    _context.PHONG.Update(phongToUpdate);
-                }
+                // Cập nhật trạng thái phòng thành Đã đặt (Giữ chỗ)
+                phong.MaTrangThai = "TT02";
+                _context.PHONG.Update(phong);
 
-                // Thực thi lưu toàn bộ xuống CSDL
+                // Lưu toàn bộ Transaction vào CSDL
                 await _context.SaveChangesAsync();
 
-                // Chuyển hướng người dùng sang trang Xác nhận (Bước tiếp theo của Sprint)
-                return RedirectToPage("./XacNhanDatPhong", new { id = ThongTinDatPhong.MaDatPhong });
+                // Thành công -> Chuyển hướng sang trang sinh mã QR thanh toán
+                return RedirectToPage("./XacNhanDatPhong", new { maDatPhong = ThongTinDatPhong.MaDatPhong });
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi lưu thông tin: " + ex.Message);
-                var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == id);
-                if (phong != null) PhongDuocChon = phong;
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi trong quá trình đặt phòng: " + ex.Message);
                 return Page();
             }
         }

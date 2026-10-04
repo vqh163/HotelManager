@@ -74,7 +74,9 @@
 
                         <div class="card-footer bg-white border-0 pb-3 pt-0">
                             <!-- SỬA LỖI Ở ĐÂY: Thay đổi asp-page và asp-route-maPhong -->
-                            <a asp-page="/QuanLySoDoPhong/XacNhanDatPhong" asp-route-maPhong="@phong.MaPhong" class="btn btn-outline-primary w-100 fw-bold">Xem chi tiết & Đặt phòng</a>
+                            <a asp-page="./ChiTietPhong" asp-route-id="@phong.MaPhong" class="btn btn-outline-primary w-100 fw-bold rounded-pill">
+                                Xem chi tiết & Đặt phòng
+                            </a>
                         </div>
                     </div>
                 </div>
