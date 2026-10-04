@@ -18,6 +18,7 @@ namespace HotelManager.Models
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal? DonGia { get; set; }
-        public int? SoNgayO { get; set; }
+        [Column(TypeName = "int")]
+        public int SoNgayO { get; set; }
     }
 }

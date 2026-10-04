@@ -10,29 +10,43 @@ namespace HotelManager.Pages.QuanTriHeThong
     {
         private readonly ApplicationDbContext _context;
 
-        // Tiêm Dependency Injection (DI) để sử dụng ApplicationDbContext
         public QuanLyTaiKhoanModel(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // Chứa danh sách tài khoản để hiển thị ra View
-        public IList<TAI_KHOAN> DanhSachTaiKhoan { get; set; } = default!;
+        // Danh sách tài khoản trả về cho HTML
+        public IList<TAI_KHOAN> DanhSachTaiKhoan { get; set; } = new List<TAI_KHOAN>();
 
-        // Biến lưu thông báo lỗi nếu quá trình truy vấn gặp sự cố
-        public string ThongBaoLoi { get; set; } = "";
+        // Thuộc tính tìm kiếm
+        [BindProperty(SupportsGet = true)]
+        public string? TuKhoaTimKiem { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task<IActionResult> OnGetAsync()
         {
             try
             {
-                // Sử dụng LINQ lấy toàn bộ dữ liệu từ bảng TAI_KHOAN trong SQL Server
-                DanhSachTaiKhoan = await _context.TAI_KHOAN.ToListAsync();
+                // Truy vấn tối ưu bằng AsNoTracking
+                var query = _context.TAI_KHOAN.AsNoTracking().AsQueryable();
+
+                // Xử lý tìm kiếm bằng LINQ
+                if (!string.IsNullOrEmpty(TuKhoaTimKiem))
+                {
+                    query = query.Where(t =>
+                        (t.MaTaiKhoan != null && t.MaTaiKhoan.Contains(TuKhoaTimKiem)) ||
+                        (t.TenDangNhap != null && t.TenDangNhap.Contains(TuKhoaTimKiem))
+                    );
+                }
+
+                // Sắp xếp và lấy danh sách
+                DanhSachTaiKhoan = await query.OrderBy(t => t.MaTaiKhoan).ToListAsync();
+
+                return Page();
             }
             catch (Exception ex)
             {
-                // Bắt lỗi an toàn, tránh để ứng dụng sụp đổ (crash) khi lỗi DB
-                ThongBaoLoi = "Đã xảy ra lỗi khi tải dữ liệu tài khoản: " + ex.Message;
+                ModelState.AddModelError(string.Empty, "Lỗi truy xuất dữ liệu: " + ex.Message);
+                return Page();
             }
         }
     }
