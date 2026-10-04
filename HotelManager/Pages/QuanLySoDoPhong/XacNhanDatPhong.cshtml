@@ -1,0 +1,123 @@
+﻿@page "{maPhong}"
+@model HotelManager.Pages.QuanLySoDoPhong.XacNhanDatPhongModel
+@{
+    ViewData["Title"] = "Hoàn tất đặt phòng";
+    
+    // Tính toán tiền linh động dựa trên giá phòng trong DB
+    decimal tienPhong = (Model.PhongDuocChon?.GiaTheoNgay ?? 4500000) * Model.SoDem; 
+    decimal thuePhi = tienPhong * 0.1m;
+    decimal tongCong = tienPhong + thuePhi;
+}
+
+<!-- Header -->
+<div class="bg-white border-bottom py-3 mb-4">
+    <div class="container text-center">
+        <h4 class="fw-bold text-dark mb-0">Hoàn tất đặt phòng</h4>
+    </div>
+</div>
+
+<div class="container pb-5">
+    
+    @if (!ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All"></div>
+    }
+
+    <div class="row g-4">
+        <!-- Cột Trái: Chi tiết đặt phòng & Thanh toán -->
+        <div class="col-lg-7">
+            <h4 class="fw-bold mb-3">Chi tiết đặt phòng</h4>
+            
+            <!-- Card Chi tiết phòng -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <img src="@(Model.PhongDuocChon?.HinhAnh ?? "/images/suite-room.jpg")" class="img-fluid rounded-3 w-100" style="object-fit: cover; height: 160px;" alt="Room">
+                        </div>
+                        <div class="col-md-7 d-flex flex-column justify-content-center">
+                            <h4 class="fw-bold">@Model.PhongDuocChon?.LoaiPhong</h4>
+                            <p class="text-muted mb-3">2 Người lớn • 1 Giường đôi lớn • Bao gồm ăn sáng</p>
+                            
+                            <hr class="mt-0 mb-3 text-muted">
+                            
+                            <div class="row">
+                                <div class="col-6 border-end">
+                                    <small class="text-muted fw-bold d-block mb-1 text-uppercase">Nhận phòng</small>
+                                    <h6 class="fw-bold mb-1">@Model.NgayNhan.ToString("dd/MM/yyyy")</h6>
+                                    <small class="text-muted">Từ 14:00</small>
+                                </div>
+                                <div class="col-6 ps-3">
+                                    <small class="text-muted fw-bold d-block mb-1 text-uppercase">Trả phòng</small>
+                                    <h6 class="fw-bold mb-1">@Model.NgayTra.ToString("dd/MM/yyyy")</h6>
+                                    <small class="text-muted">Trước 12:00</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Chi tiết thanh toán -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4">Chi tiết thanh toán</h5>
+                    
+                    <div class="d-flex justify-content-between mb-2 text-muted">
+                        <span>@Model.PhongDuocChon?.LoaiPhong (@Model.SoDem đêm)</span>
+                        <span>@tienPhong.ToString("N0") VND</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-4 text-muted">
+                        <span>Thuế & Phí dịch vụ (10%)</span>
+                        <span>@thuePhi.ToString("N0") VND</span>
+                    </div>
+                    
+                    <hr class="text-muted mb-4">
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Tổng cộng</h5>
+                        <h3 class="fw-bold text-success mb-0" style="color: #2b7a63 !important;">@tongCong.ToString("N0") VND</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột Phải: Form Thông tin khách hàng -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4">Thông tin khách hàng</h5>
+                    
+                    <form method="post">
+                        <div class="mb-3">
+                            <label asp-for="Input.HoTen" class="form-label fw-bold small">Họ và tên <span class="text-danger">*</span></label>
+                            <input asp-for="Input.HoTen" class="form-control py-2" placeholder="Nhập họ và tên trên CCCD" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Input.Email" class="form-label fw-bold small">Email <span class="text-danger">*</span></label>
+                            <input asp-for="Input.Email" type="email" class="form-control py-2" placeholder="Nhập địa chỉ email nhận xác nhận" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Input.SoDienThoai" class="form-label fw-bold small">Số điện thoại <span class="text-danger">*</span></label>
+                            <input asp-for="Input.SoDienThoai" class="form-control py-2" placeholder="Nhập số điện thoại liên hệ" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label asp-for="Input.YeuCauDacBiet" class="form-label fw-bold small">Yêu cầu đặc biệt (Tuỳ chọn)</label>
+                            <textarea asp-for="Input.YeuCauDacBiet" class="form-control" rows="3" placeholder="Ghi chú thêm cho khách sạn..."></textarea>
+                        </div>
+                        
+                        <!-- Nút Submit màu vàng đồng chuẩn UI -->
+                        <button type="submit" class="btn w-100 py-3 fw-bold text-white fs-5 rounded-3 mb-3" style="background-color: #d1a454;">
+                            XÁC NHẬN ĐẶT PHÒNG
+                        </button>
+                        
+                        <p class="text-center text-muted small mb-0">Bằng việc nhấn Xác nhận, bạn đồng ý với Quy định chung của khách sạn.</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
