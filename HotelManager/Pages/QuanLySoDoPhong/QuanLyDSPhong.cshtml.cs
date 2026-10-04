@@ -68,21 +68,32 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             }
         }
 
-        public async Task<IActionResult> OnPostKhoaAsync(string id)
+        // Phương thức xử lý Khóa / Mở khóa kết hợp
+        public async Task<IActionResult> OnPostKhoaMoKhoaAsync(string id)
         {
             try
             {
                 var phong = await _context.PHONG.FindAsync(id);
                 if (phong != null)
                 {
-                    phong.TRANG_THAI_PHONGMaTrangThai = "LOCKED";
+                    // Đảo trạng thái: Nếu đang khóa thì chuyển thành hoạt động (TRONG) và ngược lại
+                    if (phong.TRANG_THAI_PHONGMaTrangThai == "LOCKED")
+                    {
+                        phong.TRANG_THAI_PHONGMaTrangThai = "TRONG";
+                    }
+                    else
+                    {
+                        phong.TRANG_THAI_PHONGMaTrangThai = "LOCKED";
+                    }
+
                     await _context.SaveChangesAsync();
                 }
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, $"Lỗi khóa phòng: {ex.Message}");
+                ModelState.AddModelError(string.Empty, $"Lỗi khóa/mở khóa phòng: {ex.Message}");
+                // Truy vấn lại dữ liệu phòng nếu có lỗi để tránh giao diện bị lỗi hiển thị
                 DanhSachPhong = await _context.PHONG.AsNoTracking().ToListAsync();
                 return Page();
             }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261002074242_UpdateDB")]
-    partial class UpdateDB
+    [Migration("20261004021401_Seed_Admin_Plaintext")]
+    partial class Seed_Admin_Plaintext
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -647,8 +647,8 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("MatKhau")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(50)");
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("NHAN_VIENMaNV")
                         .HasColumnType("varchar(20)");
@@ -666,6 +666,16 @@ namespace HotelManager.Migrations
                     b.HasKey("MaTaiKhoan");
 
                     b.ToTable("TAI_KHOAN");
+
+                    b.HasData(
+                        new
+                        {
+                            MaTaiKhoan = "TK_ADMIN_001",
+                            MatKhau = "123456",
+                            TenDangNhap = "admin",
+                            TrangThai = "Hoạt động",
+                            VaiTro = "Quản trị viên"
+                        });
                 });
 
             modelBuilder.Entity("HotelManager.Models.THANH_TOAN", b =>
