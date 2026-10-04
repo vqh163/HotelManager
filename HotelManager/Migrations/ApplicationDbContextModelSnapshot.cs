@@ -55,7 +55,7 @@ namespace HotelManager.Migrations
                     b.Property<string>("PHONGMaPhong")
                         .HasColumnType("varchar(20)");
 
-                    b.Property<int?>("SoNgayO")
+                    b.Property<int>("SoNgayO")
                         .HasColumnType("int");
 
                     b.HasKey("MaChiTietDatPhong");
