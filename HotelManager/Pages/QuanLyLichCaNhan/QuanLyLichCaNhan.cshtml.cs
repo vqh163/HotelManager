@@ -11,11 +11,10 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         public string EmployeeName { get; set; } = "Lê Thị D";
 
         [BindProperty(SupportsGet = true)]
-        public int? ViewMonth { get; set; }
+        public DateTime? SelectedDate { get; set; }
+
         [BindProperty(SupportsGet = true)]
-        public int? ViewYear { get; set; }
-        [BindProperty(SupportsGet = true)]
-        public DateTime SelectedDate { get; set; } = DateTime.Today;
+        public string ActiveTab { get; set; } = "month";
 
         public DateTime CurrentDate { get; set; }
 
@@ -28,73 +27,120 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         [BindProperty]
         public LICH_LAM_VIEC ScheduleData { get; set; } = new LICH_LAM_VIEC();
 
+        [BindProperty]
+        public DateTime InputNgayLamViec { get; set; } = DateTime.Today;
+
+        // Biến hứng giờ tùy chỉnh khi chọn ca "Khác"
+        [BindProperty]
+        public string CustomStartTime { get; set; } = "06:00";
+        [BindProperty]
+        public string CustomEndTime { get; set; } = "14:00";
+
         [TempData]
         public string AlertMessage { get; set; }
 
-        public void OnGet()
+        public IActionResult OnGet()
         {
-            int targetMonth = ViewMonth ?? DateTime.Today.Month;
-            int targetYear = ViewYear ?? DateTime.Today.Year;
-            CurrentDate = new DateTime(targetYear, targetMonth, 1);
+            if (User.Identity == null || !User.Identity.IsAuthenticated) return RedirectToPage("/Auth/DangNhap");
+            if (!string.IsNullOrEmpty(User.Identity.Name)) EmployeeName = User.Identity.Name;
 
-            ScheduleData.ThoiGianBatDau = DateTime.Today.AddHours(6);
-            ScheduleData.ThoiGianKetThuc = DateTime.Today.AddHours(14);
+            if (User.IsInRole("Quản trị viên"))
+            {
+                TempData["ThongBaoLoi"] = "Quản trị viên không tham gia vào lịch vận hành.";
+                return RedirectToPage("/QuanTriHeThong/QuanLyTaiKhoan");
+            }
+
+            DateTime refDate = SelectedDate ?? DateTime.Today;
+            SelectedDate = refDate;
+            CurrentDate = new DateTime(refDate.Year, refDate.Month, 1);
 
             MySchedules = DatabaseMock.OrderBy(x => x.ThoiGianBatDau).ToList();
 
             DaysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
             StartDayOfWeek = CurrentDate.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)CurrentDate.DayOfWeek - 1;
+
+            return Page();
+        }
+
+        private void CalculateShiftTimes()
+        {
+            if (ScheduleData.LoaiCa == "Ca sáng")
+            {
+                ScheduleData.ThoiGianBatDau = InputNgayLamViec.Date.AddHours(6);
+                ScheduleData.ThoiGianKetThuc = InputNgayLamViec.Date.AddHours(14);
+            }
+            else if (ScheduleData.LoaiCa == "Ca chiều")
+            {
+                ScheduleData.ThoiGianBatDau = InputNgayLamViec.Date.AddHours(14);
+                ScheduleData.ThoiGianKetThuc = InputNgayLamViec.Date.AddHours(22);
+            }
+            else if (ScheduleData.LoaiCa == "Ca đêm")
+            {
+                ScheduleData.ThoiGianBatDau = InputNgayLamViec.Date.AddHours(22);
+                ScheduleData.ThoiGianKetThuc = InputNgayLamViec.Date.AddDays(1).AddHours(6);
+            }
+            else if (ScheduleData.LoaiCa == "Khác")
+            {
+                // Xử lý ghép ngày làm việc với giờ tùy chọn do người dùng chọn
+                if (TimeSpan.TryParse(CustomStartTime, out TimeSpan startTs) && TimeSpan.TryParse(CustomEndTime, out TimeSpan endTs))
+                {
+                    ScheduleData.ThoiGianBatDau = InputNgayLamViec.Date.Add(startTs);
+                    ScheduleData.ThoiGianKetThuc = InputNgayLamViec.Date.Add(endTs);
+
+                    // Nếu giờ kết thúc nhỏ hơn hoặc bằng giờ bắt đầu thì tự động đẩy sang ngày hôm sau (Ví dụ: 22:00 đến 02:00 sáng hôm sau)
+                    if (ScheduleData.ThoiGianKetThuc <= ScheduleData.ThoiGianBatDau)
+                    {
+                        ScheduleData.ThoiGianKetThuc = ScheduleData.ThoiGianKetThuc.AddDays(1);
+                    }
+                }
+            }
         }
 
         public IActionResult OnPostCreate()
         {
-            if (ScheduleData.ThoiGianBatDau.Date < DateTime.Today)
+            if (InputNgayLamViec.Date < DateTime.Today)
             {
-                AlertMessage = "⚠️ Lỗi: Không được chọn ngày đã qua! Vui lòng chọn từ ngày hôm nay trở đi.";
-                return RedirectToPage(new { ViewMonth = DateTime.Today.Month, ViewYear = DateTime.Today.Year });
+                AlertMessage = "⚠️ Lỗi: Không được chọn ngày đã qua!";
+                return RedirectToPage(new { SelectedDate = InputNgayLamViec, ActiveTab = ActiveTab });
             }
 
-            if (ScheduleData.ThoiGianKetThuc <= ScheduleData.ThoiGianBatDau)
-            {
-                AlertMessage = "⚠️ Lỗi: Giờ kết thúc phải lớn hơn giờ bắt đầu. Vui lòng chọn lại!";
-                return RedirectToPage(new { ViewMonth = DateTime.Today.Month, ViewYear = DateTime.Today.Year });
-            }
+            CalculateShiftTimes();
+
+            // ĐÃ XÓA ĐOẠN IF CHẶN LỖI CA "KHÁC" Ở ĐÂY
 
             var conflict = DatabaseMock.FirstOrDefault(x =>
+                x.MaNhanVien == ScheduleData.MaNhanVien &&
                 ScheduleData.ThoiGianBatDau < x.ThoiGianKetThuc &&
                 ScheduleData.ThoiGianKetThuc > x.ThoiGianBatDau);
 
             if (conflict != null)
             {
-                AlertMessage = $"⚠️ Bị trùng giờ với ca: {conflict.TenNhanVien} ({conflict.ThoiGianBatDau:HH:mm} - {conflict.ThoiGianKetThuc:HH:mm}). Vui lòng chọn lại!";
-                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
+                AlertMessage = $"⚠️ Nhân viên {conflict.TenNhanVien} đã có ca làm việc trùng lặp trong khung giờ này!";
+                return RedirectToPage(new { SelectedDate = InputNgayLamViec, ActiveTab = ActiveTab });
             }
 
             ScheduleData.Id = DatabaseMock.Any() ? DatabaseMock.Max(x => x.Id) + 1 : 1;
-            if (string.IsNullOrEmpty(ScheduleData.TrangThai)) ScheduleData.TrangThai = "Chưa bắt đầu";
+            ScheduleData.TrangThai = "Chưa bắt đầu";
 
             DatabaseMock.Add(ScheduleData);
             AlertMessage = "✅ Đã phân công ca làm việc thành công!";
-            return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
+            return RedirectToPage(new { SelectedDate = InputNgayLamViec, ActiveTab = ActiveTab });
         }
 
         public IActionResult OnPostEdit()
         {
-            if (ScheduleData.ThoiGianKetThuc <= ScheduleData.ThoiGianBatDau)
-            {
-                AlertMessage = "⚠️ Lỗi: Giờ kết thúc phải lớn hơn giờ bắt đầu. Vui lòng chọn lại!";
-                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
-            }
+            CalculateShiftTimes();
 
             var conflict = DatabaseMock.FirstOrDefault(x =>
                 x.Id != ScheduleData.Id &&
+                x.MaNhanVien == ScheduleData.MaNhanVien &&
                 ScheduleData.ThoiGianBatDau < x.ThoiGianKetThuc &&
                 ScheduleData.ThoiGianKetThuc > x.ThoiGianBatDau);
 
             if (conflict != null)
             {
-                AlertMessage = $"⚠️ Bị trùng giờ với ca: {conflict.TenNhanVien} ({conflict.ThoiGianBatDau:HH:mm} - {conflict.ThoiGianKetThuc:HH:mm}). Vui lòng chọn lại!";
-                return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
+                AlertMessage = $"⚠️ Nhân viên {conflict.TenNhanVien} đã có ca làm việc trùng lặp trong khung giờ này!";
+                return RedirectToPage(new { SelectedDate = InputNgayLamViec, ActiveTab = ActiveTab });
             }
 
             var item = DatabaseMock.FirstOrDefault(x => x.Id == ScheduleData.Id);
@@ -102,32 +148,28 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             {
                 item.TenNhanVien = ScheduleData.TenNhanVien;
                 item.MaNhanVien = ScheduleData.MaNhanVien;
-                item.BoPhan = ScheduleData.BoPhan;
                 item.ChucVu = ScheduleData.ChucVu;
                 item.LoaiCa = ScheduleData.LoaiCa;
-                item.KhuVuc = ScheduleData.KhuVuc;
                 item.ThoiGianBatDau = ScheduleData.ThoiGianBatDau;
                 item.ThoiGianKetThuc = ScheduleData.ThoiGianKetThuc;
                 item.TieuDe = ScheduleData.TieuDe;
                 item.GhiChu = ScheduleData.GhiChu;
                 item.Checklist = ScheduleData.Checklist;
-                item.VatTu = ScheduleData.VatTu;
-                item.DoUuTien = ScheduleData.DoUuTien;
 
                 AlertMessage = "✅ Cập nhật thông tin ca làm việc thành công!";
             }
-            return RedirectToPage(new { ViewMonth = ScheduleData.ThoiGianBatDau.Month, ViewYear = ScheduleData.ThoiGianBatDau.Year });
+            return RedirectToPage(new { SelectedDate = InputNgayLamViec, ActiveTab = ActiveTab });
         }
 
-        public IActionResult OnPostDelete(int id, int month, int year)
+        public IActionResult OnPostDelete(int deleteId, DateTime selectedDate, string activeTab)
         {
-            var item = DatabaseMock.FirstOrDefault(x => x.Id == id);
+            var item = DatabaseMock.FirstOrDefault(x => x.Id == deleteId);
             if (item != null)
             {
                 DatabaseMock.Remove(item);
                 AlertMessage = "🗑 Đã xóa ca làm việc khỏi hệ thống!";
             }
-            return RedirectToPage(new { ViewMonth = month, ViewYear = year });
+            return RedirectToPage(new { SelectedDate = selectedDate, ActiveTab = activeTab });
         }
     }
 
@@ -136,18 +178,25 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         public int Id { get; set; }
         public string TenNhanVien { get; set; } = string.Empty;
         public string MaNhanVien { get; set; } = string.Empty;
-        public string BoPhan { get; set; } = string.Empty;
         public string ChucVu { get; set; } = string.Empty;
         public string LoaiCa { get; set; } = string.Empty;
-        public DateTime ThoiGianBatDau { get; set; } = DateTime.Today.AddHours(6);
-        public DateTime ThoiGianKetThuc { get; set; } = DateTime.Today.AddHours(14);
-        public string KhuVuc { get; set; } = string.Empty;
+        public DateTime ThoiGianBatDau { get; set; }
+        public DateTime ThoiGianKetThuc { get; set; }
         public string TieuDe { get; set; } = string.Empty;
         public string GhiChu { get; set; } = string.Empty;
         public string Checklist { get; set; } = string.Empty;
-        public string VatTu { get; set; } = string.Empty;
-        public string DoUuTien { get; set; } = "Bình thường";
         public string TrangThai { get; set; } = "Chưa bắt đầu";
-        public string HinhAnh { get; set; } = string.Empty;
+
+        public string TrangThaiHienTai
+        {
+            get
+            {
+                if (TrangThai == "Chưa bắt đầu" && DateTime.Now >= ThoiGianBatDau && DateTime.Now <= ThoiGianKetThuc)
+                {
+                    return "Đang hoạt động";
+                }
+                return TrangThai;
+            }
+        }
     }
 }
