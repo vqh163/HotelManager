@@ -23,9 +23,9 @@ namespace HotelManager.Models
         public string TenDangNhap { get; set; } = default!;
 
         [Required(ErrorMessage = "Mật khẩu không được để trống")]
-        [Column(TypeName = "varchar(50)")] // (Theo mô tả 2.3.1 là varchar 50)
-        [MaxLength(255)]
-        public string? MatKhau { get; set; }
+        [Column(TypeName = "varchar(256)")]
+        [MaxLength(256)]
+        public string MatKhau { get; set; } = default!;
 
         [Column(TypeName = "nvarchar(50)")]
         public string? VaiTro { get; set; }

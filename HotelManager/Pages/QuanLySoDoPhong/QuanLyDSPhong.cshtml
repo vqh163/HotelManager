@@ -105,8 +105,27 @@
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
                                             <!-- Nút Khóa -->
-                                            <form method="post" asp-page-handler="Khoa" asp-route-id="@phong.MaPhong" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn khóa phòng này?');">
-                                                <button type="submit" class="btn btn-outline-warning py-2" title="Khóa phòng"><i class="bi bi-lock-fill"></i></button>
+                                            <form method="post" asp-page-handler="KhoaMoKhoa" asp-route-id="@phong.MaPhong" class="d-inline">
+                                                @if (phong.TRANG_THAI_PHONGMaTrangThai == "LOCKED")
+                                                {
+                                                    <!-- Nút hiển thị khi phòng ĐANG BỊ KHÓA -->
+                                                    <button type="submit" 
+                                                            class="btn btn-outline-success py-2 shadow-sm" 
+                                                            title="Mở khóa phòng" 
+                                                            onclick="return confirm('Bạn có chắc chắn muốn mở khóa phòng không?');">
+                                                        <i class="bi bi-unlock-fill"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <!-- Nút hiển thị khi phòng ĐANG HOẠT ĐỘNG -->
+                                                    <button type="submit" 
+                                                            class="btn btn-outline-warning py-2 shadow-sm" 
+                                                            title="Khóa phòng" 
+                                                            onclick="return confirm('Bạn có chắc chắn muốn khóa phòng này?');">
+                                                        <i class="bi bi-lock-fill"></i>
+                                                    </button>
+                                                }
                                             </form>
                                             <!-- Nút Xóa -->
                                             <form method="post" asp-page-handler="Xoa" asp-route-id="@phong.MaPhong" class="d-inline" onsubmit="return confirm('Cảnh báo: Hành động này sẽ xóa phòng vĩnh viễn khỏi CSDL. Tiếp tục?');">
