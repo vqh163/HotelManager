@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261004021401_Seed_Admin_Plaintext")]
-    partial class Seed_Admin_Plaintext
+    [Migration("20261004024008_CapNhatDB")]
+    partial class CapNhatDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -175,6 +175,11 @@ namespace HotelManager.Migrations
                         {
                             MaChucVu = "CV12",
                             TenChucVu = "Giám đốc"
+                        },
+                        new
+                        {
+                            MaChucVu = "CV13",
+                            TenChucVu = "Khách hàng"
                         });
                 });
 

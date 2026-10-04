@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class InitDB_V2 : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -401,7 +401,7 @@ namespace HotelManager.Migrations
             migrationBuilder.InsertData(
                 table: "TAI_KHOAN",
                 columns: new[] { "MaTaiKhoan", "KHACH_HANGMaKH", "MatKhau", "NHAN_VIENMaNV", "TenDangNhap", "TrangThai", "VaiTro" },
-                values: new object[] { "TK_ADMIN_001", null, "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92", null, "admin", "Hoạt động", "Quản trị viên" });
+                values: new object[] { "TK_ADMIN_001", null, "123456", null, "admin", "Hoạt động", "Quản trị viên" });
         }
 
         /// <inheritdoc />
