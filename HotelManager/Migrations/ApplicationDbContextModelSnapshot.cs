@@ -606,6 +606,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("LoaiPhong")
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("MaTrangThai")
+                        .HasColumnType("varchar(20)");
+
                     b.Property<string>("MoTa")
                         .HasColumnType("nvarchar(255)");
 
@@ -617,9 +620,6 @@ namespace HotelManager.Migrations
 
                     b.Property<int?>("SucChuaToiDa")
                         .HasColumnType("int");
-
-                    b.Property<string>("TRANG_THAI_PHONGMaTrangThai")
-                        .HasColumnType("varchar(20)");
 
                     b.HasKey("MaPhong");
 

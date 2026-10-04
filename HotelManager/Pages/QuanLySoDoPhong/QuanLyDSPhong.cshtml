@@ -1,153 +1,115 @@
 ﻿@page
-@model HotelManager.Pages.QuanLySoDoPhong.QuanLyPhongModel
+@model HotelManager.Pages.QuanLySoDoPhong.QuanLyDSPhongModel
 @{
-    ViewData["Title"] = "Quản lý danh sách phòng";
+    ViewData["Title"] = "Quản lý Sơ đồ phòng";
 }
 
-<div class="container-fluid py-4">
-    <!-- Tiêu đề và nút hành động -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    /* Định nghĩa màu sắc nhận diện trực quan cho từng trạng thái phòng */
+    .room-card-available { border-top: 5px solid #198754 !important; } /* Trống - Xanh lá */
+    .room-card-occupied { border-top: 5px solid #dc3545 !important; } /* Có khách - Đỏ */
+    .room-card-cleaning { border-top: 5px solid #ffc107 !important; } /* Dọn dẹp - Vàng */
+    .room-card-locked { border-top: 5px solid #6c757d !important; background-color: #f8f9fa; opacity: 0.85; } /* Khóa/Bảo trì - Xám */
+    
+    .room-header { background-color: #f8f9fa; color: #212529; }
+    .btn-add-new { background-color: #0d6efd; color: white; font-weight: 600; border-radius: 8px; padding: 8px 20px; transition: all 0.3s; }
+    .btn-add-new:hover { background-color: #0b5ed7; color: white; box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2); }
+    .room-img { height: 160px; object-fit: cover; }
+    .action-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid #dee2e6; background: white; transition: all 0.2s; }
+    .action-icon:hover { background: #f8f9fa; }
+</style>
+
+<div class="container-fluid mt-4 mb-5">
+    <!-- Tiêu đề trang và nút Thêm mới -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold text-primary mb-1"><i class="bi bi-door-open-fill me-2"></i>QUẢN LÝ DANH SÁCH PHÒNG</h2>
-            <p class="text-muted mb-0">Hệ thống quản lý thông tin và trạng thái phòng khách sạn</p>
-        </div>
-        <!-- Dùng Tag Helper asp-page điều hướng đến trang ThemPhong -->
-        <a asp-page="/QuanLySoDoPhong/ThemPhong" class="btn btn-primary shadow-sm fw-bold px-4 py-2">
-            <i class="bi bi-plus-lg me-1"></i> Thêm Phòng Mới
+        <h2 class="text-primary fw-bold text-uppercase mb-0">
+            <i class="fa-solid fa-bed"></i> SƠ ĐỒ PHÒNG TỔNG THỂ
+        </h2>
+        <a asp-page="./ThemPhong" class="btn btn-add-new text-decoration-none">
+            <i class="fa-solid fa-plus me-1"></i> Thêm phòng mới
         </a>
     </div>
+    
+    <div asp-validation-summary="All" class="text-danger fw-bold"></div>
 
-    @if (!ModelState.IsValid)
-    {
-        <div class="alert alert-danger shadow-sm border-0 rounded-3">
-            <div asp-validation-summary="All" class="mb-0"></div>
-        </div>
-    }
+    <!-- Lưới sơ đồ phòng hiển thị động -->
+    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+        @if (Model.DanhSachPhong != null && Model.DanhSachPhong.Any())
+        {
+            @foreach (var phong in Model.DanhSachPhong)
+            {
+                // Kiểm tra trạng thái để gán class CSS và biểu tượng tương ứng
+                var isLocked = phong.MaTrangThai == "TT04";
+                var statusClass = isLocked ? "room-card-locked" :
+                                  phong.MaTrangThai == "TT01" ? "room-card-available" :
+                                  phong.MaTrangThai == "TT02" ? "room-card-occupied" : "room-card-cleaning";
 
-    <!-- Bộ lọc và tìm kiếm -->
-    <div class="card shadow-sm border-0 rounded-3 mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-center">
-                <div class="col-md-5">
-                    <div class="input-group input-group-lg">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                        <input asp-for="TuKhoaTimKiem" class="form-control border-start-0 fs-6" placeholder="Tìm theo số phòng, hạng phòng..." />
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden @statusClass">
+                        <!-- Hình ảnh phòng -->
+                        <img src="@(string.IsNullOrEmpty(phong.HinhAnh) ? "/images/default-room.jpg" : phong.HinhAnh)" class="card-img-top room-img" alt="Phòng @phong.SoPhong">
+
+                        <div class="card-header room-header d-flex justify-content-between align-items-center py-2 bg-white border-bottom-0">
+                            <div>
+                                <span class="fw-bold fs-4 text-dark">Phòng @phong.SoPhong</span>
+                                <!-- Hiển thị ký hiệu cảnh báo/ổ khóa ngay cạnh số phòng nếu phòng bị khóa -->
+                                @if (isLocked)
+                                {
+                                    <span class="badge bg-secondary ms-2" title="Phòng đang bị khóa/bảo trì">
+                                        <i class="fa-solid fa-lock me-1"></i> Đã khóa
+                                    </span>
+                                }
+                            </div>
+                            
+                            <!-- Nhóm nút Quản trị: Sửa, Khóa/Mở khóa, Xóa -->
+                            <div class="d-flex gap-1">
+                                <a asp-page="./SuaPhong" asp-route-id="@phong.MaPhong" class="action-icon text-primary" title="Chỉnh sửa">
+                                    <i class="fa-regular fa-pen-to-square"></i>
+                                </a>
+                                <!-- Nút Khóa thay đổi màu icon linh hoạt theo trạng thái -->
+                                <a asp-page-handler="Khoa" asp-route-id="@phong.MaPhong" class="action-icon @(isLocked ? "text-danger bg-light" : "text-warning")" title="@(isLocked ? "Mở khóa phòng" : "Khóa phòng")">
+                                    <i class="fa-solid @(isLocked ? "fa-lock-open" : "fa-lock")"></i>
+                                </a>
+                                <a asp-page-handler="Xoa" asp-route-id="@phong.MaPhong" class="action-icon text-danger" title="Xóa phòng" onclick="return confirm('Bạn có chắc chắn muốn xóa phòng này không?');">
+                                    <i class="fa-regular fa-trash-can"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="card-body pt-1">
+                            <p class="card-text mb-2 text-muted small">
+                                <i class="fa-solid fa-layer-group me-1"></i><strong>Hạng:</strong> @phong.LoaiPhong
+                            </p>
+                            <h5 class="card-text text-danger fw-bold mt-2">
+                                @string.Format("{0:0,0} đ", phong.GiaTheoNgay) <small class="text-muted fs-6 fw-normal">/ Ngày</small>
+                            </h5>
+                        </div>
+
+                        <div class="card-footer bg-white border-top-0 p-3 pt-0 d-flex gap-2">
+                            <a asp-page="./ChiTietPhong" asp-route-id="@phong.MaPhong" class="btn btn-outline-secondary btn-sm flex-fill fw-bold rounded-pill">Chi tiết</a>
+                            
+                            <!-- Nếu phòng bị khóa thì vô hiệu hóa nút đặt phòng -->
+                            @if (phong.MaTrangThai == "TT01")
+                            {
+                                <a asp-page="./DatPhong" asp-route-id="@phong.MaPhong" class="btn btn-success btn-sm flex-fill fw-bold rounded-pill">Đặt phòng</a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-secondary btn-sm flex-fill fw-bold rounded-pill" disabled>@(isLocked ? "Phòng đã khóa" : "Không thể đặt")</button>
+                            }
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-secondary w-100 fw-bold py-2">TÌM KIẾM</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Bảng dữ liệu chính -->
-    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-4 py-3 text-secondary text-uppercase" style="font-size: 0.85rem;">Thông tin Phòng</th>
-                            <th class="py-3 text-secondary text-uppercase text-center" style="font-size: 0.85rem;">Hạng</th>
-                            <th class="py-3 text-secondary text-uppercase text-center" style="font-size: 0.85rem;">Sức chứa</th>
-                            <th class="py-3 text-secondary text-uppercase text-end" style="font-size: 0.85rem;">Giá / Ngày (VND)</th>
-                            <th class="py-3 text-secondary text-uppercase text-center" style="font-size: 0.85rem;">Trạng thái</th>
-                            <th class="pe-4 py-3 text-secondary text-uppercase text-center" style="font-size: 0.85rem;">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody class="border-top-0">
-                        @if (Model.DanhSachPhong.Any())
-                        {
-                            foreach (var phong in Model.DanhSachPhong)
-                            {
-                                <tr>
-                                    <!-- Cột thông tin phòng kèm hình ảnh thu nhỏ -->
-                                    <td class="ps-4 py-3">
-                                        <div class="d-flex align-items-center">
-                                            <img src="@(string.IsNullOrEmpty(phong.HinhAnh) ? "/images/default-room.jpg" : phong.HinhAnh)" 
-                                                 class="rounded-3 me-3 shadow-sm" style="width: 70px; height: 50px; object-fit: cover;" alt="Room"
-                                                 onerror="this.src='/images/default-room.jpg'" />
-                                            <div>
-                                                <h6 class="mb-0 fw-bold text-dark">Phòng @phong.SoPhong</h6>
-                                                <small class="text-muted">Mã: @phong.MaPhong</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    
-                                    <td class="text-center">
-                                        <span class="badge bg-info bg-opacity-10 text-info border border-info rounded-pill px-3 py-2 fw-semibold">@phong.LoaiPhong</span>
-                                    </td>
-                                    
-                                    <td class="text-center text-muted fw-medium">
-                                        <i class="bi bi-person-fill"></i> @phong.SucChuaToiDa
-                                    </td>
-                                    
-                                    <td class="text-end fw-bold text-success fs-5">
-                                        @(phong.GiaTheoNgay?.ToString("N0") ?? "0")
-                                    </td>
-                                    
-                                    <td class="text-center">
-                                        @if (phong.TRANG_THAI_PHONGMaTrangThai == "LOCKED")
-                                        {
-                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-3 py-2 rounded-pill"><i class="bi bi-lock-fill me-1"></i> Đã khóa</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i> Hoạt động</span>
-                                        }
-                                    </td>
-                                    
-                                    <td class="pe-4 text-center">
-                                        <div class="btn-group shadow-sm rounded-3">
-                                            <!-- Nút Sửa -->
-                                            <a asp-page="/QuanLySoDoPhong/SuaPhong" asp-route-id="@phong.MaPhong" class="btn btn-outline-primary py-2" title="Chỉnh sửa">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <!-- Nút Khóa -->
-                                            <form method="post" asp-page-handler="KhoaMoKhoa" asp-route-id="@phong.MaPhong" class="d-inline">
-                                                @if (phong.TRANG_THAI_PHONGMaTrangThai == "LOCKED")
-                                                {
-                                                    <!-- Nút hiển thị khi phòng ĐANG BỊ KHÓA -->
-                                                    <button type="submit" 
-                                                            class="btn btn-outline-success py-2 shadow-sm" 
-                                                            title="Mở khóa phòng" 
-                                                            onclick="return confirm('Bạn có chắc chắn muốn mở khóa phòng không?');">
-                                                        <i class="bi bi-unlock-fill"></i>
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <!-- Nút hiển thị khi phòng ĐANG HOẠT ĐỘNG -->
-                                                    <button type="submit" 
-                                                            class="btn btn-outline-warning py-2 shadow-sm" 
-                                                            title="Khóa phòng" 
-                                                            onclick="return confirm('Bạn có chắc chắn muốn khóa phòng này?');">
-                                                        <i class="bi bi-lock-fill"></i>
-                                                    </button>
-                                                }
-                                            </form>
-                                            <!-- Nút Xóa -->
-                                            <form method="post" asp-page-handler="Xoa" asp-route-id="@phong.MaPhong" class="d-inline" onsubmit="return confirm('Cảnh báo: Hành động này sẽ xóa phòng vĩnh viễn khỏi CSDL. Tiếp tục?');">
-                                                <button type="submit" class="btn btn-outline-danger py-2" title="Xóa phòng"><i class="bi bi-trash-fill"></i></button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="bi bi-inbox text-secondary" style="font-size: 3rem;"></i>
-                                    <p class="mt-3 fs-5">Chưa có dữ liệu phòng nào trong hệ thống.</p>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center text-muted mt-5">
+                <i class="fa-solid fa-calendar-xmark fa-4x mb-3 text-secondary"></i>
+                <h4>Không tìm thấy phòng nào phù hợp!</h4>
             </div>
-        </div>
+        }
     </div>
 </div>

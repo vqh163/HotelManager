@@ -12,26 +12,27 @@
                 <div class="col-md-4 border-end">
                     <label class="form-label text-muted small mb-0">Nhận phòng - Trả phòng</label>
                     <div class="d-flex align-items-center">
-                        <input asp-for="Input.NgayNhan" type="date" class="form-control border-0 fw-bold shadow-none p-0" />
+                        <input asp-for="NgayNhan" type="date" class="form-control border-0 fw-bold shadow-none p-0" />
                         <span class="mx-2">—</span>
-                        <input asp-for="Input.NgayTra" type="date" class="form-control border-0 fw-bold shadow-none p-0" />
+                        <input asp-for="NgayTra" type="date" class="form-control border-0 fw-bold shadow-none p-0" />
                     </div>
                 </div>
 
                 <div class="col-md-3 border-end px-4">
                     <label class="form-label text-muted small mb-0">Số khách</label>
-                    <input asp-for="Input.SoKhach" type="number" min="1" class="form-control border-0 fw-bold shadow-none p-0" placeholder="Số lượng khách" />
+                    <input asp-for="SoKhach" type="number" min="1" class="form-control border-0 fw-bold shadow-none p-0" placeholder="Số lượng khách" />
                 </div>
 
                 <div class="col-md-3 px-4">
                     <label class="form-label text-muted small mb-0">Hạng phòng</label>
-                    <select asp-for="Input.LoaiPhongTimKiem" class="form-select border-0 fw-bold shadow-none p-0">
-                        <option value="Tất cả">Tất cả hạng phòng</option>
-                        <option value="Standard">Phòng Standard</option>
-                        <option value="Superior">Phòng Superior</option>
-                        <option value="Deluxe">Phòng Deluxe</option>
-                        <option value="Suite">Phòng Suite</option>
-                    </select>
+                    <!-- Sửa tên thuộc tính bên trong asp-for thành HangPhong để khớp hoàn toàn với TimPhongModel.cs -->
+                <select asp-for="HangPhong" class="form-select border-0 border-bottom rounded-0 px-0">
+                    <option value="">Tất cả hạng phòng</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Superior">Superior</option>
+                    <option value="Deluxe">Deluxe</option>
+                    <option value="Suite">Suite</option>
+                </select>
                 </div>
 
                 <div class="col-md-2 text-end">
