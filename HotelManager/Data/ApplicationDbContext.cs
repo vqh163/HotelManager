@@ -51,7 +51,8 @@ namespace HotelManager.Data
                 new CHUC_VU { MaChucVu = "CV09", TenChucVu = "Thủ kho" },
                 new CHUC_VU { MaChucVu = "CV10", TenChucVu = "Sales" },
                 new CHUC_VU { MaChucVu = "CV11", TenChucVu = "Kế toán" },
-                new CHUC_VU { MaChucVu = "CV12", TenChucVu = "Giám đốc" }
+                new CHUC_VU { MaChucVu = "CV12", TenChucVu = "Giám đốc" },
+                new CHUC_VU { MaChucVu = "CV13", TenChucVu = "Khách hàng" }
             );
 
             // 2. Seed Data: Tạo sẵn tài khoản Quản trị viên mặc định (admin / 123456 đã được băm SHA-256)

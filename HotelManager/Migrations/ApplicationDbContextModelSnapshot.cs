@@ -172,6 +172,11 @@ namespace HotelManager.Migrations
                         {
                             MaChucVu = "CV12",
                             TenChucVu = "Giám đốc"
+                        },
+                        new
+                        {
+                            MaChucVu = "CV13",
+                            TenChucVu = "Khách hàng"
                         });
                 });
 

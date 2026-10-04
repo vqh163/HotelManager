@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261004020855_InitDB_V2")]
-    partial class InitDB_V2
+    [Migration("20261004022420_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -671,7 +671,7 @@ namespace HotelManager.Migrations
                         new
                         {
                             MaTaiKhoan = "TK_ADMIN_001",
-                            MatKhau = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+                            MatKhau = "123456",
                             TenDangNhap = "admin",
                             TrangThai = "Hoạt động",
                             VaiTro = "Quản trị viên"
