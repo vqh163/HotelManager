@@ -1,0 +1,131 @@
+﻿@page
+@model HotelManager.Pages.QuanLyHoSo.HoSoKhachHangModel
+@{
+    ViewData["Title"] = "Hồ sơ của tôi";
+
+    // CSS Động: Đổi màu Badge tùy theo hạng thành viên
+    string badgeColor = "bg-secondary";
+    string hang = Model.KhachHangInfo.HangThanhVien ?? "Thành viên mới";
+    if (hang == "Bạc") badgeColor = "bg-info text-white";
+    else if (hang == "Vàng") badgeColor = "bg-warning text-dark";
+    else if (hang == "Kim cương") badgeColor = "bg-danger text-white";
+}
+
+<div class="container py-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-primary text-white p-4 rounded-top-4 border-0 d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-person-vcard me-2"></i> THÔNG TIN CÁ NHÂN</h4>
+                    <span class="badge @badgeColor fs-6 rounded-pill shadow-sm">Hạng: @hang</span>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    @if (!string.IsNullOrEmpty(Model.ThongBao))
+                    {
+                        <div class="alert @(Model.ThongBao.Contains("❌") ? "alert-danger" : "alert-success") fw-bold shadow-sm">
+                            @Model.ThongBao
+                        </div>
+                    }
+
+                    <form method="post" id="profileForm">
+                        <input type="hidden" asp-for="KhachHangInfo.MaKH" />
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-muted">Họ và tên</label>
+                                <input type="text" asp-for="KhachHangInfo.HoTen" class="form-control form-control-lg profile-input bg-light" readonly />
+                                <span asp-validation-for="KhachHangInfo.HoTen" class="text-danger small fw-bold"></span>
+                            </div>
+                            
+                            <!-- RÀNG BUỘC SĐT: Chỉ cho nhập số, tối đa 10 ký tự -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-muted">Số điện thoại</label>
+                                <input type="text" asp-for="KhachHangInfo.SDT" class="form-control form-control-lg profile-input bg-light" 
+                                       oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);" readonly />
+                                <span asp-validation-for="KhachHangInfo.SDT" class="text-danger small fw-bold"></span>
+                            </div>
+                            
+                            <!-- RÀNG BUỘC CCCD: Bắt buộc số, tự động cắt đúng 12 ký tự chặn copy-paste sai -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-muted">Căn cước công dân <span class="text-danger">*</span></label>
+                                <input type="text" asp-for="KhachHangInfo.SoCCCD" class="form-control form-control-lg profile-input bg-light" 
+                                       oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12);" readonly />
+                                <span asp-validation-for="KhachHangInfo.SoCCCD" class="text-danger small fw-bold"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-muted">Email</label>
+                                <input type="email" asp-for="KhachHangInfo.Email" class="form-control form-control-lg profile-input bg-light" readonly />
+                                <span asp-validation-for="KhachHangInfo.Email" class="text-danger small fw-bold"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-muted">Ngày sinh</label>
+                                <input type="date" asp-for="KhachHangInfo.NgaySinh" class="form-control form-control-lg profile-input bg-light" readonly />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-muted">Giới tính</label>
+                                <select asp-for="KhachHangInfo.GioiTinh" class="form-select form-select-lg profile-input bg-light" disabled>
+                                    <option value="Nam">Nam</option>
+                                    <option value="Nữ">Nữ</option>
+                                    <option value="Khác">Khác</option>
+                                </select>
+                                <input type="hidden" asp-for="KhachHangInfo.GioiTinh" id="hiddenGioiTinh" />
+                            </div>
+                            
+                            <div class="col-md-12 border-top pt-3 mt-4">
+                                <label class="form-label fw-bold text-muted">Điểm thưởng (Point)</label>
+                                <input type="text" class="form-control form-control-lg bg-light text-primary fw-bold" value="@Model.KhachHangInfo.DiemThuong" readonly />
+                                <div class="form-text text-muted fst-italic">Hệ thống sẽ tự động xét hạng thành viên dựa trên tổng điểm thưởng tích lũy.</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-3 border-top pt-4">
+                            
+                            <!-- BỔ SUNG NÚT VỀ TRANG CHỦ (Đẩy sang bên trái bằng me-auto) -->
+                            <a asp-page="/QuanLySoDoPhong/TimPhong" id="btnBackHome" class="btn btn-outline-secondary fw-bold px-4 py-2 rounded-pill me-auto">
+                                <i class="bi bi-arrow-left me-1"></i> Về trang chủ
+                            </a>
+
+                            <button type="button" id="btnUpdate" class="btn btn-primary fw-bold px-4 py-2 rounded-pill shadow-sm" onclick="enableEdit()">
+                                <i class="bi bi-pencil-square me-1"></i> Cập nhật thông tin
+                            </button>
+                            
+                            <button type="button" id="btnCancel" class="btn btn-light fw-bold px-4 py-2 rounded-pill border d-none" onclick="window.location.reload()">
+                                Hủy bỏ
+                            </button>
+                            <button type="submit" id="btnSave" class="btn btn-success fw-bold px-5 py-2 rounded-pill shadow-sm d-none">
+                                <i class="bi bi-save me-1"></i> Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Thêm thư viện Client-side validation của ASP.NET Core -->
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        function enableEdit() {
+            document.querySelectorAll('.profile-input').forEach(el => {
+                if(el.tagName === 'SELECT') {
+                    el.removeAttribute('disabled');
+                    document.getElementById('hiddenGioiTinh').disabled = true; 
+                } else {
+                    el.removeAttribute('readonly');
+                }
+                el.classList.remove('bg-light');
+            });
+
+            document.getElementById('btnUpdate').classList.add('d-none');
+            document.getElementById('btnCancel').classList.remove('d-none');
+            document.getElementById('btnSave').classList.remove('d-none');
+        }
+    </script>
+}
