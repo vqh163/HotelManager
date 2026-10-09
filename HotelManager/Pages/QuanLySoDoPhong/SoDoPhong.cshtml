@@ -1,0 +1,149 @@
+﻿@page
+@model HotelManager.Pages.QuanLySoDoPhong.SoDoPhongModel
+@{
+    ViewData["Title"] = "Sơ đồ Phòng";
+    var phongTheoTang = Model.DanhSachLieuPhong.GroupBy(p => p.Tang).OrderBy(g => g.Key);
+}
+
+<div class="container-fluid py-4 bg-light min-vh-100">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-primary"><i class="bi bi-grid-3x3-gap-fill me-2"></i>SƠ ĐỒ PHÒNG TỔNG QUAN</h3>
+        
+        <div class="d-flex gap-3 small fw-bold">
+            <span class="text-success"><i class="bi bi-square-fill me-1"></i>Trống</span>
+            <span class="text-warning"><i class="bi bi-square-fill me-1"></i>Đang ở</span>
+            <span class="text-info"><i class="bi bi-square-fill me-1"></i>Đã đặt</span>
+            <span class="text-danger"><i class="bi bi-square-fill me-1"></i>Hư hại/Bảo trì</span>
+            <span class="text-secondary"><i class="bi bi-stars me-1"></i>Sạch</span>
+            <span class="text-dark"><i class="bi bi-trash-fill me-1"></i>Bẩn</span>
+        </div>
+    </div>
+
+    @if (!ModelState.IsValid)
+    {
+        <div class="alert alert-danger" asp-validation-summary="All"></div>
+    }
+
+    @foreach (var tang in phongTheoTang)
+    {
+        <div class="card shadow-sm border-0 mb-4 rounded-3">
+            <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                <h5 class="fw-bold text-secondary mb-0">Tầng @tang.Key</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach (var phong in tang)
+                    {
+                        string bgColor = "bg-success"; 
+                        string textColor = "text-white";
+                        
+                        if (phong.MaTrangThai == "DANG_O") { bgColor = "bg-warning"; textColor = "text-dark"; }
+                        else if (phong.MaTrangThai == "DA_DAT") { bgColor = "bg-info"; }
+                        else if (phong.MaTrangThai == "HU_HAI") { bgColor = "bg-danger"; }
+
+                        string cleanIcon = phong.TrangThaiVeSinh == "Sạch" ? "bi-stars text-light" : "bi-trash-fill text-dark";
+
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="card h-100 border-0 rounded-3 shadow-sm @bgColor @textColor" 
+                                 style="cursor: pointer; transition: transform 0.2s;"
+                                 onmouseover="this.style.transform='scale(1.05)'" 
+                                 onmouseout="this.style.transform='scale(1)'"
+                                 data-bs-toggle="modal" 
+                                 data-bs-target="#actionModal-@phong.MaPhong">
+                                
+                                <div class="card-body p-2 d-flex flex-column justify-content-between" style="min-height: 100px;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h5 class="fw-bold mb-0">@phong.SoPhong</h5>
+                                        <i class="bi @cleanIcon fs-5" title="Vệ sinh: @phong.TrangThaiVeSinh"></i>
+                                    </div>
+                                    
+                                    <div>
+                                        <small class="d-block fw-bold opacity-75">@phong.LoaiPhong</small>
+                                        @if (User.IsInRole("Buồng phòng"))
+                                        {
+                                            <span class="badge bg-white text-dark w-100 mt-1">@phong.TrangThaiVeSinh</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-white text-dark w-100 mt-1">@phong.TrangThaiPhong</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@foreach (var p in Model.DanhSachLieuPhong)
+{
+    <div class="modal fade" id="actionModal-@p.MaPhong" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-light border-bottom-0">
+                    <h5 class="modal-title fw-bold text-primary">Phòng @p.SoPhong</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body px-4 pb-4">
+                    <div class="d-grid gap-2">
+                        
+                        @if (User.IsInRole("Buồng phòng") || User.IsInRole("Quản lý"))
+                        {
+                            <div class="text-start mb-2"><small class="text-muted fw-bold">Nghiệp vụ Buồng phòng</small></div>
+                            @if (p.TrangThaiVeSinh != "Sạch")
+                            {
+                                <form method="post" asp-page-handler="CapNhatVeSinh" asp-route-maPhong="@p.MaPhong" asp-route-trangThaiVeSinh="Sạch">
+                                    <button type="submit" class="btn btn-outline-success w-100 fw-bold"><i class="bi bi-stars me-2"></i>Đã dọn sạch</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="CapNhatVeSinh" asp-route-maPhong="@p.MaPhong" asp-route-trangThaiVeSinh="Bẩn">
+                                    <button type="submit" class="btn btn-outline-secondary w-100 fw-bold"><i class="bi bi-trash-fill me-2"></i>Báo phòng bẩn</button>
+                                </form>
+                            }
+                        }
+
+                        @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý"))
+                        {
+                            <div class="text-start mt-2 mb-2"><small class="text-muted fw-bold">Nghiệp vụ Lễ tân</small></div>
+                            
+                            @if (p.MaTrangThai == "TRONG" || p.MaTrangThai == "DA_DAT")
+                            {
+                                <form method="post" asp-page-handler="CapNhatTrangThai" asp-route-maPhong="@p.MaPhong" asp-route-maTrangThaiMoi="DANG_O">
+                                    <button type="submit" class="btn btn-primary w-100 fw-bold"><i class="bi bi-person-check-fill me-2"></i>Nhận phòng (Check-in)</button>
+                                </form>
+                            }
+                            else if (p.MaTrangThai == "DANG_O")
+                            {
+                                <form method="post" asp-page-handler="CapNhatTrangThai" asp-route-maPhong="@p.MaPhong" asp-route-maTrangThaiMoi="TRONG">
+                                    <button type="submit" class="btn btn-warning w-100 fw-bold text-dark"><i class="bi bi-box-arrow-right me-2"></i>Trả phòng (Check-out)</button>
+                                </form>
+                            }
+                        }
+
+                        @if (User.IsInRole("Sales") || User.IsInRole("Quản lý"))
+                        {
+                            <div class="text-start mt-2 mb-2"><small class="text-muted fw-bold">Nghiệp vụ Sales</small></div>
+                            
+                            <form method="post" asp-page-handler="CapNhatTrangThai" asp-route-maPhong="@p.MaPhong" asp-route-maTrangThaiMoi="DA_DAT">
+                                <button type="submit" class="btn btn-outline-info w-100 fw-bold"><i class="bi bi-calendar-check-fill me-2"></i>Đánh dấu Đã Đặt</button>
+                            </form>
+                            
+                            @if (User.IsInRole("Quản lý"))
+                            {
+                                <form method="post" asp-page-handler="CapNhatTrangThai" asp-route-maPhong="@p.MaPhong" asp-route-maTrangThaiMoi="HU_HAI">
+                                    <button type="submit" class="btn btn-outline-danger w-100 fw-bold mt-2"><i class="bi bi-tools me-2"></i>Khóa phòng (Bảo trì)</button>
+                                </form>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

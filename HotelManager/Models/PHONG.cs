@@ -10,8 +10,9 @@ namespace HotelManager.Models
         [Column(TypeName = "varchar(20)")]
         public string MaPhong { get; set; } = default!;
 
+        // Thuộc tính quan trọng để liên kết với bảng TRANG_THAI_PHONG
         [Column(TypeName = "varchar(20)")]
-        public string? TRANG_THAI_PHONGMaTrangThai { get; set; }
+        public string? MaTrangThai { get; set; }
 
         [Column(TypeName = "varchar(20)")]
         public string? SoPhong { get; set; }
@@ -34,7 +35,6 @@ namespace HotelManager.Models
         [Column(TypeName = "nvarchar(255)")]
         public string? MoTa { get; set; }
 
-        // Bổ sung cột lưu đường dẫn hình ảnh
         [Column(TypeName = "nvarchar(255)")]
         public string? HinhAnh { get; set; }
     }
