@@ -21,5 +21,8 @@ namespace HotelManager.Models
 
         [Column(TypeName = "nvarchar(20)")]
         public string? DonViTinh { get; set; }
+
+        [Column(TypeName = "nvarchar(255)")]
+        public string? HinhAnh { get; set; }
     }
 }

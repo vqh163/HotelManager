@@ -1,0 +1,195 @@
+﻿@page
+@model HotelManagement.Pages.NhaHang.NhaBep.QuanLyThucDonModel
+@{
+    ViewData["Title"] = "Quản Lý Thực Đơn";
+    string currentCategory = string.IsNullOrEmpty(Model.DanhMucLoc) ? "Tất cả" : Model.DanhMucLoc;
+}
+
+@Html.AntiForgeryToken()
+
+<style>
+    .btn-brand-yellow { background-color: #f39c12; color: #fff; border: none; font-weight: bold;}
+    .btn-brand-yellow:hover { background-color: #e67e22; color: #fff; }
+    .stat-card { border-radius: 12px; background-color: #fff; border: 1px solid #eaeaea; padding: 12px 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+    .price-label { font-size: 0.7rem; color: #999; text-transform: uppercase; font-weight: bold;}
+    .nav-pills .nav-link.active { background-color: #0d6efd; color: white; font-weight: bold;}
+    .nav-pills .nav-link { color: #555; background-color: #f8f9fa; border: 1px solid #eaeaea; margin-right: 12px; border-radius: 25px; padding: 8px 22px; font-weight: 500; transition: 0.2s;}
+    .menu-item-row { background-color: #fff; border: 1px solid #eaeaea; border-radius: 15px; margin-bottom: 15px; display: flex; align-items: center; padding: 15px;}
+    
+    .item-image-wrapper { position: relative; width: 100px; height: 100px; border-radius: 12px; overflow: hidden; flex-shrink: 0; margin-right: 20px;}
+    .item-image { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+    .out-of-stock-overlay { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; z-index: 10;}
+    .out-of-stock-badge { background-color: #dc3545; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;}
+    
+    .price-text { font-size: 1.3rem; color: #3498db; font-weight: bold; }
+    .form-switch .form-check-input { width: 3.2em; height: 1.6em; cursor: pointer; }
+    .form-check-input:checked { background-color: #198754; border-color: #198754; }
+    .status-text { font-size: 0.85rem; font-weight: bold;}
+    .status-active { color: #198754; } 
+    .status-inactive { color: #dc3545; } 
+</style>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 d-flex align-items-center gap-2 text-dark">
+                <i class="bi bi-journal-text text-primary"></i> Quản Lý Thực Đơn
+            </h2>
+            <p class="text-muted mb-0 small">Cập nhật trạng thái món ăn, giá cả dành cho bộ phận Bếp & Nhà hàng.</p>
+        </div>
+        
+        <div class="d-flex gap-4 align-items-center">
+            <div class="stat-card d-flex gap-4">
+                <div>
+                    <div class="price-label">TỔNG SỐ MÓN</div>
+                    <div class="fw-bold fs-5 text-dark" id="stat-tong">@Model.TongSoMon</div>
+                </div>
+                <div class="border-start border-end px-4">
+                    <div class="price-label text-success">ĐANG BÁN</div>
+                    <div class="fw-bold fs-5 text-success" id="stat-dang-ban">@Model.DangBan</div>
+                </div>
+                <div>
+                    <div class="price-label text-danger">TẠM NGƯNG</div>
+                    <div class="fw-bold fs-5 text-danger" id="stat-tam-ngung">@Model.TamNgung</div>
+                </div>
+            </div>
+            
+            <a asp-page="./ThemMon" class="btn btn-brand-yellow rounded-pill px-4 py-2 shadow-sm text-nowrap">
+                <i class="bi bi-plus-lg me-1"></i> Thêm món mới
+            </a>
+        </div>
+    </div>
+
+    <form method="get" id="filterForm" class="mb-4">
+        <input type="hidden" asp-for="DanhMucLoc" />
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="input-group shadow-sm flex-grow-1 me-4" style="max-width: 600px;">
+                <span class="input-group-text bg-white border-end-0 rounded-start-pill text-muted px-4"><i class="bi bi-search"></i></span>
+                <input asp-for="TuKhoaTimKiem" class="form-control border-start-0 py-2 rounded-end-pill shadow-none" placeholder="Tìm kiếm tên món ăn, mã món (SKU)..." onkeypress="if(event.keyCode==13) document.getElementById('filterForm').submit();">
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a class="nav-link @(currentCategory == "Tất cả" ? "active shadow-sm" : "")" href="?DanhMucLoc=Tất cả&TrangThaiLoc=@Model.TrangThaiLoc">Tất cả</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(currentCategory == "Khai vị" ? "active shadow-sm" : "")" href="?DanhMucLoc=Khai vị&TrangThaiLoc=@Model.TrangThaiLoc"><i class="bi bi-cup-hot me-1"></i> Khai vị</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(currentCategory == "Món chính" ? "active shadow-sm" : "")" href="?DanhMucLoc=Món chính&TrangThaiLoc=@Model.TrangThaiLoc"><i class="bi bi-egg-fried me-1"></i> Món chính</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(currentCategory == "Đồ uống" ? "active shadow-sm" : "")" href="?DanhMucLoc=Đồ uống&TrangThaiLoc=@Model.TrangThaiLoc"><i class="bi bi-cup-straw me-1"></i> Đồ uống</a>
+            </li>
+        </ul>
+        <div class="text-muted small">Đang hiển thị <strong>@Model.DanhSachThucDon.Count</strong> món</div>
+    </div>
+
+    <div class="menu-list">
+        <div asp-validation-summary="All" class="text-danger fw-bold mb-3"></div>
+
+        @if (Model.DanhSachThucDon.Any())
+        {
+            @foreach (var mon in Model.DanhSachThucDon)
+            {
+                <div class="menu-item-row shadow-sm">
+                    <div class="item-image-wrapper">
+                        <div class="out-of-stock-overlay" id="overlay-@mon.MaDichVu" style="display: @(mon.ConMon ? "none" : "flex");">
+                            <span class="out-of-stock-badge bg-danger">HẾT MÓN</span>
+                        </div>
+                        <img src="@mon.HinhAnh" id="img-@mon.MaDichVu" class="item-image @(!mon.ConMon ? "opacity-50" : "")" alt="@mon.TenDichVu">
+                    </div>
+                    
+                    <div class="flex-grow-1 pe-3">
+                        <div class="mb-1">
+                            <span class="small text-primary fw-bold text-uppercase">@mon.MaDichVu</span>
+                            <span class="badge bg-light text-secondary border ms-2">@mon.LoaiDichVu</span>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-1">@mon.TenDichVu</h5>
+                        <p class="text-muted small mb-0 lh-sm">@mon.MoTa</p>
+                    </div>
+                    
+                    <div class="px-4 text-center border-start border-light" style="min-width: 160px;">
+                        <div class="price-label mb-1">GIÁ BÁN</div>
+                        <div class="price-text">@mon.DonGia.ToString("N0") VND</div>
+                    </div>
+                    
+                    <div class="px-4 text-center border-start border-light" style="min-width: 200px;">
+                        <div class="price-label mb-2">TRẠNG THÁI</div>
+                        <div class="d-flex align-items-center justify-content-center gap-2">
+                            <span class="status-text fw-bold text-success" id="lbl-con-@mon.MaDichVu" style="display: @(mon.ConMon ? "inline" : "none");">Còn món</span>
+                            
+                            <!-- Công tắc gạt trạng thái -->
+                            <div class="form-check form-switch m-0 p-0 d-flex align-items-center">
+                                <input class="form-check-input ms-0 mt-0 shadow-none" type="checkbox" role="switch" @(mon.ConMon ? "checked" : "") onchange="toggleStatus('@mon.MaDichVu', this.checked)">
+                            </div>
+                            
+                            <span class="status-text fw-bold text-danger" id="lbl-het-@mon.MaDichVu" style="display: @(!mon.ConMon ? "inline" : "none");">Hết món</span>
+                        </div>
+                    </div>
+                    
+                    <div class="ps-3 pe-2 border-start border-light d-flex gap-2">
+                        <!-- CHUẨN XÁC YÊU CẦU: Nút Bút Chì chuyển hướng tới trang SuaMon, mang theo mã SKU -->
+                        <a asp-page="./SuaMon" asp-route-id="@mon.MaDichVu" class="btn btn-light rounded-circle text-muted border shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Chỉnh sửa thông tin món">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        
+                        <!-- Nút Thùng Rác -->
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@mon.MaDichVu" class="m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn XÓA món này khỏi thực đơn không?');">
+                            <button type="submit" class="btn btn-light rounded-circle text-danger border shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Xóa món">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-receipt-cutoff" style="font-size: 3rem; opacity: 0.5;"></i>
+                <p class="mt-3 fs-5">Không tìm thấy món ăn nào khớp với điều kiện lọc.</p>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    function toggleStatus(maDichVu, isChecked) {
+        const overlay = document.getElementById('overlay-' + maDichVu);
+        const img = document.getElementById('img-' + maDichVu);
+        const lblCon = document.getElementById('lbl-con-' + maDichVu);
+        const lblHet = document.getElementById('lbl-het-' + maDichVu);
+
+        if (isChecked) {
+            overlay.style.display = 'none';
+            img.classList.remove('opacity-50');
+            lblCon.style.display = 'inline';
+            lblHet.style.display = 'none';
+        } else {
+            overlay.style.display = 'flex';
+            img.classList.add('opacity-50');
+            lblCon.style.display = 'none';
+            lblHet.style.display = 'inline';
+        }
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        fetch(`?handler=ToggleStatus&id=${maDichVu}`, {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': token
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                document.getElementById('stat-tong').innerText = data.tongSoMon;
+                document.getElementById('stat-dang-ban').innerText = data.dangBan;
+                document.getElementById('stat-tam-ngung').innerText = data.tamNgung;
+            }
+        });
+    }
+</script>

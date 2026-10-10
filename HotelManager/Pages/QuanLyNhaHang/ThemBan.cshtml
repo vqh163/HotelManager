@@ -1,0 +1,77 @@
+﻿@page
+@model HotelManagement.Pages.NhaHang.PhucVu.ThemBanModel
+@{
+    ViewData["Title"] = "Thêm Bàn Mới";
+}
+
+<style>
+    /* Lớp CSS định nghĩa màu vàng nền tone logo khách sạn, chữ màu đen */
+    .bg-brand-yellow {
+        background-color: #f39c12 !important;
+        color: #000 !important;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <!-- Tiêu đề form: căn giữa, nền vàng, chữ đen, bỏ icon + -->
+                <div class="card-header bg-brand-yellow text-center py-3">
+                    <h4 class="mb-0 fw-bold text-uppercase">Thêm Bàn Mới</h4>
+                </div>
+
+                <div class="card-body bg-light">
+                    <!-- Khu vực hiển thị lỗi tổng quan từ code-behind -->
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 fw-bold"></div>
+
+                    <!-- Form gửi dữ liệu qua phương thức POST -->
+                    <form method="post">
+
+                        <div class="mb-3">
+                            <label asp-for="BanNhaHang.MaBan" class="form-label fw-bold">Mã bàn</label>
+                            <input asp-for="BanNhaHang.MaBan" class="form-control" placeholder="VD: B01, VIP01..." required />
+                            <span asp-validation-for="BanNhaHang.MaBan" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Đổi Label thành "Số bàn" nhưng Tag Helper vẫn bind với thuộc tính TenBan của DB -->
+                        <div class="mb-3">
+                            <label asp-for="BanNhaHang.TenBan" class="form-label fw-bold">Số bàn</label>
+                            <input asp-for="BanNhaHang.TenBan" class="form-control" placeholder="VD: Bàn 1 - Tầng trệt" required />
+                            <span asp-validation-for="BanNhaHang.TenBan" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="BanNhaHang.SucChua" class="form-label fw-bold">Sức chứa (Số người)</label>
+                            <input asp-for="BanNhaHang.SucChua" class="form-control" placeholder="VD: 4, 10..." required />
+                            <span asp-validation-for="BanNhaHang.SucChua" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Cập nhật 4 tùy chọn trạng thái để đồng bộ với Sơ đồ bàn -->
+                        <div class="mb-4">
+                            <label asp-for="BanNhaHang.TrangThai" class="form-label fw-bold">Trạng thái</label>
+                            <select asp-for="BanNhaHang.TrangThai" class="form-select">
+                                <option value="Trống">Trống</option>
+                                <option value="Đang có khách">Đang có khách</option>
+                                <option value="Đang dọn dẹp">Đang dọn dẹp</option>
+                                <option value="Đã đặt trước">Đã đặt trước</option>
+                            </select>
+                            <span asp-validation-for="BanNhaHang.TrangThai" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Nút chức năng -->
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a asp-page="./SoDoBan" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Lưu thông tin
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
