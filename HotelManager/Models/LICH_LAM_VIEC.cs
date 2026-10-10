@@ -16,13 +16,6 @@ namespace HotelManager.Models
         [Column(TypeName = "datetime")]
         public DateTime? NgayLamViec { get; set; }
 
-<<<<<<< HEAD
-        // 2. Nhóm Nội dung
-        public string TieuDe { get; set; } = string.Empty;
-        public string GhiChu { get; set; } = string.Empty; // Mô tả
-        public string CongCu { get; set; } = string.Empty; // Vật tư đi kèm
-    }
-=======
         [Column(TypeName = "nvarchar(20)")]
         public string? CaLamViec { get; set; }
 
@@ -39,4 +32,3 @@ namespace HotelManager.Models
         public string? GhiChu { get; set; }
     }
 }
->>>>>>> a20a234492e34a62d5b89b73778822ffb64df9fc

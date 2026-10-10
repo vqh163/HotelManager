@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using System.Threading.Tasks;
 using System.Text.Json;
 using HotelManager.Data;
@@ -16,27 +18,30 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         private readonly ApplicationDbContext _context;
         public QuanLyLichCaNhanModel(ApplicationDbContext context) { _context = context; }
 
+        public string EmployeeName { get; set; } = "";
+        public string EmployeeRole { get; set; } = "";
+        public bool IsManager { get; set; } = false;
+        public int ShiftCountToday { get; set; } = 0;
+
         [BindProperty(SupportsGet = true)]
         public DateTime? SelectedDate { get; set; }
 
         [BindProperty(SupportsGet = true)]
         public string ActiveTab { get; set; } = "month";
 
-        [TempData]
-        public string? AlertMessage { get; set; }
-
-        public string EmployeeDataJson { get; set; } = "{}";
-
-        // ==========================================
-        // 1. CÁC THUỘC TÍNH RENDER GIAO DIỆN LỊCH (Fix lỗi CS1061)
-        // ==========================================
         public DateTime CurrentDate { get; set; }
+
+        public static List<DON_XIN_NGHI> DatabaseDonNghi = new List<DON_XIN_NGHI>();
+
+        public List<ScheduleViewModel> MySchedules { get; set; } = new List<ScheduleViewModel>();
+        public List<DON_XIN_NGHI> PendingRequests { get; set; } = new List<DON_XIN_NGHI>();
+
+        // MỚI: DANH SÁCH THÔNG BÁO CHO NHÂN VIÊN
+        public List<DON_XIN_NGHI> EmployeeNotifications { get; set; } = new List<DON_XIN_NGHI>();
+
         public int DaysInMonth { get; set; }
         public int StartDayOfWeek { get; set; }
 
-        // ==========================================
-        // 2. VIEWMODEL TRUNG GIAN CHO GIAO DIỆN 
-        // ==========================================
         public class ScheduleViewModel
         {
             public string MaLich { get; set; } = string.Empty;
@@ -49,11 +54,6 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             public string GhiChu { get; set; } = string.Empty;
         }
 
-        public List<ScheduleViewModel> MySchedules { get; set; } = new List<ScheduleViewModel>();
-
-        // ==========================================
-        // 3. VIEWMODEL HỨNG DỮ LIỆU TỪ FORM TẠO MỚI
-        // ==========================================
         public class InputScheduleViewModel
         {
             public DateTime NgayLamViec { get; set; } = DateTime.Today;
@@ -61,11 +61,8 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             public string TenNhanVien { get; set; } = string.Empty;
             public string MaNhanVien { get; set; } = string.Empty;
             public string CaLamViec { get; set; } = "CaSang";
-
-            // Hai biến mới để hứng giờ tùy chọn (nếu có)
             public string? TuChonBatDau { get; set; }
             public string? TuChonKetThuc { get; set; }
-
             public string TieuDe { get; set; } = string.Empty;
             public string Checklist { get; set; } = string.Empty;
             public string GhiChu { get; set; } = string.Empty;
@@ -74,26 +71,68 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         [BindProperty]
         public InputScheduleViewModel InputData { get; set; } = new InputScheduleViewModel();
 
+        [BindProperty]
+        public DON_XIN_NGHI DonNghiData { get; set; } = new DON_XIN_NGHI();
+
+        [TempData]
+        public string AlertMessage { get; set; }
+
+        public string EmployeeDataJson { get; set; } = "{}";
+
+        public async Task<IActionResult> OnGetLogout()
+        {
+            await HttpContext.SignOutAsync();
+            return RedirectToPage("/Index");
+        }
+
         public async Task<IActionResult> OnGetAsync()
         {
             try
             {
-                // Logic 1: Tính toán ngày tháng cho Calendar
+                if (User.Identity == null || !User.Identity.IsAuthenticated)
+                {
+                    return RedirectToPage("/Auth/DangNhap");
+                }
+
+                EmployeeName = User.Identity.Name ?? "Tài khoản ẩn danh";
+
+                var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
+                EmployeeRole = roleClaim != null ? roleClaim.Value : "Nhân viên";
+
+                if (EmployeeRole == "Quản trị viên")
+                {
+                    TempData["ThongBaoLoi"] = "Quản trị viên hệ thống không tham gia vào lịch vận hành.";
+                    return RedirectToPage("/QuanTriHeThong/QuanLyTaiKhoan");
+                }
+
+                IsManager = (EmployeeRole == "Quản lý" || EmployeeRole == "Trưởng bộ phận" || User.IsInRole("Quản lý"));
+
                 DateTime refDate = SelectedDate ?? DateTime.Today;
                 SelectedDate = refDate;
                 CurrentDate = new DateTime(refDate.Year, refDate.Month, 1);
-                DaysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
-                StartDayOfWeek = CurrentDate.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)CurrentDate.DayOfWeek - 1;
 
-                // Logic 2: Lấy dữ liệu lịch làm việc & Map sang ViewModel
+                // --- MỚI: PHÂN LUỒNG THÔNG BÁO CHUÔNG ---
+                if (IsManager)
+                {
+                    // Quản lý thấy đơn chờ duyệt
+                    PendingRequests = DatabaseDonNghi.Where(x => x.TrangThai == "Chờ duyệt").OrderByDescending(x => x.NgayTao).ToList();
+                }
+                else
+                {
+                    // Nhân viên thấy kết quả duyệt đơn chưa đọc
+                    EmployeeNotifications = DatabaseDonNghi.Where(x => x.TenNhanVien == EmployeeName && x.TrangThai != "Chờ duyệt" && !x.IsReadByEmployee).OrderByDescending(x => x.NgayTao).ToList();
+                }
+
                 var rawSchedules = await _context.LICH_LAM_VIEC.AsNoTracking().ToListAsync();
                 foreach (var item in rawSchedules)
                 {
                     var vm = new ScheduleViewModel
                     {
                         MaLich = item.MaLich,
-                        CaLamViec = item.CaLamViec ?? "Ca sáng",
+                        CaLamViec = item.CaLamViec ?? "Chưa rõ",
                         GhiChu = item.GhiChu ?? "",
+                        ThoiGianBatDau = item.GioCheckIn ?? item.NgayLamViec?.AddHours(6) ?? DateTime.Today.AddHours(6),
+                        ThoiGianKetThuc = item.GioCheckOut ?? item.NgayLamViec?.AddHours(14) ?? DateTime.Today.AddHours(14),
                         TenNhanVien = "Nhân viên",
                         ChucVu = "Lễ tân",
                         TieuDe = "Lịch làm việc"
@@ -110,87 +149,37 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
                             int endNV = item.GhiChu.IndexOf(" (");
                             if (startNV > 3 && endNV > startNV)
                                 vm.TenNhanVien = item.GhiChu.Substring(startNV, endNV - startNV);
+
+                            int startCV = item.GhiChu.IndexOf("- CV: ") + 6;
+                            int endCV = item.GhiChu.IndexOf(". Ghi chú:");
+                            if (startCV > 5 && endCV > startCV)
+                                vm.ChucVu = item.GhiChu.Substring(startCV, endCV - startCV);
                         }
                         catch { }
                     }
-                    // Đọc và xử lý an toàn Ca làm việc
-                    string dbCaLam = item.CaLamViec ?? "CaSang";
-                    DateTime baseDate = item.NgayLamViec ?? DateTime.Today;
-                    baseDate = baseDate.Date; // Đảm bảo luôn lấy mốc 0h00 của ngày
 
-                    if (dbCaLam == "CaSang")
+                    if (IsManager || vm.TenNhanVien == EmployeeName)
                     {
-                        vm.CaLamViec = "Ca sáng";
-                        vm.ThoiGianBatDau = baseDate.AddHours(6);
-                        vm.ThoiGianKetThuc = baseDate.AddHours(14);
-                    }
-                    else if (dbCaLam == "CaChieu")
-                    {
-                        vm.CaLamViec = "Ca chiều";
-                        vm.ThoiGianBatDau = baseDate.AddHours(14);
-                        vm.ThoiGianKetThuc = baseDate.AddHours(22);
-                    }
-                    else if (dbCaLam == "CaDem")
-                    {
-                        vm.CaLamViec = "Ca đêm";
-                        vm.ThoiGianBatDau = baseDate.AddHours(22);
-                        vm.ThoiGianKetThuc = baseDate.AddDays(1).AddHours(6);
-                    }
-                    else if (dbCaLam == "CaHanhChinh")
-                    {
-                        vm.CaLamViec = "Ca hành chính";
-                        vm.ThoiGianBatDau = baseDate.AddHours(8);
-                        vm.ThoiGianKetThuc = baseDate.AddHours(17);
-                    }
-                    else if (dbCaLam.StartsWith("Khac"))
-                    {
-                        vm.CaLamViec = "Khác (Tùy chọn)";
-                        try
-                        {
-                            // Cố gắng bóc tách chuỗi Khac|HH:mm|HH:mm
-                            var parts = dbCaLam.Split('|');
-                            if (parts.Length == 3 && TimeSpan.TryParse(parts[1], out var start) && TimeSpan.TryParse(parts[2], out var end))
-                            {
-                                vm.ThoiGianBatDau = baseDate.Add(start);
-                                vm.ThoiGianKetThuc = baseDate.Add(end);
-
-                                // Nếu giờ kết thúc nhỏ hơn giờ bắt đầu (vd làm xuyên đêm), tự động cộng thêm 1 ngày
-                                if (vm.ThoiGianKetThuc <= vm.ThoiGianBatDau)
-                                {
-                                    vm.ThoiGianKetThuc = vm.ThoiGianKetThuc.AddDays(1);
-                                }
-                            }
-                            else
-                            {
-                                // Dữ liệu lỗi định dạng, đưa về mặc định
-                                vm.ThoiGianBatDau = baseDate.AddHours(8);
-                                vm.ThoiGianKetThuc = baseDate.AddHours(17);
-                            }
-                        }
-                        catch
-                        {
-                            vm.ThoiGianBatDau = baseDate.AddHours(8);
-                            vm.ThoiGianKetThuc = baseDate.AddHours(17);
-                        }
-                    }
-                    else
-                    {
-                        vm.CaLamViec = "Chưa rõ";
-                        vm.ThoiGianBatDau = baseDate.AddHours(8);
-                        vm.ThoiGianKetThuc = baseDate.AddHours(17);
+                        MySchedules.Add(vm);
                     }
                 }
 
                 MySchedules = MySchedules.OrderBy(x => x.ThoiGianBatDau).ToList();
 
-                // Logic 3: Tạm thời sử dụng Mock Data cho đến khi UC_11 (Quản lý Nhân sự) hoàn thiện DB ở Sprint 5
+                if (!IsManager)
+                {
+                    ShiftCountToday = MySchedules.Count(x =>
+                        x.ThoiGianBatDau.Date == SelectedDate.Value.Date ||
+                        (x.ThoiGianKetThuc.Date == SelectedDate.Value.Date && x.ThoiGianBatDau.Date != x.ThoiGianKetThuc.Date));
+                }
+
+                DaysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
+                StartDayOfWeek = CurrentDate.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)CurrentDate.DayOfWeek - 1;
+
                 var mockEmployees = new List<dynamic> {
                     new { MaNV = "LT001", HoTen = "Nguyễn Thu Hà", ChucVu = "Lễ tân" },
                     new { MaNV = "LT002", HoTen = "Trần Bảo Ngọc", ChucVu = "Lễ tân" },
-                    new { MaNV = "BP001", HoTen = "Lê Văn Hùng", ChucVu = "Buồng phòng" },
-                    new { MaNV = "KT001", HoTen = "Phạm Kế Toán", ChucVu = "Kế toán" },
-                    new { MaNV = "B001", HoTen = "Võ Đầu Bếp", ChucVu = "Đầu bếp" },
-                    new { MaNV = "S001", HoTen = "Đoàn Sales", ChucVu = "Sales" }
+
                 };
 
                 var groupedEmployees = mockEmployees
@@ -212,45 +201,56 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         {
             try
             {
-                // Gộp giờ nếu user chọn Ca tùy chỉnh
                 string finalCaLamViec = InputData.CaLamViec;
                 if (finalCaLamViec == "Khac" && !string.IsNullOrEmpty(InputData.TuChonBatDau) && !string.IsNullOrEmpty(InputData.TuChonKetThuc))
                 {
                     finalCaLamViec = $"Khac|{InputData.TuChonBatDau}|{InputData.TuChonKetThuc}";
                 }
 
-                string noiDungGom = $"[{InputData.TieuDe}] NV: {InputData.TenNhanVien} ({InputData.MaNhanVien}). Ghi chú: {InputData.GhiChu}. Checklist: {InputData.Checklist}";
+                string noiDungGom = $"[{InputData.TieuDe}] NV: {InputData.TenNhanVien} ({InputData.MaNhanVien}) - CV: {InputData.ChucVu}. Ghi chú: {InputData.GhiChu}. Checklist: {InputData.Checklist}";
+
+                DateTime gioCheckIn = InputData.NgayLamViec.AddHours(6);
+                DateTime gioCheckOut = InputData.NgayLamViec.AddHours(14);
+                if (InputData.CaLamViec == "CaChieu") { gioCheckIn = InputData.NgayLamViec.AddHours(14); gioCheckOut = InputData.NgayLamViec.AddHours(22); }
+                else if (InputData.CaLamViec == "CaDem") { gioCheckIn = InputData.NgayLamViec.AddHours(22); gioCheckOut = InputData.NgayLamViec.AddDays(1).AddHours(6); }
+                else if (InputData.CaLamViec == "Khac" && TimeSpan.TryParse(InputData.TuChonBatDau, out var start) && TimeSpan.TryParse(InputData.TuChonKetThuc, out var end))
+                {
+                    gioCheckIn = InputData.NgayLamViec.Add(start);
+                    gioCheckOut = InputData.NgayLamViec.Add(end);
+                    if (gioCheckOut <= gioCheckIn) gioCheckOut = gioCheckOut.AddDays(1);
+                }
 
                 var newSchedule = new LICH_LAM_VIEC
                 {
                     MaLich = "LLV" + DateTime.Now.Ticks.ToString().Substring(10),
                     NgayLamViec = InputData.NgayLamViec,
-                    CaLamViec = finalCaLamViec, // Đã được xử lý
+                    CaLamViec = finalCaLamViec,
+                    GioCheckIn = gioCheckIn,
+                    GioCheckOut = gioCheckOut,
                     GhiChu = noiDungGom,
-                    TrangThai = "Chưa bắt đầu"
+                    TrangThai = "Sắp diễn ra"
                 };
+
+                _context.LICH_LAM_VIEC.Add(newSchedule);
+                await _context.SaveChangesAsync();
+
+                AlertMessage = "✅ Đã phân công ca làm việc thành công!";
             }
             catch (Exception ex)
             {
-                // Đảm bảo an toàn hệ thống thông qua Try...Catch
                 AlertMessage = $"Lỗi khi lưu: {ex.Message}";
             }
 
             return RedirectToPage(new { SelectedDate = InputData.NgayLamViec.ToString("yyyy-MM-dd"), ActiveTab = ActiveTab });
         }
-        // ==========================================
-        // 4. XỬ LÝ XÓA LỊCH LÀM VIỆC (UC_10)
-        // ==========================================
+
         public async Task<IActionResult> OnPostDeleteAsync(string deleteId, string selectedDate, string activeTab)
         {
             try
             {
-                // Truy vấn lịch làm việc theo ID từ CSDL
                 var schedule = await _context.LICH_LAM_VIEC.FirstOrDefaultAsync(x => x.MaLich == deleteId);
-
                 if (schedule != null)
                 {
-                    // Xóa và lưu thay đổi
                     _context.LICH_LAM_VIEC.Remove(schedule);
                     await _context.SaveChangesAsync();
                     AlertMessage = "Đã xóa lịch làm việc thành công!";
@@ -264,10 +264,69 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             {
                 AlertMessage = $"Lỗi khi xóa: {ex.Message}";
             }
-
-            // QUAN TRỌNG: Bắt buộc dùng RedirectToPage để vòng đời Razor Pages chạy lại hàm OnGetAsync() 
-            // Điều này giúp khởi tạo lại CurrentDate và giữ nguyên Tab/Ngày người dùng đang xem
             return RedirectToPage(new { SelectedDate = selectedDate, ActiveTab = activeTab });
         }
+
+        public IActionResult OnPostCreateDonNghi()
+        {
+            DonNghiData.Id = DatabaseDonNghi.Any() ? DatabaseDonNghi.Max(x => x.Id) + 1 : 1;
+            DonNghiData.TrangThai = "Chờ duyệt";
+            DonNghiData.NgayTao = DateTime.Now;
+            DonNghiData.TenNhanVien = User.Identity?.Name ?? "Tài khoản ẩn danh";
+            var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
+            DonNghiData.ChucVu = roleClaim != null ? roleClaim.Value : "Nhân viên";
+
+            DatabaseDonNghi.Add(DonNghiData);
+            AlertMessage = "✅ Đã gửi đơn xin nghỉ phép thành công. Vui lòng chờ quản lý duyệt!";
+
+            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"], ActiveTab = Request.Form["ActiveTab"] });
+        }
+
+        public IActionResult OnPostDuyetDon(int donId, string actionType)
+        {
+            var don = DatabaseDonNghi.FirstOrDefault(x => x.Id == donId);
+            if (don != null)
+            {
+                if (actionType == "Approve")
+                {
+                    don.TrangThai = "Đã duyệt";
+                    AlertMessage = $"✅ Đã DUYỆT đơn xin nghỉ của nhân viên {don.TenNhanVien}!";
+                }
+                else if (actionType == "Reject")
+                {
+                    don.TrangThai = "Từ chối";
+                    AlertMessage = $"❌ Đã TỪ CHỐI đơn xin nghỉ của {don.TenNhanVien}!";
+                }
+            }
+            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"], ActiveTab = Request.Form["ActiveTab"] });
+        }
+
+        // --- MỚI: HÀM ĐÁNH DẤU NHÂN VIÊN ĐÃ ĐỌC THÔNG BÁO ---
+        public IActionResult OnPostMarkNotificationRead(int notifId)
+        {
+            var don = DatabaseDonNghi.FirstOrDefault(x => x.Id == notifId);
+            if (don != null)
+            {
+                don.IsReadByEmployee = true;
+            }
+            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"], ActiveTab = Request.Form["ActiveTab"] });
+        }
     }
-}B
+
+    public class DON_XIN_NGHI
+    {
+        public int Id { get; set; }
+        public string MaNhanVien { get; set; } = string.Empty;
+        public string TenNhanVien { get; set; } = string.Empty;
+        public string ChucVu { get; set; } = string.Empty;
+        public int SoNgay { get; set; } = 1;
+        public DateTime TuNgay { get; set; } = DateTime.Today;
+        public DateTime DenNgay { get; set; } = DateTime.Today;
+        public string LyDo { get; set; } = string.Empty;
+        public string TrangThai { get; set; } = "Chờ duyệt";
+        public DateTime NgayTao { get; set; } = DateTime.Now;
+
+        // Cờ đánh dấu để đếm thông báo cho nhân viên
+        public bool IsReadByEmployee { get; set; } = false;
+    }
+}
