@@ -105,7 +105,7 @@ namespace HotelManager.Pages.Auth
 
                     case "Lễ tân":
                         // Trỏ đến module Tiền sảnh (UC_04)
-                        return RedirectToPage("/QuanLyTienSanh/Index");
+                        return RedirectToPage("/Index");
 
                     case "Khách hàng":
                         return RedirectToPage("/Index");

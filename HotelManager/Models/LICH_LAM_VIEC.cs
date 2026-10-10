@@ -16,10 +16,4 @@
         public string TieuDe { get; set; } = string.Empty;
         public string GhiChu { get; set; } = string.Empty; // Mô tả
         public string CongCu { get; set; } = string.Empty; // Vật tư đi kèm
-        public string Checklist { get; set; } = string.Empty; // Lưu chuỗi JSON hoặc các mục cách nhau bởi dấu |
-
-        // 3. Nhóm Quản trị
-        public string DoUuTien { get; set; } = "Bình thường"; // Bình thường, Quan trọng, Khẩn cấp
-        public string TrangThai { get; set; } = "Sắp diễn ra";
-        public string HinhAnh { get; set; } = string.Empty; // Đường dẫn ảnh đính kèm
     }
