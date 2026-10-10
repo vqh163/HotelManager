@@ -1,0 +1,115 @@
+﻿@page
+@model HotelManager.Pages.QuanLySoDoPhong.QuanLyDSPhongModel
+@{
+    ViewData["Title"] = "Quản lý Sơ đồ phòng";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    /* Định nghĩa màu sắc nhận diện trực quan cho từng trạng thái phòng */
+    .room-card-available { border-top: 5px solid #198754 !important; } /* Trống - Xanh lá */
+    .room-card-occupied { border-top: 5px solid #dc3545 !important; } /* Có khách - Đỏ */
+    .room-card-cleaning { border-top: 5px solid #ffc107 !important; } /* Dọn dẹp - Vàng */
+    .room-card-locked { border-top: 5px solid #6c757d !important; background-color: #f8f9fa; opacity: 0.85; } /* Khóa/Bảo trì - Xám */
+    
+    .room-header { background-color: #f8f9fa; color: #212529; }
+    .btn-add-new { background-color: #0d6efd; color: white; font-weight: 600; border-radius: 8px; padding: 8px 20px; transition: all 0.3s; }
+    .btn-add-new:hover { background-color: #0b5ed7; color: white; box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2); }
+    .room-img { height: 160px; object-fit: cover; }
+    .action-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid #dee2e6; background: white; transition: all 0.2s; }
+    .action-icon:hover { background: #f8f9fa; }
+</style>
+
+<div class="container-fluid mt-4 mb-5">
+    <!-- Tiêu đề trang và nút Thêm mới -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary fw-bold text-uppercase mb-0">
+            <i class="fa-solid fa-bed"></i> SƠ ĐỒ PHÒNG TỔNG THỂ
+        </h2>
+        <a asp-page="./ThemPhong" class="btn btn-add-new text-decoration-none">
+            <i class="fa-solid fa-plus me-1"></i> Thêm phòng mới
+        </a>
+    </div>
+    
+    <div asp-validation-summary="All" class="text-danger fw-bold"></div>
+
+    <!-- Lưới sơ đồ phòng hiển thị động -->
+    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+        @if (Model.DanhSachPhong != null && Model.DanhSachPhong.Any())
+        {
+            @foreach (var phong in Model.DanhSachPhong)
+            {
+                // Kiểm tra trạng thái để gán class CSS và biểu tượng tương ứng
+                var isLocked = phong.MaTrangThai == "TT04";
+                var statusClass = isLocked ? "room-card-locked" :
+                                  phong.MaTrangThai == "TT01" ? "room-card-available" :
+                                  phong.MaTrangThai == "TT02" ? "room-card-occupied" : "room-card-cleaning";
+
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden @statusClass">
+                        <!-- Hình ảnh phòng -->
+                        <img src="@(string.IsNullOrEmpty(phong.HinhAnh) ? "/images/default-room.jpg" : phong.HinhAnh)" class="card-img-top room-img" alt="Phòng @phong.SoPhong">
+
+                        <div class="card-header room-header d-flex justify-content-between align-items-center py-2 bg-white border-bottom-0">
+                            <div>
+                                <span class="fw-bold fs-4 text-dark">Phòng @phong.SoPhong</span>
+                                <!-- Hiển thị ký hiệu cảnh báo/ổ khóa ngay cạnh số phòng nếu phòng bị khóa -->
+                                @if (isLocked)
+                                {
+                                    <span class="badge bg-secondary ms-2" title="Phòng đang bị khóa/bảo trì">
+                                        <i class="fa-solid fa-lock me-1"></i> Đã khóa
+                                    </span>
+                                }
+                            </div>
+                            
+                            <!-- Nhóm nút Quản trị: Sửa, Khóa/Mở khóa, Xóa -->
+                            <div class="d-flex gap-1">
+                                <a asp-page="./SuaPhong" asp-route-id="@phong.MaPhong" class="action-icon text-primary" title="Chỉnh sửa">
+                                    <i class="fa-regular fa-pen-to-square"></i>
+                                </a>
+                                <!-- Nút Khóa thay đổi màu icon linh hoạt theo trạng thái -->
+                                <a asp-page-handler="Khoa" asp-route-id="@phong.MaPhong" class="action-icon @(isLocked ? "text-danger bg-light" : "text-warning")" title="@(isLocked ? "Mở khóa phòng" : "Khóa phòng")">
+                                    <i class="fa-solid @(isLocked ? "fa-lock-open" : "fa-lock")"></i>
+                                </a>
+                                <a asp-page-handler="Xoa" asp-route-id="@phong.MaPhong" class="action-icon text-danger" title="Xóa phòng" onclick="return confirm('Bạn có chắc chắn muốn xóa phòng này không?');">
+                                    <i class="fa-regular fa-trash-can"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="card-body pt-1">
+                            <p class="card-text mb-2 text-muted small">
+                                <i class="fa-solid fa-layer-group me-1"></i><strong>Hạng:</strong> @phong.LoaiPhong
+                            </p>
+                            <h5 class="card-text text-danger fw-bold mt-2">
+                                @string.Format("{0:0,0} đ", phong.GiaTheoNgay) <small class="text-muted fs-6 fw-normal">/ Ngày</small>
+                            </h5>
+                        </div>
+
+                        <div class="card-footer bg-white border-top-0 p-3 pt-0 d-flex gap-2">
+                            <a asp-page="./ChiTietPhong" asp-route-id="@phong.MaPhong" class="btn btn-outline-secondary btn-sm flex-fill fw-bold rounded-pill">Chi tiết</a>
+                            
+                            <!-- Nếu phòng bị khóa thì vô hiệu hóa nút đặt phòng -->
+                            @if (phong.MaTrangThai == "TT01")
+                            {
+                                <a asp-page="./DatPhong" asp-route-id="@phong.MaPhong" class="btn btn-success btn-sm flex-fill fw-bold rounded-pill">Đặt phòng</a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-secondary btn-sm flex-fill fw-bold rounded-pill" disabled>@(isLocked ? "Phòng đã khóa" : "Không thể đặt")</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center text-muted mt-5">
+                <i class="fa-solid fa-calendar-xmark fa-4x mb-3 text-secondary"></i>
+                <h4>Không tìm thấy phòng nào phù hợp!</h4>
+            </div>
+        }
+    </div>
+</div>

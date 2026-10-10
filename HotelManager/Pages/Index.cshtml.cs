@@ -13,6 +13,7 @@ namespace HotelManager.Pages
         {
             try
             {
+                // Xử lý logic tải trang chủ (có thể mở rộng gọi LINQ lấy danh sách phòng ở các Sprint sau)
                 // KIỂM TRA TRẠNG THÁI: Tự động điều hướng nhân sự đã đăng nhập
                 if (User.Identity != null && User.Identity.IsAuthenticated)
                 {

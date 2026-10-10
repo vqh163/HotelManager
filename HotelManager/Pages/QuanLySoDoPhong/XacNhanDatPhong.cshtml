@@ -1,0 +1,84 @@
+﻿@page "{maDatPhong}"
+@model HotelManager.Pages.QuanLySoDoPhong.XacNhanDatPhongModel
+@{
+    ViewData["Title"] = "Xác nhận Đặt phòng & Thanh toán";
+    
+    // Tự động sinh nội dung chuyển khoản theo chuẩn VietQR (Mã đặt phòng + Khách sạn)
+    string noiDungChuyenKhoan = $"Thanh toan coc {Model.ThongTinDatPhong.MaDatPhong} GRANDHORIZON";
+    
+    // Gọi API miễn phí để sinh mã QR từ chuỗi nội dung trên
+    string qrCodeUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={Uri.EscapeDataString(noiDungChuyenKhoan)}";
+}
+
+<div class="container py-5 mb-5">
+    <div class="text-center mb-5">
+        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+        <h2 class="fw-bold text-success mt-3">ĐẶT PHÒNG THÀNH CÔNG!</h2>
+        <p class="text-muted fs-5">Mã đặt phòng của bạn là: <strong class="text-primary">@Model.ThongTinDatPhong.MaDatPhong</strong></p>
+    </div>
+
+    <div class="row justify-content-center g-4">
+        <!-- CỘT TRÁI: CHI TIẾT BIÊN LAI -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-primary text-white p-4 border-0 rounded-top-4">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-receipt me-2"></i> THÔNG TIN LƯU TRÚ</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
+                        <span class="text-muted">Phòng:</span>
+                        <span class="fw-bold text-dark fs-5">@Model.PhongDuocDat.SoPhong - @Model.PhongDuocDat.LoaiPhong</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
+                        <span class="text-muted">Check-in:</span>
+                        <span class="fw-bold">@Model.ThongTinDatPhong.NgayNhan?.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
+                        <span class="text-muted">Check-out:</span>
+                        <span class="fw-bold">@Model.ThongTinDatPhong.NgayTra?.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
+                        <span class="text-muted">Số ngày ở:</span>
+                        <!-- FIX LỖI CS1501: Ép kiểu sang decimal trước khi gọi ToString("N0") -->
+                        <span class="fw-bold">@Model.SoNgayO Đêm (x @Convert.ToDecimal(Model.PhongDuocDat.GiaTheoNgay).ToString("N0") đ)</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <span class="text-dark fw-bold fs-5">TỔNG TIỀN PHÒNG:</span>
+                        <span class="fw-bold text-danger fs-4">@Model.TongTienPhong.ToString("N0") VNĐ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: HƯỚNG DẪN THANH TOÁN (MÃ QR) -->
+        <div class="col-lg-5">
+            <div class="card shadow border-primary border-2 rounded-4 h-100 text-center">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h5 class="fw-bold text-primary"><i class="bi bi-qr-code-scan me-2"></i> THANH TOÁN TIỀN CỌC</h5>
+                    <p class="text-muted small">Vui lòng quét mã QR qua App Ngân hàng hoặc Ví điện tử để giữ phòng.</p>
+                </div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    
+                    <!-- Khung hiển thị Mã QR -->
+                    <div class="p-3 bg-light rounded-4 border mb-3">
+                        <img src="@qrCodeUrl" alt="Mã QR Thanh Toán" class="img-fluid rounded" style="width: 200px; height: 200px;" />
+                    </div>
+                    
+                    <h4 class="text-danger fw-bold mb-3">@Model.SoTienCanCoc.ToString("N0") VNĐ</h4>
+                    
+                    <div class="w-100 text-start bg-light p-3 rounded-3 small">
+                        <p class="mb-1"><strong>Ngân hàng:</strong> TPBank - Ngân hàng Tiên Phong</p>
+                        <p class="mb-1"><strong>Số tài khoản:</strong> 9999 8888 6666</p>
+                        <p class="mb-1"><strong>Chủ tài khoản:</strong> GRAND HORIZON HOTEL</p>
+                        <p class="mb-0 text-primary"><strong>Nội dung:</strong> @noiDungChuyenKhoan</p>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 pb-4">
+                    <a asp-page="/Index" class="btn btn-outline-secondary rounded-pill px-4 me-2 fw-bold">Về Trang chủ</a>
+                    <button class="btn btn-primary rounded-pill px-4 fw-bold" onclick="window.print()"><i class="bi bi-printer me-1"></i> In hóa đơn</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

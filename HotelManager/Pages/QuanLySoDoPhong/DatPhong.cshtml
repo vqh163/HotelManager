@@ -1,0 +1,115 @@
+﻿@page "{id}"
+@model HotelManager.Pages.QuanLySoDoPhong.DatPhongModel
+@{
+    ViewData["Title"] = "Xác nhận đặt phòng";
+}
+
+<div class="container py-5 mb-5">
+    <div class="text-center mb-4">
+        <h2 class="text-primary fw-bold text-uppercase">HOÀN TẤT THÔNG TIN ĐẶT PHÒNG</h2>
+        <p class="text-muted">Vui lòng kiểm tra lại thông tin phòng và chi tiết lưu trú của bạn.</p>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger fw-bold shadow-sm"></div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- CỘT TRÁI: TÓM TẮT THÔNG TIN PHÒNG -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100 overflow-hidden sticky-top" style="top: 80px;">
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 220px;">
+                    @{
+                        string imgPath = Model.PhongDuocChon.HinhAnh;
+                        if (string.IsNullOrWhiteSpace(imgPath))
+                        {
+                            string loai = Model.PhongDuocChon.LoaiPhong?.ToLower() ?? "";
+                            if (loai.Contains("standard")) imgPath = "/images/standard.png";
+                            else if (loai.Contains("superior")) imgPath = "/images/superior.png";
+                            else if (loai.Contains("deluxe")) imgPath = "/images/deluxe.png";
+                            else if (loai.Contains("suite")) imgPath = "/images/suite.png";
+                            else imgPath = "/images/default-room.jpg";
+                        }
+                    }
+                    <img src="@imgPath" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="Phòng @Model.PhongDuocChon.SoPhong" onerror="this.onerror=null; this.src='/images/default-room.jpg';" />
+                </div>
+                <div class="card-body p-4 bg-white">
+                    <h4 class="fw-bold text-dark mb-3">Phòng @Model.PhongDuocChon.SoPhong</h4>
+                    <p class="text-muted mb-2"><i class="bi bi-tag-fill me-2 text-warning"></i><strong>Hạng:</strong> @Model.PhongDuocChon.LoaiPhong</p>
+                    <p class="text-muted mb-2"><i class="bi bi-person-fill me-2 text-warning"></i><strong>Sức chứa:</strong> @Model.PhongDuocChon.SucChuaToiDa khách</p>
+                    <hr class="text-secondary opacity-25" />
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="text-muted fw-bold">Giá mỗi đêm:</span>
+                        <h5 class="text-danger fw-bold mb-0">@string.Format("{0:0,0} đ", Model.PhongDuocChon.GiaTheoNgay)</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: FORM ĐIỀN THÔNG TIN LƯU TRÚ CỦA KHÁCH -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <form method="post">
+                        
+                        <!-- Block 1: Thông tin khách hàng (Auto-fill) -->
+                        <h5 class="fw-bold text-primary mb-4"><i class="bi bi-person-lines-fill me-2"></i>Thông tin liên hệ</h5>
+                        <div class="row g-3 mb-4 pb-4 border-bottom">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-muted small">Họ và tên</label>
+                                <input type="text" class="form-control bg-light" value="@Model.KhachHangInfo.HoTen" readonly />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-muted small">Số điện thoại</label>
+                                <input type="text" class="form-control bg-light" value="@Model.KhachHangInfo.SDT" readonly />
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold text-muted small">Email</label>
+                                <input type="text" class="form-control bg-light" value="@Model.KhachHangInfo.Email" readonly />
+                            </div>
+                            <div class="col-12 mt-2">
+                                <small class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Thông tin được lấy tự động từ tài khoản của bạn.</small>
+                            </div>
+                        </div>
+
+                        <!-- Block 2: Chi tiết đặt phòng -->
+                        <h5 class="fw-bold text-primary mb-4"><i class="bi bi-calendar2-week me-2"></i>Chi tiết lưu trú</h5>
+                        <div class="row g-3 mb-4 pb-4 border-bottom">
+                            <div class="col-md-6">
+                                <label asp-for="ThongTinDatPhong.NgayNhan" class="form-label fw-bold">Ngày nhận phòng (Check-in) <span class="text-danger">*</span></label>
+                                <input asp-for="ThongTinDatPhong.NgayNhan" type="datetime-local" class="form-control" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ThongTinDatPhong.NgayTra" class="form-label fw-bold">Ngày trả phòng (Check-out) <span class="text-danger">*</span></label>
+                                <input asp-for="ThongTinDatPhong.NgayTra" type="datetime-local" class="form-control" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ThongTinDatPhong.SoLuongKhach" class="form-label fw-bold">Số lượng khách <span class="text-danger">*</span></label>
+                                <input asp-for="ThongTinDatPhong.SoLuongKhach" type="number" class="form-control" min="1" max="@Model.PhongDuocChon.SucChuaToiDa" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ThongTinDatPhong.TienCoc" class="form-label fw-bold">Tiền cọc tạm tính (VNĐ)</label>
+                                <input asp-for="ThongTinDatPhong.TienCoc" type="number" step="1000" class="form-control" value="0" />
+                                <small class="text-muted">Nhân viên sẽ xác nhận lại khoản cọc.</small>
+                            </div>
+                        </div>
+
+                        <!-- Block 3: Yêu cầu thêm -->
+                        <div class="mb-4">
+                            <label asp-for="ThongTinDatPhong.GhiChu" class="form-label fw-bold">Yêu cầu đặc biệt (Không bắt buộc)</label>
+                            <textarea asp-for="ThongTinDatPhong.GhiChu" class="form-control" rows="3" placeholder="Ví dụ: Dị ứng thực phẩm, cần xe đưa đón sân bay, trang trí trăng mật..."></textarea>
+                        </div>
+
+                        <!-- Nút Submit -->
+                        <div class="d-flex gap-3 mt-5">
+                            <a asp-page="./ChiTietPhong" asp-route-id="@Model.PhongDuocChon.MaPhong" class="btn btn-light fw-bold px-4 py-3 rounded-pill border">
+                                <i class="bi bi-arrow-left me-1"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-warning text-white fw-bold flex-fill py-3 rounded-pill shadow-sm fs-5">
+                                XÁC NHẬN ĐẶT PHÒNG <i class="bi bi-arrow-right-circle ms-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

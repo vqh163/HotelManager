@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HotelManager.Models
 {
+    // Đặt tên bảng theo chuẩn VIẾT_HOA_CÓ_GẠCH_DƯỚI của dự án
     [Table("PHONG")]
     public class PHONG
     {
@@ -10,7 +11,6 @@ namespace HotelManager.Models
         [Column(TypeName = "varchar(20)")]
         public string MaPhong { get; set; } = default!;
 
-        // Thuộc tính quan trọng để liên kết với bảng TRANG_THAI_PHONG
         [Column(TypeName = "varchar(20)")]
         public string? MaTrangThai { get; set; }
 
@@ -25,6 +25,9 @@ namespace HotelManager.Models
 
         [Column(TypeName = "int")]
         public int? SucChuaToiDa { get; set; }
+
+        [Column(TypeName = "float")]
+        public double? DienTich { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal? GiaTheoNgay { get; set; }

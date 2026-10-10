@@ -1,26 +1,34 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HotelManager.Models
 {
+    // Đặt tên bảng chuẩn VIẾT_HOA_CÓ_GẠCH_DƯỚI theo quy định[cite: 17]
+    [Table("LICH_LAM_VIEC")]
     public class LICH_LAM_VIEC
     {
-        public int Id { get; set; }
+        [Key]
+        [Column(TypeName = "varchar(20)")]
+        public string MaLich { get; set; } = default!;
 
-        // Thông tin nhân viên
-        public string MaNhanVien { get; set; } = string.Empty;
-        public string TenNhanVien { get; set; } = string.Empty;
-        public string BoPhan { get; set; } = string.Empty;
-        public string ChucVu { get; set; } = string.Empty;
+        // Chuyển TIMESTAMP thành datetime để SQL Server hiểu đúng định dạng thời gian[cite: 17]
+        [Column(TypeName = "datetime")]
+        public DateTime? NgayLamViec { get; set; }
 
-        // Thông tin ca làm việc
-        public string TieuDe { get; set; } = string.Empty;
-        public string LoaiCa { get; set; } = string.Empty;
-        public string KhuVuc { get; set; } = string.Empty;
-        public DateTime ThoiGianBatDau { get; set; }
-        public DateTime ThoiGianKetThuc { get; set; }
-        public string TrangThai { get; set; } = "Sắp diễn ra";
+        [Column(TypeName = "nvarchar(20)")]
+        public string? CaLamViec { get; set; }
 
-        // Chi tiết công việc
-        public string GhiChu { get; set; } = string.Empty;
+        [Column(TypeName = "datetime")]
+        public DateTime? GioCheckIn { get; set; }
+
+        [Column(TypeName = "datetime")]
+        public DateTime? GioCheckOut { get; set; }
+
+        [Column(TypeName = "nvarchar(20)")]
+        public string? TrangThai { get; set; }
+
+        [Column(TypeName = "nvarchar(255)")]
+        public string? GhiChu { get; set; }
     }
 }

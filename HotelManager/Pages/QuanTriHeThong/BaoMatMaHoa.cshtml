@@ -1,0 +1,70 @@
+﻿@page
+@model HotelManager.Pages.QuanTriHeThong.BaoMatMaHoaModel
+@{
+    ViewData["Title"] = "Bảo mật & Mã hóa (UC_13)";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <h3 class="fw-bold text-warning m-0"><i class="bi bi-shield-lock-fill me-2"></i> Thiết lập Bảo mật & Mã hóa</h3>
+        <a asp-page="/QuanTriHeThong/QuanLyTaiKhoan" class="btn btn-outline-secondary rounded-pill shadow-sm">
+            <i class="bi bi-arrow-left"></i> Về Trung tâm Quản trị
+        </a>
+    </div>
+
+    <!-- Hiển thị thông báo -->
+    @if (TempData["ThongBao"] != null)
+    {
+        <div class="alert alert-success rounded-3 shadow-sm"><i class="bi bi-check-circle-fill me-2"></i>@TempData["ThongBao"]</div>
+    }
+    @if (TempData["Loi"] != null)
+    {
+        <div class="alert alert-danger rounded-3 shadow-sm"><i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Loi"]</div>
+    }
+
+    <div class="row">
+        <!-- Cột 1: Cấu hình chính sách -->
+        <div class="col-md-7">
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-header bg-white border-bottom fw-bold py-3 text-primary">
+                    <i class="bi bi-sliders me-2"></i> Chính sách An toàn Thông tin
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" asp-page-handler="LuuCauHinh">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Thời gian Timeout Phiên làm việc (phút)</label>
+                            <input type="number" asp-for="Input.SessionTimeout" class="form-control rounded-pill px-4" min="15" max="120" />
+                            <small class="text-muted">Hệ thống sẽ tự động đăng xuất nếu không có thao tác.</small>
+                        </div>
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="Input.YeuCauMatKhauManh" id="flexSwitchCheckChecked">
+                                <label class="form-check-label fw-semibold small" for="flexSwitchCheckChecked">Bắt buộc mật khẩu mạnh (chữ hoa, số, ký tự đặc biệt)</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">LƯU CẤU HÌNH</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột 2: Công cụ Mã hóa Dữ liệu -->
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 rounded-4 bg-light">
+                <div class="card-header bg-warning text-dark border-bottom fw-bold py-3">
+                    <i class="bi bi-key-fill me-2"></i> Bộ công cụ Mã hóa (Database)
+                </div>
+                <div class="card-body p-4">
+                    <p class="small text-secondary">
+                        Theo chuẩn bảo mật Yêu cầu phi chức năng (2.1.2), toàn bộ mật khẩu trong bảng <strong>TAI_KHOAN</strong> phải được mã hóa băm (Hash). Nhấn nút dưới đây để hệ thống tự động rà soát và mã hóa các tài khoản chưa được mã hóa.
+                    </p>
+                    <form method="post" asp-page-handler="MaHoaDongLoat">
+                        <button type="submit" class="btn btn-danger rounded-pill w-100 fw-bold shadow-sm" onclick="return confirm('Bạn có chắc chắn muốn tiến hành mã hóa toàn bộ mật khẩu cũ?');">
+                            <i class="bi bi-lock-fill me-2"></i> MÃ HÓA MẬT KHẨU TÀI KHOẢN
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
