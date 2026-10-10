@@ -1,25 +1,34 @@
-﻿public class LICH_LAM_VIEC
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace HotelManager.Models
+{
+    // Đặt tên bảng chuẩn VIẾT_HOA_CÓ_GẠCH_DƯỚI theo quy định[cite: 17]
+    [Table("LICH_LAM_VIEC")]
+    public class LICH_LAM_VIEC
     {
-        public int Id { get; set; }
+        [Key]
+        [Column(TypeName = "varchar(20)")]
+        public string MaLich { get; set; } = default!;
 
-        // 1. Nhóm Cơ bản
-        public string MaNhanVien { get; set; } = string.Empty;
-        public string TenNhanVien { get; set; } = string.Empty;
-        public string BoPhan { get; set; } = string.Empty;
-        public string ChucVu { get; set; } = string.Empty;
-        public string LoaiCa { get; set; } = string.Empty;
-        public string KhuVuc { get; set; } = string.Empty;
-        public DateTime ThoiGianBatDau { get; set; } = DateTime.Today.AddHours(6);
-        public DateTime ThoiGianKetThuc { get; set; } = DateTime.Today.AddHours(14);
+        // Chuyển TIMESTAMP thành datetime để SQL Server hiểu đúng định dạng thời gian[cite: 17]
+        [Column(TypeName = "datetime")]
+        public DateTime? NgayLamViec { get; set; }
 
-        // 2. Nhóm Nội dung
-        public string TieuDe { get; set; } = string.Empty;
-        public string GhiChu { get; set; } = string.Empty; // Mô tả
-        public string CongCu { get; set; } = string.Empty; // Vật tư đi kèm
-        public string Checklist { get; set; } = string.Empty; // Lưu chuỗi JSON hoặc các mục cách nhau bởi dấu |
+        [Column(TypeName = "nvarchar(20)")]
+        public string? CaLamViec { get; set; }
 
-        // 3. Nhóm Quản trị
-        public string DoUuTien { get; set; } = "Bình thường"; // Bình thường, Quan trọng, Khẩn cấp
-        public string TrangThai { get; set; } = "Sắp diễn ra";
-        public string HinhAnh { get; set; } = string.Empty; // Đường dẫn ảnh đính kèm
+        [Column(TypeName = "datetime")]
+        public DateTime? GioCheckIn { get; set; }
+
+        [Column(TypeName = "datetime")]
+        public DateTime? GioCheckOut { get; set; }
+
+        [Column(TypeName = "nvarchar(20)")]
+        public string? TrangThai { get; set; }
+
+        [Column(TypeName = "nvarchar(255)")]
+        public string? GhiChu { get; set; }
     }
+}
