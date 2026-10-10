@@ -570,6 +570,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("MaPhong")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<double?>("DienTich")
+                        .HasColumnType("float");
+
                     b.Property<decimal?>("GiaTheoGio")
                         .HasColumnType("decimal(18,2)");
 
