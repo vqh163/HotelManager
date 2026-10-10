@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class DB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -35,7 +35,7 @@ namespace HotelManager.Migrations
                     PHONGMaPhong = table.Column<string>(type: "varchar(20)", nullable: true),
                     DAT_PHONGMaDatPhong = table.Column<string>(type: "varchar(20)", nullable: true),
                     DonGia = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    SoNgayO = table.Column<int>(type: "int", nullable: true)
+                    SoNgayO = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -212,23 +212,17 @@ namespace HotelManager.Migrations
                 name: "LICH_LAM_VIEC",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    MaNhanVien = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TenNhanVien = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    BoPhan = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ChucVu = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TieuDe = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LoaiCa = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    KhuVuc = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ThoiGianBatDau = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ThoiGianKetThuc = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    GhiChu = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    MaLich = table.Column<string>(type: "varchar(20)", nullable: false),
+                    NgayLamViec = table.Column<DateTime>(type: "datetime", nullable: true),
+                    CaLamViec = table.Column<string>(type: "nvarchar(20)", nullable: true),
+                    GioCheckIn = table.Column<DateTime>(type: "datetime", nullable: true),
+                    GioCheckOut = table.Column<DateTime>(type: "datetime", nullable: true),
+                    TrangThai = table.Column<string>(type: "nvarchar(20)", nullable: true),
+                    GhiChu = table.Column<string>(type: "nvarchar(255)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LICH_LAM_VIEC", x => x.Id);
+                    table.PrimaryKey("PK_LICH_LAM_VIEC", x => x.MaLich);
                 });
 
             migrationBuilder.CreateTable(
@@ -304,11 +298,12 @@ namespace HotelManager.Migrations
                 columns: table => new
                 {
                     MaPhong = table.Column<string>(type: "varchar(20)", nullable: false),
-                    TRANG_THAI_PHONGMaTrangThai = table.Column<string>(type: "varchar(20)", nullable: true),
+                    MaTrangThai = table.Column<string>(type: "varchar(20)", nullable: true),
                     SoPhong = table.Column<string>(type: "varchar(20)", nullable: true),
                     LoaiPhong = table.Column<string>(type: "nvarchar(50)", nullable: true),
                     SoGiuong = table.Column<int>(type: "int", nullable: true),
                     SucChuaToiDa = table.Column<int>(type: "int", nullable: true),
+                    DienTich = table.Column<double>(type: "float", nullable: true),
                     GiaTheoNgay = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     GiaTheoGio = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     MoTa = table.Column<string>(type: "nvarchar(255)", nullable: true),
@@ -395,7 +390,8 @@ namespace HotelManager.Migrations
                     { "CV09", null, "Thủ kho" },
                     { "CV10", null, "Sales" },
                     { "CV11", null, "Kế toán" },
-                    { "CV12", null, "Giám đốc" }
+                    { "CV12", null, "Giám đốc" },
+                    { "CV13", null, "Khách hàng" }
                 });
 
             migrationBuilder.InsertData(
