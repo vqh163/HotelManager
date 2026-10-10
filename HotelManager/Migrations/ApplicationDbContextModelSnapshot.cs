@@ -385,6 +385,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("HoTen")
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("NgaySinh")
+                        .HasColumnType("date");
+
                     b.Property<string>("SDT")
                         .HasColumnType("varchar(10)");
 
@@ -424,6 +427,33 @@ namespace HotelManager.Migrations
                     b.ToTable("KHO_VAT_TU");
                 });
 
+            modelBuilder.Entity("HotelManager.Models.LICH_LAM_VIEC", b =>
+                {
+                    b.Property<string>("MaLich")
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("CaLamViec")
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("GhiChu")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("GioCheckIn")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("GioCheckOut")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("NgayLamViec")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("TrangThai")
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("MaLich");
+
+                    b.ToTable("LICH_LAM_VIEC");
+                });
             modelBuilder.Entity("HotelManager.Models.NHAN_VIEN", b =>
                 {
                     b.Property<string>("MaNV")
@@ -541,6 +571,9 @@ namespace HotelManager.Migrations
                 {
                     b.Property<string>("MaPhong")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<double?>("DienTich")
+                        .HasColumnType("float");
 
                     b.Property<decimal?>("GiaTheoGio")
                         .HasColumnType("decimal(18,2)");

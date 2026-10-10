@@ -57,6 +57,10 @@
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-page="/Index" fragment="trang-8-lien-he">Liên hệ</a>
                             </li>
+                            <li class="nav-item me-4">
+                                <a class="btn btn-warning text-white rounded-pill px-4 fw-bold shadow-sm" asp-page="/QuanLySoDoPhong/TimPhong">
+                                    <i class="bi bi-calendar-check-fill me-1"></i> ĐẶT PHÒNG</a>
+                            </li>
                         </ul>
                     }
                     else
@@ -75,21 +79,29 @@
                                     <i class="bi bi-person-circle text-warning me-1"></i> Xin chào, @User.Identity.Name!
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
-
-                                    <!-- LUỒNG 1: Nếu KHÔNG PHẢI Quản trị viên thì mới hiển thị Lịch cá nhân -->
-                                    @if (User.IsInRole("Quản lý"))
+                                    <!-- LUỒNG DÀNH CHO KHÁCH HÀNG -->
+                                    @if (User.IsInRole("Khách hàng"))
                                     {
-                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Quản lý Lịch làm việc</a></li>
-                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/QuanLyDSPhong"><i class="bi bi-door-open me-2"></i>Quản lý Danh sách phòng</a></li>
+                                        <li><a class="dropdown-item py-2 fw-semibold text-dark" asp-page="/QuanLyHoSo/HoSoKhachHang"><i class="bi bi-person-vcard text-primary me-2"></i>Hồ sơ của tôi</a></li>
+                                        <li><a class="dropdown-item py-2 fw-semibold text-dark" asp-page="/QuanLySoDoPhong/LichSuDatPhong"><i class="bi bi-clock-history text-success me-2"></i>Lịch sử đặt phòng</a></li>
+                                        <li><hr class="dropdown-divider"></li>
                                     }
 
-                                    <!-- LUỒNG 2: Liên kết đến UC_13 (Chỉ hiển thị nếu LÀ Quản trị viên) -->
+                                    <!-- LUỒNG DÀNH CHO NHÂN VIÊN / QUẢN LÝ -->
+                                    @if (User.IsInRole("Quản lý") || User.IsInRole("Lễ tân") || User.IsInRole("Buồng phòng") || User.IsInRole("Bảo trì"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/QuanLyDSPhong"><i class="bi bi-door-open me-2"></i>Danh sách phòng</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+
+                                    <!-- LUỒNG DÀNH CHO QUẢN TRỊ VIÊN -->
                                     @if (User.IsInRole("Quản trị viên"))
                                     {
                                         <li><a class="dropdown-item py-2 text-primary" asp-page="/QuanTriHeThong/QuanLyTaiKhoan"><i class="bi bi-gear me-2"></i>Quản trị hệ thống</a></li>
+                                        <li><hr class="dropdown-divider"></li>
                                     }
 
-                                    <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form class="form-inline m-0" asp-page="/Auth/DangXuat" method="post">
                                             <button type="submit" class="dropdown-item text-danger fw-bold py-2">

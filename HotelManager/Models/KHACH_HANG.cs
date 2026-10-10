@@ -15,6 +15,7 @@ namespace HotelManager.Models
         public string? HoTen { get; set; }
 
         [Column(TypeName = "varchar(12)")]
+        [RegularExpression(@"^\d{12}$", ErrorMessage = "Căn cước công dân bắt buộc phải gồm đúng 12 chữ số.")]
         public string? SoCCCD { get; set; }
 
         [Column(TypeName = "varchar(10)")]
@@ -25,6 +26,9 @@ namespace HotelManager.Models
 
         [Column(TypeName = "nvarchar(10)")]
         public string? GioiTinh { get; set; }
+
+        [Column(TypeName = "date")]
+        public DateTime? NgaySinh { get; set; }
 
         [Column(TypeName = "int")]
         public int? DiemThuong { get; set; }
