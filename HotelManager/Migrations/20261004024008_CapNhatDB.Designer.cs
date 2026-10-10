@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260927100827_UpdateModels")]
-    partial class UpdateModels
+    [Migration("20261004024008_CapNhatDB")]
+    partial class CapNhatDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -175,6 +175,11 @@ namespace HotelManager.Migrations
                         {
                             MaChucVu = "CV12",
                             TenChucVu = "Giám đốc"
+                        },
+                        new
+                        {
+                            MaChucVu = "CV13",
+                            TenChucVu = "Khách hàng"
                         });
                 });
 
@@ -598,6 +603,9 @@ namespace HotelManager.Migrations
                     b.Property<decimal?>("GiaTheoNgay")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("HinhAnh")
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("LoaiPhong")
                         .HasColumnType("nvarchar(50)");
 
@@ -644,7 +652,8 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("MatKhau")
                         .IsRequired()
-                        .HasColumnType("varchar(50)");
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("NHAN_VIENMaNV")
                         .HasColumnType("varchar(20)");
@@ -662,6 +671,16 @@ namespace HotelManager.Migrations
                     b.HasKey("MaTaiKhoan");
 
                     b.ToTable("TAI_KHOAN");
+
+                    b.HasData(
+                        new
+                        {
+                            MaTaiKhoan = "TK_ADMIN_001",
+                            MatKhau = "123456",
+                            TenDangNhap = "admin",
+                            TrangThai = "Hoạt động",
+                            VaiTro = "Quản trị viên"
+                        });
                 });
 
             modelBuilder.Entity("HotelManager.Models.THANH_TOAN", b =>

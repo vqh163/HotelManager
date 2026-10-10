@@ -61,7 +61,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 _context.PHONG.Add(InputPhong);
                 await _context.SaveChangesAsync();
 
-                return RedirectToPage("/QuanLySoDoPhong/TimPhong");
+                return RedirectToPage("/QuanLySoDoPhong/QuanLyDSPhong");
             }
             catch (Exception ex)
             {

@@ -33,11 +33,17 @@ namespace HotelManager.Pages.Auth
         [BindProperty]
         public DangNhapInputModel Input { get; set; } = default!;
 
+        // Bổ sung thuộc tính hứng ReturnUrl qua phương thức GET
+        [BindProperty(SupportsGet = true)]
+        public string? ReturnUrl { get; set; }
+
         public string ThongBaoLoi { get; set; } = "";
 
-        public IActionResult OnGet()
+        // Nhận ReturnUrl từ URL (ví dụ: ?ReturnUrl=/QuanLySoDoPhong/ChiTietPhong?id=P01)
+        public IActionResult OnGet(string? returnUrl = null)
         {
-            // 1. FIX LỖI Ở ĐÂY: Sửa /TrangChu thành /Index
+            ReturnUrl = returnUrl;
+
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 return RedirectToPage("/Index");
@@ -69,7 +75,6 @@ namespace HotelManager.Pages.Auth
                     return Page();
                 }
 
-                // Chuẩn hóa chuỗi để tránh lỗi khoảng trắng trong CSDL
                 string vaiTroNguoiDung = (taiKhoan.VaiTro ?? "Khách hàng").Trim();
 
                 var claims = new List<Claim>
@@ -92,16 +97,23 @@ namespace HotelManager.Pages.Auth
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties);
 
-                // 2. FIX LỖI Ở ĐÂY: Trả tất cả các fallback về /Index
+                // --- XỬ LÝ RETURN URL Ở ĐÂY ---
+                // Nếu ReturnUrl hợp lệ và thuộc hệ thống (tránh Open Redirect vulnerability)
+                if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
+                {
+                    return LocalRedirect(ReturnUrl); // Trả khách về trang đang xem dở
+                }
+
                 switch (vaiTroNguoiDung)
                 {
+
                     case "Quản trị viên":
                         // Trỏ đến module Quản trị hệ thống (UC_13)
                         return RedirectToPage("/QuanTriHeThong/Index");
 
                     case "Quản lý":
                         // Trỏ đến module Quản lý lịch cá nhân (UC_10)
-                        return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
+                        return edirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
 
                     case "Lễ tân":
                         // Trỏ đến module Tiền sảnh (UC_04)
@@ -112,6 +124,11 @@ namespace HotelManager.Pages.Auth
 
                     default:
                         return RedirectToPage("/Index");
+                    case "Quản trị viên": return RedirectToPage("/QuanTriHeThong/Index");
+                    case "Quản lý": return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
+                    case "Lễ tân": return RedirectToPage("/QuanLyTienSanh/Index");
+                    case "Khách hàng": return RedirectToPage("/QuanLySoDoPhong/TimPhong");
+                    default: return RedirectToPage("/Index");
                 }
             }
             catch (Exception ex)

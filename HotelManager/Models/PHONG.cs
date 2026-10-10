@@ -10,8 +10,9 @@ namespace HotelManager.Models
         [Column(TypeName = "varchar(20)")]
         public string MaPhong { get; set; } = default!;
 
+        // Đảm bảo tên biến là MaTrangThai thay vì TRANG_THAI_PHONGMaTrangThai
         [Column(TypeName = "varchar(20)")]
-        public string? TRANG_THAI_PHONGMaTrangThai { get; set; }
+        public string? MaTrangThai { get; set; }
 
         [Column(TypeName = "varchar(20)")]
         public string? SoPhong { get; set; }

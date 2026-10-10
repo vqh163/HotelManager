@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260925051539_NapDuLieuChucVu")]
-    partial class NapDuLieuChucVu
+    [Migration("20261004022420_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -421,31 +421,55 @@ namespace HotelManager.Migrations
 
             modelBuilder.Entity("HotelManager.Models.LICH_LAM_VIEC", b =>
                 {
-                    b.Property<string>("MaLich")
-                        .HasColumnType("varchar(20)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.Property<string>("CaLamViec")
-                        .HasColumnType("nvarchar(50)");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BoPhan")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ChucVu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(255)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("GioCheckIn")
-                        .HasColumnType("datetime");
+                    b.Property<string>("KhuVuc")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("GioCheckOut")
-                        .HasColumnType("datetime");
+                    b.Property<string>("LoaiCa")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("NHAN_VIENMaNV")
-                        .HasColumnType("varchar(20)");
+                    b.Property<string>("MaNhanVien")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("NgayLamViec")
-                        .HasColumnType("date");
+                    b.Property<string>("TenNhanVien")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ThoiGianBatDau")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ThoiGianKetThuc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TieuDe")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TrangThai")
-                        .HasColumnType("nvarchar(50)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("MaLich");
+                    b.HasKey("Id");
 
                     b.ToTable("LICH_LAM_VIEC");
                 });
@@ -482,6 +506,29 @@ namespace HotelManager.Migrations
                     b.HasKey("MaNV");
 
                     b.ToTable("NHAN_VIEN");
+                });
+
+            modelBuilder.Entity("HotelManager.Models.NHAT_KY_HE_THONG", b =>
+                {
+                    b.Property<string>("MaNhatKy")
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("ChiTiet")
+                        .HasColumnType("nvarchar(MAX)");
+
+                    b.Property<string>("HanhDong")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("TenDangNhap")
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("ThoiGian")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("MaNhatKy");
+
+                    b.ToTable("NHAT_KY_HE_THONG");
                 });
 
             modelBuilder.Entity("HotelManager.Models.PHIEU_BAO_CAO_SU_CO", b =>
@@ -551,6 +598,9 @@ namespace HotelManager.Migrations
                     b.Property<decimal?>("GiaTheoNgay")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("HinhAnh")
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("LoaiPhong")
                         .HasColumnType("nvarchar(50)");
 
@@ -597,7 +647,8 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("MatKhau")
                         .IsRequired()
-                        .HasColumnType("varchar(50)");
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("NHAN_VIENMaNV")
                         .HasColumnType("varchar(20)");
@@ -607,14 +658,24 @@ namespace HotelManager.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<string>("TrangThai")
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("VaiTro")
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("MaTaiKhoan");
 
                     b.ToTable("TAI_KHOAN");
+
+                    b.HasData(
+                        new
+                        {
+                            MaTaiKhoan = "TK_ADMIN_001",
+                            MatKhau = "123456",
+                            TenDangNhap = "admin",
+                            TrangThai = "Hoạt động",
+                            VaiTro = "Quản trị viên"
+                        });
                 });
 
             modelBuilder.Entity("HotelManager.Models.THANH_TOAN", b =>

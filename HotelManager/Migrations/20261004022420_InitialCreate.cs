@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class InitHotelDB : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -210,18 +212,23 @@ namespace HotelManager.Migrations
                 name: "LICH_LAM_VIEC",
                 columns: table => new
                 {
-                    MaLich = table.Column<string>(type: "varchar(20)", nullable: false),
-                    NHAN_VIENMaNV = table.Column<string>(type: "varchar(20)", nullable: true),
-                    NgayLamViec = table.Column<DateTime>(type: "date", nullable: true),
-                    CaLamViec = table.Column<string>(type: "nvarchar(50)", nullable: true),
-                    GioCheckIn = table.Column<DateTime>(type: "datetime", nullable: true),
-                    GioCheckOut = table.Column<DateTime>(type: "datetime", nullable: true),
-                    TrangThai = table.Column<string>(type: "nvarchar(50)", nullable: true),
-                    GhiChu = table.Column<string>(type: "nvarchar(255)", nullable: true)
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    MaNhanVien = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TenNhanVien = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    BoPhan = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ChucVu = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TieuDe = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LoaiCa = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    KhuVuc = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ThoiGianBatDau = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ThoiGianKetThuc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TrangThai = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    GhiChu = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LICH_LAM_VIEC", x => x.MaLich);
+                    table.PrimaryKey("PK_LICH_LAM_VIEC", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -241,6 +248,21 @@ namespace HotelManager.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_NHAN_VIEN", x => x.MaNV);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NHAT_KY_HE_THONG",
+                columns: table => new
+                {
+                    MaNhatKy = table.Column<string>(type: "varchar(20)", nullable: false),
+                    TenDangNhap = table.Column<string>(type: "varchar(50)", nullable: true),
+                    HanhDong = table.Column<string>(type: "nvarchar(255)", nullable: false),
+                    ThoiGian = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ChiTiet = table.Column<string>(type: "nvarchar(MAX)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NHAT_KY_HE_THONG", x => x.MaNhatKy);
                 });
 
             migrationBuilder.CreateTable(
@@ -289,7 +311,8 @@ namespace HotelManager.Migrations
                     SucChuaToiDa = table.Column<int>(type: "int", nullable: true),
                     GiaTheoNgay = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     GiaTheoGio = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    MoTa = table.Column<string>(type: "nvarchar(255)", nullable: true)
+                    MoTa = table.Column<string>(type: "nvarchar(255)", nullable: true),
+                    HinhAnh = table.Column<string>(type: "nvarchar(255)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -313,10 +336,12 @@ namespace HotelManager.Migrations
                 columns: table => new
                 {
                     MaTaiKhoan = table.Column<string>(type: "varchar(20)", nullable: false),
+                    KHACH_HANGMaKH = table.Column<string>(type: "varchar(20)", nullable: true),
+                    NHAN_VIENMaNV = table.Column<string>(type: "varchar(20)", nullable: true),
                     TenDangNhap = table.Column<string>(type: "varchar(50)", nullable: false),
-                    MatKhau = table.Column<string>(type: "varchar(50)", nullable: false),
-                    VaiTro = table.Column<string>(type: "varchar(50)", nullable: true),
-                    TrangThai = table.Column<string>(type: "varchar(50)", nullable: true)
+                    MatKhau = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    VaiTro = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    TrangThai = table.Column<string>(type: "nvarchar(50)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -353,6 +378,30 @@ namespace HotelManager.Migrations
                 {
                     table.PrimaryKey("PK_TRANG_THAI_PHONG", x => x.MaTrangThai);
                 });
+
+            migrationBuilder.InsertData(
+                table: "CHUC_VU",
+                columns: new[] { "MaChucVu", "PHONG_BANMaPB", "TenChucVu" },
+                values: new object[,]
+                {
+                    { "CV01", null, "Quản trị viên" },
+                    { "CV02", null, "Quản lý" },
+                    { "CV03", null, "Lễ tân" },
+                    { "CV04", null, "Nhân viên Buồng phòng" },
+                    { "CV05", null, "Nhân viên Kỹ thuật" },
+                    { "CV06", null, "Thu ngân Nhà hàng" },
+                    { "CV07", null, "Phục vụ Nhà hàng" },
+                    { "CV08", null, "Đầu bếp" },
+                    { "CV09", null, "Thủ kho" },
+                    { "CV10", null, "Sales" },
+                    { "CV11", null, "Kế toán" },
+                    { "CV12", null, "Giám đốc" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "TAI_KHOAN",
+                columns: new[] { "MaTaiKhoan", "KHACH_HANGMaKH", "MatKhau", "NHAN_VIENMaNV", "TenDangNhap", "TrangThai", "VaiTro" },
+                values: new object[] { "TK_ADMIN_001", null, "123456", null, "admin", "Hoạt động", "Quản trị viên" });
         }
 
         /// <inheritdoc />
@@ -396,6 +445,9 @@ namespace HotelManager.Migrations
 
             migrationBuilder.DropTable(
                 name: "NHAN_VIEN");
+
+            migrationBuilder.DropTable(
+                name: "NHAT_KY_HE_THONG");
 
             migrationBuilder.DropTable(
                 name: "PHIEU_BAO_CAO_SU_CO");
