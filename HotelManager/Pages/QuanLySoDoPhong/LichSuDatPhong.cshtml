@@ -1,0 +1,185 @@
+﻿@page
+@model HotelManager.Pages.QuanLySoDoPhong.LichSuDatPhongModel
+@{
+    ViewData["Title"] = "Lịch sử đặt phòng";
+}
+
+<div class="container py-5 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-primary"><i class="bi bi-clock-history me-2"></i>LỊCH SỬ ĐẶT PHÒNG</h3>
+        <a asp-page="/QuanLySoDoPhong/TimPhong" class="btn btn-outline-secondary rounded-pill fw-bold"><i class="bi bi-arrow-left me-1"></i> Quay lại</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert @(Model.ThongBao.Contains("❌") ? "alert-danger" : "alert-success") fw-bold shadow-sm alert-dismissible fade show">
+            @Model.ThongBao
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <ul class="nav nav-pills mb-4 bg-white p-2 rounded-pill shadow-sm" id="bookingTabs" role="tablist">
+        <li class="nav-item flex-fill text-center" role="presentation">
+            <button class="nav-link active rounded-pill fw-bold w-100" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab">
+                Sắp tới (@Model.DanhSachSapToi.Count)
+            </button>
+        </li>
+        <li class="nav-item flex-fill text-center" role="presentation">
+            <button class="nav-link rounded-pill fw-bold w-100" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab">
+                Lịch sử / Đã hủy (@Model.DanhSachDaHoanTat.Count)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="bookingTabsContent">
+        <!-- TAB 1: SẮP TỚI -->
+        <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+            @if(Model.DanhSachSapToi.Count == 0)
+            {
+                <div class="text-center py-5 text-muted">Chưa có đơn đặt phòng nào sắp tới.</div>
+            }
+            @foreach (var item in Model.DanhSachSapToi)
+            {
+                <div class="card shadow-sm border-0 rounded-4 mb-4 border-start border-warning border-4">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                            <div>
+                                <span class="badge bg-warning text-dark mb-2">@item.DatPhong.TrangThaiDatPhong</span>
+                                <h5 class="fw-bold">Phòng @item.Phong.SoPhong - @item.Phong.LoaiPhong</h5>
+                                <p class="text-muted mb-0"><i class="bi bi-calendar-check me-2"></i>Check-in: @item.DatPhong.NgayNhan?.ToString("dd/MM/yyyy")</p>
+                            </div>
+                            <div class="text-end">
+                                <h5 class="text-danger fw-bold">Đã cọc: @item.DatPhong.TienCoc?.ToString("N0") đ</h5>
+                                <p class="text-muted small">Mã: @item.DatPhong.MaDatPhong</p>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <!-- Nút Nâng hạng -->
+                            <button class="btn btn-outline-primary fw-bold rounded-pill px-4" onclick="alert('Tính năng Nâng hạng phòng đang được cập nhật ở luồng sau!')">
+                                <i class="bi bi-arrow-up-circle me-1"></i> Nâng hạng
+                            </button>
+                            
+                            <button class="btn btn-danger fw-bold rounded-pill px-4" 
+                                    onclick="showCancelModal('@item.DatPhong.MaDatPhong', '@item.DatPhong.NgayNhan?.ToString("yyyy-MM-dd")', @(item.DatPhong.TienCoc ?? 0))">
+                                <i class="bi bi-x-circle me-1"></i> Hủy phòng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- TAB 2: LỊCH SỬ -->
+        <div class="tab-pane fade" id="completed" role="tabpanel">
+            @if(Model.DanhSachDaHoanTat.Count == 0)
+            {
+                <div class="text-center py-5 text-muted">Chưa có lịch sử giao dịch.</div>
+            }
+            @foreach (var item in Model.DanhSachDaHoanTat)
+            {
+                bool isCancelled = item.DatPhong.TrangThaiDatPhong == "Đã hủy";
+                <div class="card shadow-sm border-0 rounded-4 bg-light mb-4 border-start @(isCancelled ? "border-danger" : "border-success") border-4">
+                    <div class="card-body p-4 opacity-75">
+                        <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                            <div>
+                                <span class="badge @(isCancelled ? "bg-danger" : "bg-success") mb-2">@item.DatPhong.TrangThaiDatPhong</span>
+                                <h5 class="fw-bold">Phòng @item.Phong.SoPhong - @item.Phong.LoaiPhong</h5>
+                                <p class="text-muted mb-0"><i class="bi bi-calendar-check me-2"></i>@item.DatPhong.NgayNhan?.ToString("dd/MM/yyyy") - @item.DatPhong.NgayTra?.ToString("dd/MM/yyyy")</p>
+                            </div>
+                            <div class="text-end">
+                                @{
+                                    // SỬA LỖI CS1503: Ép kiểu an toàn không dùng TryParse
+                                    decimal donGia = Convert.ToDecimal(item.ChiTiet.DonGia);
+                                    int soNgay = Convert.ToInt32(item.ChiTiet.SoNgayO);
+                                    if (soNgay <= 0) soNgay = 1;
+                                    decimal tongTien = donGia * soNgay;
+                                }
+                                <h5 class="text-dark fw-bold">Tổng hóa đơn: @tongTien.ToString("N0") đ</h5>
+                            </div>
+                        </div>
+                        @if (isCancelled && !string.IsNullOrEmpty(item.DatPhong.GhiChu))
+                        {
+                            <div class="text-danger small fst-italic">@item.DatPhong.GhiChu</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- MODAL HỦY PHÒNG -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-danger text-white border-0 rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Xác nhận hủy phòng</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="HuyPhong">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="maDatPhong" id="cancelMaDatPhong" />
+                    <p class="fs-5 text-center mb-4">Bạn có chắc chắn muốn hủy đặt phòng này?</p>
+                    
+                    <div class="bg-light p-3 rounded-3 border">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Tiền đã cọc:</span>
+                            <span class="fw-bold" id="lblTienCoc">0 đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Cách ngày Check-in:</span>
+                            <span class="fw-bold text-primary" id="lblSoNgay">0 ngày</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark">Dự kiến hoàn trả:</span>
+                            <span class="fw-bold text-success fs-4" id="lblTienHoan">0 đ</span>
+                        </div>
+                        <p class="text-danger small mt-2 mb-0 fst-italic" id="lblGhiChu"></p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 justify-content-center">
+                    <button type="button" class="btn btn-light fw-bold px-4 rounded-pill" data-bs-dismiss="modal">Giữ phòng</button>
+                    <button type="submit" class="btn btn-danger fw-bold px-4 rounded-pill shadow-sm">Xác nhận Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showCancelModal(maDP, ngayNhanStr, tienCoc) {
+            document.getElementById('cancelMaDatPhong').value = maDP;
+            const formatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
+            document.getElementById('lblTienCoc').innerText = formatter.format(tienCoc);
+
+            const ngayNhan = new Date(ngayNhanStr);
+            const homNay = new Date();
+            ngayNhan.setHours(0,0,0,0);
+            homNay.setHours(0,0,0,0);
+            
+            const diffDays = Math.ceil((ngayNhan - homNay) / (1000 * 60 * 60 * 24));
+            document.getElementById('lblSoNgay').innerText = diffDays + " ngày";
+
+            let tienHoan = 0;
+            let ghiChu = "";
+
+            if (diffDays >= 7) {
+                tienHoan = tienCoc;
+                ghiChu = "Hủy trước 7 ngày, hoàn 100% tiền cọc.";
+            } else if (diffDays >= 5) {
+                tienHoan = tienCoc * 0.5;
+                ghiChu = "Hủy trước 5 ngày, hoàn 50% tiền cọc.";
+            } else {
+                tienHoan = 0;
+                ghiChu = "Hủy dưới 5 ngày, không được hoàn cọc theo quy định.";
+            }
+
+            document.getElementById('lblTienHoan').innerText = formatter.format(tienHoan);
+            document.getElementById('lblGhiChu').innerText = ghiChu;
+
+            new bootstrap.Modal(document.getElementById('cancelModal')).show();
+        }
+    </script>
+}
