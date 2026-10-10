@@ -106,24 +106,6 @@ namespace HotelManager.Pages.Auth
 
                 switch (vaiTroNguoiDung)
                 {
-
-                    case "Quản trị viên":
-                        // Trỏ đến module Quản trị hệ thống (UC_13)
-                        return RedirectToPage("/QuanTriHeThong/Index");
-
-                    case "Quản lý":
-                        // Trỏ đến module Quản lý lịch cá nhân (UC_10)
-                        return edirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
-
-                    case "Lễ tân":
-                        // Trỏ đến module Tiền sảnh (UC_04)
-                        return RedirectToPage("/Index");
-
-                    case "Khách hàng":
-                        return RedirectToPage("/Index");
-
-                    default:
-                        return RedirectToPage("/Index");
                     case "Quản trị viên": return RedirectToPage("/QuanTriHeThong/Index");
                     case "Quản lý": return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
                     case "Lễ tân": return RedirectToPage("/QuanLyTienSanh/Index");

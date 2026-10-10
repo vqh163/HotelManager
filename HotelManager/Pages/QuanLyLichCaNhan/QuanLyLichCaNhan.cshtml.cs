@@ -240,7 +240,7 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         }
         // ==========================================
         // 4. XỬ LÝ XÓA LỊCH LÀM VIỆC (UC_10)
-        // ==========================================z
+        // ==========================================
         public async Task<IActionResult> OnPostDeleteAsync(string deleteId, string selectedDate, string activeTab)
         {
             try
@@ -270,4 +270,4 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             return RedirectToPage(new { SelectedDate = selectedDate, ActiveTab = activeTab });
         }
     }
-}
+}B
