@@ -6,18 +6,228 @@
     var prevMonth = Model.CurrentDate.AddMonths(-1);
     var nextMonth = Model.CurrentDate.AddMonths(1);
 
-    var monthSchedules = Model.MySchedules
-        .Where(x => x.ThoiGianBatDau.Month == Model.CurrentDate.Month && x.ThoiGianBatDau.Year == Model.CurrentDate.Year)
-        .OrderByDescending(x => x.MaLich)
-        .ToList();
-
-    bool isManager = true;
+    bool isLoggedIn = User.Identity?.IsAuthenticated ?? false;
+    bool isManager = Model.IsManager;
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
 <style>
-    /* --- CSS TIMELINE NGÀY (GANTT CHART NỀN SÁNG CHUẨN LƯỚI 24H) --- */
+    /* Ẩn header và footer mặc định */
+    header, footer {
+        display: none !important;
+    }
+
+    body {
+        background-color: #f4f6f9;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        overflow-x: hidden;
+        margin: 0;
+    }
+
+    .app-container {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+    }
+
+    .pms-navbar {
+        background-color: #ffffff;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 10px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        z-index: 1000;
+    }
+
+    .main-content-wrapper {
+        display: flex;
+        flex-grow: 1;
+        min-height: calc(100vh - 65px);
+    }
+
+    .manager-sidebar {
+        width: 265px;
+        background-color: #ffffff;
+        border-right: 1px solid #e0e0e0;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+        height: calc(100vh - 65px);
+        overflow-y: auto;
+    }
+
+    .sidebar-header {
+        background-color: #3f51b5;
+        color: white;
+        padding: 15px 20px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .sidebar-menu {
+        padding: 10px 0;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+        .sidebar-menu::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar-menu::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+    .menu-item {
+        padding: 11px 20px;
+        color: #495057;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: 0.2s;
+        cursor: pointer;
+    }
+
+        .menu-item:hover {
+            background-color: #f8f9fa;
+            color: #3f51b5;
+        }
+
+        .menu-item.active {
+            background-color: #e8eaf6;
+            color: #3f51b5;
+            font-weight: 600;
+            border-left: 4px solid #3f51b5;
+        }
+
+        .menu-item.active-parent {
+            color: #3f51b5;
+            font-weight: 600;
+            background-color: #f8f9fa;
+        }
+
+    .menu-item-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .menu-item i.main-icon {
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    .menu-item .chevron-icon {
+        font-size: 0.8rem;
+        transition: transform 0.2s;
+    }
+
+    .menu-item[aria-expanded="true"] .chevron-icon {
+        transform: rotate(180deg);
+    }
+
+    .submenu {
+        background-color: #fafbfc;
+        padding: 2px 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .submenu-item {
+        padding: 8px 20px 8px 50px;
+        color: #6c757d !important;
+        text-decoration: none !important;
+        display: block;
+        font-size: 0.84rem;
+        transition: 0.2s;
+        position: relative;
+        width: 100%;
+    }
+
+        .submenu-item::before {
+            content: "";
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 1.5px;
+            background-color: #dee2e6;
+        }
+
+        .submenu-item:last-child::before {
+            bottom: 50%;
+        }
+
+        .submenu-item::after {
+            content: "";
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            width: 12px;
+            height: 1.5px;
+            background-color: #dee2e6;
+        }
+
+        .submenu-item:hover {
+            color: #3f51b5 !important;
+            background-color: #f1f3f9;
+        }
+
+        .submenu-item.active {
+            color: #3f51b5 !important;
+            font-weight: 600;
+            background-color: #e8eaf6;
+            border-right: 3px solid #3f51b5;
+        }
+
+            .submenu-item.active::before, .submenu-item.active::after {
+                background-color: #3f51b5;
+            }
+
+    .main-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .profile-dropdown-menu {
+        min-width: 200px;
+        border-radius: 10px;
+        padding: 8px;
+        border: 1px solid #edf2f7;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    }
+
+    .profile-dropdown-item {
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 0.88rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: 0.15s;
+    }
+
+        .profile-dropdown-item:hover {
+            background-color: #f1f5f9;
+        }
+
     .timeline-day-container {
         background-color: #ffffff;
         border: 1px solid #dee2e6;
@@ -31,7 +241,6 @@
         min-width: 1300px;
         position: relative;
     }
-    /* Tăng chiều rộng để chứa đủ 24 tiếng */
 
     .timeline-header-row {
         display: flex;
@@ -131,17 +340,52 @@
         background-color: #6c757d;
     }
 
-    body {
-        background-color: #f4f6f9;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        overflow-x: hidden;
-        margin: 0;
+    .bg-letan {
+        background-color: #dc3545;
+    }
+
+    .bg-buongphong {
+        background-color: #fd7e14;
+    }
+
+    .bg-baotri {
+        background-color: #198754;
+    }
+
+    .bg-thungan {
+        background-color: #d63384;
+    }
+
+    .bg-phucvu {
+        background-color: #0dcaf0;
+    }
+
+    .bg-daubep {
+        background-color: #20c997;
+    }
+
+    .bg-thukho {
+        background-color: #0d6efd;
+    }
+
+    .bg-sales {
+        background-color: #6610f2;
+    }
+
+    .bg-ketoan {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .bg-default {
+        background-color: #6c757d;
     }
 
     .page-wrapper {
         padding: 24px 30px;
         overflow-y: auto;
         background: white;
+        height: 100%;
     }
 
     .calendar-toolbar {
@@ -165,11 +409,9 @@
             padding: 6px 16px;
             border-right: 1px solid #dee2e6;
             background: white;
+            border: none;
+            outline: none;
         }
-
-            .view-tabs .nav-link:last-child {
-                border-right: none;
-            }
 
             .view-tabs .nav-link:hover {
                 background-color: #f8f9fa;
@@ -178,7 +420,6 @@
             .view-tabs .nav-link.active {
                 background-color: #0d6efd;
                 color: white;
-                border-color: #0d6efd;
             }
 
     .nav-controls {
@@ -217,35 +458,11 @@
         border-right: 1px solid #dee2e6;
         transition: 0.2s;
         cursor: pointer;
-        outline: none;
     }
-
-        .nav-arrow-btn:last-child {
-            border-right: none;
-        }
 
         .nav-arrow-btn:hover {
             background: #f8f9fa;
         }
-
-    .custom-date-picker {
-        position: relative;
-    }
-
-        .custom-date-picker input[type="date"] {
-            opacity: 0;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-    input[type="date"]::-webkit-clear-button, input[type="date"]::-webkit-inner-spin-button {
-        display: none;
-        -webkit-appearance: none;
-    }
 
     .calendar-table {
         table-layout: fixed;
@@ -296,12 +513,12 @@
         color: white;
         margin-bottom: 3px;
         cursor: pointer;
-        transition: filter 0.2s;
+        transition: 0.2s;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         display: flex;
-        align-items: center;
+        flex-direction: column;
     }
 
         .shift-block:hover {
@@ -309,242 +526,465 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-    .bg-letan {
-        background-color: #dc3545;
+    /* Định dạng cho ca làm việc vắt qua 2 ngày */
+    .shift-span-start {
+        margin-right: -7px;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        padding-right: 10px;
+        position: relative;
+        z-index: 2;
     }
 
-    .bg-buongphong {
-        background-color: #fd7e14;
+    .shift-span-end {
+        margin-left: -7px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        padding-left: 10px;
+        position: relative;
+        z-index: 2;
     }
 
-    .bg-baotri {
-        background-color: #0d6efd;
+    .user-account-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        color: #333;
+        font-weight: 600;
+        font-size: 0.95rem;
     }
 
-    .bg-fnb {
-        background-color: #198754;
-    }
-
-    .bg-default {
-        background-color: #6c757d;
-    }
+        .user-account-btn i.bi-person-circle {
+            color: #ffc107;
+            font-size: 1.2rem;
+        }
 </style>
 
-<div class="page-wrapper">
-    <div class="calendar-toolbar">
-        <ul class="nav view-tabs shadow-sm" id="calendarTabs">
-            <li class="nav-item">
-                <button class="nav-link active" id="btn-tab-month" onclick="changeTabDOM('month')">Tháng</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="btn-tab-week" onclick="changeTabDOM('week')">Tuần</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="btn-tab-day" onclick="changeTabDOM('day')">Ngày</button>
-            </li>
-        </ul>
-        <h4 class="fw-bold m-0 text-dark" id="calendarMainTitle">Tháng ...</h4>
-        <div class="nav-controls">
-            <button class="btn-today" onclick="navigateCalendar(0)">Hôm nay</button>
-            <div class="nav-arrow-group shadow-sm">
-                <button class="nav-arrow-btn" onclick="navigateCalendar(-1)"><i class="bi bi-chevron-left"></i></button>
-                <div class="nav-arrow-btn custom-date-picker">
-                    <i class="bi bi-calendar3"></i>
-                    <input type="date" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" onchange="datePickerChanged(this.value)" />
-                </div>
-                <button class="nav-arrow-btn" onclick="navigateCalendar(1)"><i class="bi bi-chevron-right"></i></button>
-            </div>
+<div class="app-container">
+
+    <nav class="pms-navbar shadow-sm">
+        <div class="d-flex align-items-center">
+            <a href="/"><img src="~/images/logo.png" alt="Grand Horizon Hotel" style="height: 45px; object-fit: contain;" /></a>
         </div>
-    </div>
+        <div class="user-profile">
+            @if (isLoggedIn)
+            {
+                <div class="d-flex align-items-center gap-3">
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center gap-3">
-            <span class="fw-bold text-muted small">Lọc theo bộ phận:</span>
-            <select class="form-select form-select-sm border-0 shadow-sm fw-bold bg-white" id="departmentFilter" onchange="filterSchedules()" style="width: auto;">
-                <option value="ALL">Tất cả</option>
-                <option value="Lễ tân">🔴 Lễ tân</option>
-                <option value="Buồng phòng">🟡 Buồng phòng</option>
-                <option value="Bảo trì">🔵 Bảo trì</option>
-                <option value="F&B">🟢 F&B Nhà hàng</option>
-            </select>
-        </div>
-
-        @if (isManager)
-        {
-            <button class="btn btn-primary shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#createModal">
-                <i class="bi bi-plus-circle me-1"></i> Giao việc
-            </button>
-        }
-    </div>
-
-    <div class="card shadow-sm border-0 rounded-3">
-        <div class="card-body p-4 tab-content">
-            <div class="tab-pane fade show active" id="month-view">
-                <table class="calendar-table">
-                    <thead class="bg-light">
-                        <tr><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>CN</th></tr>
-                    </thead>
-                    <tbody>
-                        @{
-                            int dayCounter = 1; int nextMonthDay = 1; int daysInPrevMonth = DateTime.DaysInMonth(prevMonth.Year, prevMonth.Month);
-                        }
-                        @for (int row = 0; row < 6; row++)
-                        {
-                            <tr>
-                                @for (int col = 0; col < 7; col++)
-                                {
-                                    int cellIndex = row * 7 + col;
-
-                                    /* Khôi phục lại logic điền ngày trống để bảng không bị vỡ */
-                                    if (cellIndex < Model.StartDayOfWeek)
-                                    {
-                                        <td><div class="date-number empty">@(daysInPrevMonth - Model.StartDayOfWeek + cellIndex + 1)</div></td>
-                                    }
-                                    else if (dayCounter > Model.DaysInMonth)
-                                    {
-                                        <td><div class="date-number empty">@(nextMonthDay++)</div></td>
-                                    }
-                                    else
-                                    {
-                                        bool isToday = (dayCounter == today.Day && Model.CurrentDate.Month == today.Month && Model.CurrentDate.Year == today.Year);
-                                        <td class="@(isToday ? "bg-light" : "")">
-                                            <div class="date-number @(isToday ? "today" : "")">@dayCounter</div>
-                                            @{
-                                                DateTime currentLoopDate = new DateTime(Model.CurrentDate.Year, Model.CurrentDate.Month, dayCounter);
-                                                var schedulesInThisDay = Model.MySchedules.Where(x => x.ThoiGianBatDau.Date == currentLoopDate).OrderBy(x => x.ThoiGianBatDau).ToList();
-                                            }
-                                            @foreach (var s in schedulesInThisDay)
-                                            {
-                                                string colorClass = s.ChucVu == "Lễ tân" ? "bg-letan" : s.ChucVu == "Buồng phòng" ? "bg-buongphong" : s.ChucVu == "Bảo trì" ? "bg-baotri" : "bg-default";
-                                                <div class="shift-block @colorClass" data-department="@s.ChucVu" onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
-                                                    <div class="fw-bold"><i class="bi bi-clock me-1"></i> @s.CaLamViec</div>
-                                                    <div class="text-truncate">@s.TenNhanVien</div>
-                                                </div>
-                                            }
-                                        </td>
-                                        dayCounter++;
-                                    }
-                                }
-                            </tr>
-                            @if (dayCounter > Model.DaysInMonth) break;
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <!-- TAB TUẦN (LƯỚI LỊCH 7 NGÀY THEO HÌNH MẪU) -->
-            <div class="tab-pane fade" id="week-view">
-                <div class="table-responsive mt-3">
-                    <table class="calendar-table bg-white shadow-sm">
-                        <thead class="bg-light">
-                            <tr>
-                                @{
-                                    // Tính toán ngày đầu tuần (Thứ 2) dựa trên SelectedDate
-                                    int diff = (7 + (Model.SelectedDate.Value.DayOfWeek - DayOfWeek.Monday)) % 7;
-                                    DateTime startOfWeek = Model.SelectedDate.Value.AddDays(-1 * diff).Date;
-                                }
-                                <th class="py-3">T2 <span class="fw-normal text-muted">@startOfWeek.ToString("dd/MM")</span></th>
-                                <th class="py-3">T3 <span class="fw-normal text-muted">@startOfWeek.AddDays(1).ToString("dd/MM")</span></th>
-                                <th class="py-3">T4 <span class="fw-normal text-muted">@startOfWeek.AddDays(2).ToString("dd/MM")</span></th>
-                                <th class="py-3">T5 <span class="fw-normal text-muted">@startOfWeek.AddDays(3).ToString("dd/MM")</span></th>
-                                <th class="py-3">T6 <span class="fw-normal text-muted">@startOfWeek.AddDays(4).ToString("dd/MM")</span></th>
-                                <th class="py-3">T7 <span class="fw-normal text-muted">@startOfWeek.AddDays(5).ToString("dd/MM")</span></th>
-                                <th class="py-3">CN <span class="fw-normal text-muted">@startOfWeek.AddDays(6).ToString("dd/MM")</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                @for (int i = 0; i < 7; i++)
-                                {
-                                    DateTime loopDay = startOfWeek.AddDays(i);
-                                    bool isToday = loopDay == DateTime.Today;
-
-                                    // Đặt height: 250px để các ô vuông vắn, đủ không gian hiển thị lịch
-                                    <td class="@(isToday ? "bg-light" : "")" style="height: 250px; position: relative;">
-
-                                        <!-- Hiển thị ngày ở góc phải, in đậm và đổi màu nếu là hôm nay -->
-                                        <div class="date-number @(isToday ? "today" : "")">@loopDay.Day</div>
-
-                                        <!-- Vùng render danh sách ca làm việc -->
-                                        <div class="mt-4">
-                                            @{
-                                                var weekDaySchedules = Model.MySchedules.Where(x => x.ThoiGianBatDau.Date == loopDay).OrderBy(x => x.ThoiGianBatDau).ToList();
-                                            }
-                                            @foreach (var s in weekDaySchedules)
-                                            {
-                                                string colorClass = s.ChucVu == "Lễ tân" ? "bg-purple" : s.ChucVu == "Buồng phòng" ? "bg-brown" : "bg-gray";
-                                                <div class="shift-block @colorClass mb-1" onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
-                                                    <div class="fw-bold"><i class="bi bi-clock me-1"></i> @s.CaLamViec</div>
-                                                    <div class="text-truncate" style="font-size: 0.75rem;">@s.TenNhanVien</div>
-                                                </div>
-                                            }
-                                        </div>
-                                    </td>
-                                }
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- TAB NGÀY (TIMELINE NGANG NỀN SÁNG CHUẨN LƯỚI 24H) -->
-            <div class="tab-pane fade" id="day-view">
-                <div class="timeline-day-container mt-3 shadow-sm">
-                    <div class="timeline-day-grid">
-
-                        <!-- Hàng 1: Header chạy vòng lặp từ 0h đến 23h -->
-                        <div class="timeline-header-row">
-                            @for (int h = 0; h <= 23; h++)
+                    <!-- CHUÔNG THÔNG BÁO CHO QUẢN LÝ VÀ NHÂN VIÊN -->
+                    <div class="dropdown">
+                        <a href="#" class="text-muted position-relative text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false" id="bellDropdown">
+                            <i class="bi bi-bell fs-5"></i>
+                            @if (isManager && Model.PendingRequests != null && Model.PendingRequests.Count > 0)
                             {
-                                <div class="timeline-time-col">@(h)h</div>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">@Model.PendingRequests.Count</span>
                             }
+                            else if (!isManager && Model.EmployeeNotifications != null && Model.EmployeeNotifications.Count > 0)
+                            {
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">@Model.EmployeeNotifications.Count</span>
+                            }
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="bellDropdown" style="width: 330px; max-height: 400px; overflow-y: auto;">
+
+                            @if (isManager)
+                            {
+                                <li><h6 class="dropdown-header fw-bold text-dark border-bottom pb-2">Thông báo Đơn từ (@(Model.PendingRequests?.Count ?? 0))</h6></li>
+                                @if (Model.PendingRequests != null && Model.PendingRequests.Count > 0)
+                                {
+                                    foreach (var req in Model.PendingRequests)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item py-3 border-bottom" href="#" onclick="showDuyetDonModal(@req.Id, '@req.TenNhanVien', '@req.ChucVu', '@req.TuNgay.ToString("yyyy-MM-dd")', '@req.DenNgay.ToString("yyyy-MM-dd")', @req.SoNgay, '@Html.Raw((req.LyDo ?? "").Replace("'", "\\'").Replace("\r\n", " "))')">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="bi bi-envelope-paper fs-4 text-warning me-3"></i>
+                                                    <div>
+                                                        <div class="fw-bold text-dark" style="font-size: 0.85rem;">@req.TenNhanVien <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">Chờ duyệt</span></div>
+                                                        <div class="text-muted mt-1" style="font-size: 0.75rem;">Xin nghỉ @req.SoNgay ngày (Lý do: @req.LyDo)</div>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li><div class="dropdown-item py-3 text-muted text-center" style="font-size: 0.85rem;">Không có thông báo mới</div></li>
+                                }
+                            }
+                            else
+                            {
+                                <li><h6 class="dropdown-header fw-bold text-dark border-bottom pb-2">Kết quả Đơn xin nghỉ (@(Model.EmployeeNotifications?.Count ?? 0))</h6></li>
+                                @if (Model.EmployeeNotifications != null && Model.EmployeeNotifications.Count > 0)
+                                {
+                                    foreach (var notif in Model.EmployeeNotifications)
+                                    {
+                                        <li>
+                                            <form method="post" asp-page-handler="MarkNotificationRead">
+                                                <input type="hidden" name="notifId" value="@notif.Id" />
+                                                <input type="hidden" name="SelectedDate" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" />
+                                                <input type="hidden" name="ActiveTab" value="@Model.ActiveTab" />
+                                                <button type="submit" class="dropdown-item py-3 border-bottom text-start" style="white-space: normal;">
+                                                    <div class="d-flex align-items-start">
+                                                        <i class="bi bi-info-circle fs-4 @(notif.TrangThai == "Đã duyệt" ? "text-success" : "text-danger") me-3"></i>
+                                                        <div>
+                                                            <div class="fw-bold text-dark" style="font-size: 0.85rem;">Đơn nghỉ phép @notif.SoNgay ngày</div>
+                                                            <div class="text-muted mt-1" style="font-size: 0.75rem;">Kết quả: <strong class="@(notif.TrangThai == "Đã duyệt" ? "text-success" : "text-danger")">@notif.TrangThai</strong></div>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li><div class="dropdown-item py-3 text-muted text-center" style="font-size: 0.85rem;">Không có thông báo mới</div></li>
+                                }
+                            }
+                        </ul>
+                    </div>
+
+                    <div class="dropdown">
+                        <a href="#" class="user-account-btn" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> Xin chào, @Model.EmployeeName! <i class="bi bi-caret-down-fill" style="font-size: 0.7rem; color: #333;"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end profile-dropdown-menu mt-2 shadow-sm border-0">
+                            <li>
+                                <a class="dropdown-item profile-dropdown-item text-dark" href="/QuanLyLichCaNhan/QuanLyLichCaNhan">
+                                    <i class="bi bi-calendar-check fs-6 text-muted"></i> Lịch làm việc
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item profile-dropdown-item text-dark" href="/QuanLySoDoPhong/TimPhong">
+                                    <i class="bi bi-door-closed fs-6 text-muted"></i> Danh sách phòng
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1 border-light"></li>
+                            <li>
+                                <a class="dropdown-item profile-dropdown-item text-danger fw-bold" href="?handler=Logout" onclick="return confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">
+                                    <i class="bi bi-box-arrow-right fs-6"></i> Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+            }
+        </div>
+    </nav>
+
+    <div class="main-content-wrapper">
+        <div class="main-content">
+            <div class="page-wrapper">
+                <div class="calendar-toolbar">
+                    <ul class="nav view-tabs shadow-sm" id="calendarTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="btn-tab-month" onclick="changeTabDOM('month')">Tháng</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="btn-tab-week" onclick="changeTabDOM('week')">Tuần</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="btn-tab-day" onclick="changeTabDOM('day')">Ngày</button>
+                        </li>
+                    </ul>
+                    <h4 class="fw-bold m-0 text-dark" id="calendarMainTitle">Tháng ...</h4>
+                    <div class="nav-controls">
+                        <button class="btn-today" onclick="navigateCalendar(0)">Hôm nay</button>
+                        <div class="nav-arrow-group shadow-sm">
+                            <button class="nav-arrow-btn" onclick="navigateCalendar(-1)"><i class="bi bi-chevron-left"></i></button>
+                            <div class="nav-arrow-btn custom-date-picker">
+                                <i class="bi bi-calendar3"></i>
+                                <input type="date" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" onchange="datePickerChanged(this.value)" />
+                            </div>
+                            <button class="nav-arrow-btn" onclick="navigateCalendar(1)"><i class="bi bi-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        @if (isManager)
+                        {
+                            <span class="fw-bold text-muted small">Lọc theo chức vụ:</span>
+                            <select class="form-select form-select-sm border-0 shadow-sm fw-bold bg-white" id="departmentFilter" onchange="filterSchedules()" style="width: auto;">
+                                <option value="ALL">Tất cả</option>
+                                <option value="Lễ tân">🔴 Lễ tân</option>
+                                <option value="Buồng phòng">🟡 Buồng phòng</option>
+                                <option value="Nhân viên Kỹ thuật">🟢 Nhân viên Kỹ thuật</option>
+                                <option value="Thu ngân Nhà hàng">🟣 Thu ngân Nhà hàng</option>
+                                <option value="Phục vụ">🟤 Phục vụ</option>
+                                <option value="Đầu bếp">🔵 Đầu bếp</option>
+                                <option value="Thủ kho">⚫ Thủ kho</option>
+                                <option value="Sales">⚪ Sales</option>
+                                <option value="Kế toán">🟠 Kế toán</option>
+                            </select>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-secondary btn-sm shadow-sm fw-bold ms-2" data-bs-toggle="modal" data-bs-target="#createDonNghiModal">
+                                <i class="bi bi-calendar-minus me-1"></i> Xin nghỉ phép
+                            </button>
+                        }
+                    </div>
+
+                    @if (isManager)
+                    {
+                        <button class="btn btn-primary shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#createModal">
+                            <i class="bi bi-plus-circle me-1"></i> Giao việc
+                        </button>
+                    }
+                </div>
+
+                @if (!isManager)
+                {
+                    <div class="alert alert-info rounded-3 d-flex align-items-center shadow-sm bg-white border-info border-start border-4 mb-4">
+                        <i class="bi bi-info-circle-fill me-3 fs-3 text-info"></i>
+                        <div>
+                            <strong class="text-dark">Lịch làm việc đang chọn:</strong> Ngày @Model.SelectedDate.Value.ToString("dd/MM/yyyy") bạn có <strong class="text-primary fs-5">@Model.ShiftCountToday</strong> ca làm việc.<br />
+                            <small class="text-muted">Vui lòng có mặt tại khu vực phân công trước 10 phút để nhận bàn giao.</small>
+                        </div>
+                    </div>
+                }
+
+                <div class="card shadow-sm border-0 rounded-3">
+                    <div class="card-body p-4 tab-content">
+
+                        <!-- TAB THÁNG -->
+                        <div class="tab-pane fade show active" id="month-view">
+                            <table class="calendar-table">
+                                <thead class="bg-light">
+                                    <tr><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>CN</th></tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        int dayCounter = 1; int nextMonthDay = 1; int daysInPrevMonth = DateTime.DaysInMonth(prevMonth.Year, prevMonth.Month);
+                                    }
+                                    @for (int row = 0; row < 6; row++)
+                                    {
+                                        <tr>
+                                            @for (int col = 0; col < 7; col++)
+                                            {
+                                                int cellIndex = row * 7 + col;
+
+                                                if (cellIndex < Model.StartDayOfWeek)
+                                                {
+                                                    <td><div class="date-number empty">@(daysInPrevMonth - Model.StartDayOfWeek + cellIndex + 1)</div></td>
+                                                }
+                                                else if (dayCounter > Model.DaysInMonth)
+                                                {
+                                                    <td><div class="date-number empty">@(nextMonthDay++)</div></td>
+                                                }
+                                                else
+                                                {
+                                                    bool isToday = (dayCounter == today.Day && Model.CurrentDate.Month == today.Month && Model.CurrentDate.Year == today.Year);
+                                                    <td class="@(isToday ? "bg-light" : "")">
+                                                        <div class="date-number @(isToday ? "today" : "")">@dayCounter</div>
+                                                        @{
+                                                            DateTime currentLoopDate = new DateTime(Model.CurrentDate.Year, Model.CurrentDate.Month, dayCounter);
+                                                            // ĐÃ FIX: Cho phép hiển thị lịch nếu ThoiGianKetThuc lọt qua ngày hôm sau
+                                                            var schedulesInThisDay = Model.MySchedules.Where(x =>
+                                                                x.ThoiGianBatDau.Date == currentLoopDate ||
+                                                                (x.ThoiGianKetThuc.Date == currentLoopDate && x.ThoiGianBatDau.Date != x.ThoiGianKetThuc.Date)
+                                                            ).OrderBy(x => x.ThoiGianBatDau).ToList();
+                                                        }
+                                                        @foreach (var s in schedulesInThisDay)
+                                                        {
+                                                            string colorClass = s.ChucVu == "Lễ tân" ? "bg-letan"
+                                                                              : s.ChucVu == "Buồng phòng" ? "bg-buongphong"
+                                                                              : s.ChucVu == "Nhân viên Kỹ thuật" ? "bg-baotri"
+                                                                              : s.ChucVu == "Thu ngân Nhà hàng" ? "bg-thungan"
+                                                                              : s.ChucVu == "Phục vụ" ? "bg-phucvu"
+                                                                              : s.ChucVu == "Đầu bếp" ? "bg-daubep"
+                                                                              : s.ChucVu == "Thủ kho" ? "bg-thukho"
+                                                                              : s.ChucVu == "Sales" ? "bg-sales"
+                                                                              : s.ChucVu == "Kế toán" ? "bg-ketoan"
+                                                                              : "bg-default";
+
+                                                            string spanClass = "";
+                                                            string displayTime = $"{s.ThoiGianBatDau:HH:mm} - {s.ThoiGianKetThuc:HH:mm}";
+
+                                                            // Xử lý mũi tên khi lịch qua đêm
+                                                            if (s.ThoiGianBatDau.Date != s.ThoiGianKetThuc.Date)
+                                                            {
+                                                                if (s.ThoiGianBatDau.Date == currentLoopDate) { spanClass = "shift-span-start"; displayTime = $"{s.ThoiGianBatDau:HH:mm} ➔"; }
+                                                                else { spanClass = "shift-span-end"; displayTime = $"➔ {s.ThoiGianKetThuc:HH:mm}"; }
+                                                            }
+
+                                                            <div class="shift-block @colorClass @spanClass" data-department="@s.ChucVu" onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
+                                                                <div class="fw-bold"><i class="bi bi-clock me-1"></i> @s.CaLamViec</div>
+                                                                <div class="text-truncate" style="font-size: 0.75rem;">@s.TenNhanVien</div>
+                                                                <div style="font-size: 0.65rem; opacity: 0.8">@displayTime</div>
+                                                            </div>
+                                                        }
+                                                    </td>
+                                                    dayCounter++;
+                                                }
+                                            }
+                                        </tr>
+                                        @if (dayCounter > Model.DaysInMonth) break;
+                                    }
+                                </tbody>
+                            </table>
                         </div>
 
-                        <!-- Hàng 2: Body chứa 24 cột lưới và sự kiện -->
-                        <div class="timeline-body-row">
-                            @for (int h = 0; h <= 23; h++)
-                            {
-                                <div class="timeline-grid-col"></div>
-                            }
+                        <!-- TAB TUẦN -->
+                        <div class="tab-pane fade" id="week-view">
+                            <div class="table-responsive mt-3">
+                                <table class="calendar-table bg-white shadow-sm">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            @{
+                                                int diff = (7 + (Model.SelectedDate.Value.DayOfWeek - DayOfWeek.Monday)) % 7;
+                                                DateTime startOfWeek = Model.SelectedDate.Value.AddDays(-1 * diff).Date;
+                                            }
+                                            <th class="py-3">T2 <span class="fw-normal text-muted">@startOfWeek.ToString("dd/MM")</span></th>
+                                            <th class="py-3">T3 <span class="fw-normal text-muted">@startOfWeek.AddDays(1).ToString("dd/MM")</span></th>
+                                            <th class="py-3">T4 <span class="fw-normal text-muted">@startOfWeek.AddDays(2).ToString("dd/MM")</span></th>
+                                            <th class="py-3">T5 <span class="fw-normal text-muted">@startOfWeek.AddDays(3).ToString("dd/MM")</span></th>
+                                            <th class="py-3">T6 <span class="fw-normal text-muted">@startOfWeek.AddDays(4).ToString("dd/MM")</span></th>
+                                            <th class="py-3">T7 <span class="fw-normal text-muted">@startOfWeek.AddDays(5).ToString("dd/MM")</span></th>
+                                            <th class="py-3">CN <span class="fw-normal text-muted">@startOfWeek.AddDays(6).ToString("dd/MM")</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            @for (int i = 0; i < 7; i++)
+                                            {
+                                                DateTime loopDay = startOfWeek.AddDays(i);
+                                                bool isToday = loopDay == DateTime.Today;
+                                                <td class="@(isToday ? "bg-light" : "")" style="height: 250px; position: relative;">
+                                                    <div class="date-number @(isToday ? "today" : "")">@loopDay.Day</div>
+                                                    <div class="mt-4">
+                                                        @{
+                                                            // ĐÃ FIX: Cho phép hiển thị lịch nếu ThoiGianKetThuc lọt qua ngày hôm sau
+                                                            var weekDaySchedules = Model.MySchedules.Where(x =>
+                                                                x.ThoiGianBatDau.Date == loopDay ||
+                                                                (x.ThoiGianKetThuc.Date == loopDay && x.ThoiGianBatDau.Date != x.ThoiGianKetThuc.Date)
+                                                            ).OrderBy(x => x.ThoiGianBatDau).ToList();
+                                                        }
+                                                        @foreach (var s in weekDaySchedules)
+                                                        {
+                                                            string colorClass = s.ChucVu == "Lễ tân" ? "bg-letan"
+                                                                              : s.ChucVu == "Buồng phòng" ? "bg-buongphong"
+                                                                              : s.ChucVu == "Nhân viên Kỹ thuật" ? "bg-baotri"
+                                                                              : s.ChucVu == "Thu ngân Nhà hàng" ? "bg-thungan"
+                                                                              : s.ChucVu == "Phục vụ" ? "bg-phucvu"
+                                                                              : s.ChucVu == "Đầu bếp" ? "bg-daubep"
+                                                                              : s.ChucVu == "Thủ kho" ? "bg-thukho"
+                                                                              : s.ChucVu == "Sales" ? "bg-sales"
+                                                                              : s.ChucVu == "Kế toán" ? "bg-ketoan"
+                                                                              : "bg-default";
 
-                            <div class="tl-events-wrapper">
-                                @{
-                                    var dayTimelineSchedules = Model.MySchedules.Where(x => x.ThoiGianBatDau.Date == Model.SelectedDate.Value.Date).OrderBy(x => x.ThoiGianBatDau).ToList();
-                                    int topPos = 15;
-                                    double totalMins = 24 * 60.0; // Tổng thời gian 24 tiếng
-                                }
-                                @foreach (var s in dayTimelineSchedules)
-                                {
-                                    // Tính số phút bắt đầu từ 0h00
-                                    double startMins = s.ThoiGianBatDau.Hour * 60 + s.ThoiGianBatDau.Minute;
-                                    double durMins = (s.ThoiGianKetThuc - s.ThoiGianBatDau).TotalMinutes;
+                                                            string spanClass = "";
+                                                            string displayTime = $"{s.ThoiGianBatDau:HH:mm} - {s.ThoiGianKetThuc:HH:mm}";
 
-                                    // Xử lý thông minh: Nếu ca làm việc vắt qua ngày hôm sau (VD: 22h -> 6h)
-                                    // Ta sẽ ép thời gian kết thúc hiển thị trên thanh ngang bằng 23:59 để không bị tràn thanh bar
-                                    if (s.ThoiGianKetThuc.Date > s.ThoiGianBatDau.Date)
-                                    {
-                                        var midnight = new DateTime(s.ThoiGianBatDau.Year, s.ThoiGianBatDau.Month, s.ThoiGianBatDau.Day, 23, 59, 59);
-                                        durMins = (midnight - s.ThoiGianBatDau).TotalMinutes;
-                                    }
+                                                            // Xử lý mũi tên khi lịch qua đêm
+                                                            if (s.ThoiGianBatDau.Date != s.ThoiGianKetThuc.Date)
+                                                            {
+                                                                if (s.ThoiGianBatDau.Date == loopDay) { spanClass = "shift-span-start"; displayTime = $"{s.ThoiGianBatDau:HH:mm} ➔"; }
+                                                                else { spanClass = "shift-span-end"; displayTime = $"➔ {s.ThoiGianKetThuc:HH:mm}"; }
+                                                            }
 
-                                    double leftPct = (startMins / totalMins) * 100;
-                                    double widthPct = (durMins / totalMins) * 100;
-
-                                    string leftStr = leftPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-                                    string widthStr = widthPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-
-                                    string tColor = s.ChucVu == "Lễ tân" ? "bg-purple" : s.ChucVu == "Buồng phòng" ? "bg-brown" : "bg-gray";
-
-                                    <div class="tl-event-block @tColor"
-                                         style="left: @(leftStr)%; width: @(widthStr)%; top: @(topPos)px;"
-                                         onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
-                                        <div class="tl-event-title">@s.TieuDe</div>
-                                        <div class="tl-event-time">@s.ThoiGianBatDau.ToString("HH:mm") – @s.ThoiGianKetThuc.ToString("HH:mm")</div>
-                                    </div>
-
-                                    topPos += 60; // Đẩy khối tiếp theo xuống 60px
-                                }
+                                                            <div class="shift-block @colorClass @spanClass mb-1" data-department="@s.ChucVu" onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
+                                                                <div class="fw-bold"><i class="bi bi-clock me-1"></i> @s.CaLamViec</div>
+                                                                <div class="text-truncate" style="font-size: 0.75rem;">@s.TenNhanVien</div>
+                                                                <div style="font-size: 0.65rem; opacity: 0.8">@displayTime</div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            }
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
+
+                        <!-- TAB NGÀY -->
+                        <div class="tab-pane fade" id="day-view">
+                            <div class="timeline-day-container mt-3 shadow-sm">
+                                <div class="timeline-day-grid">
+                                    <div class="timeline-header-row">
+                                        @for (int h = 0; h <= 23; h++)
+                                        {
+                                            <div class="timeline-time-col">@(h)h</div>
+                                        }
+                                    </div>
+                                    <div class="timeline-body-row">
+                                        @for (int h = 0; h <= 23; h++)
+                                        {
+                                            <div class="timeline-grid-col"></div>
+                                        }
+                                        <div class="tl-events-wrapper">
+                                            @{
+                                                DateTime timelineSelectedDate = Model.SelectedDate.Value.Date;
+                                                // ĐÃ FIX: Cho phép hiển thị khối timeline vào ngày hôm sau nếu là ca qua đêm
+                                                var dayTimelineSchedules = Model.MySchedules.Where(x =>
+                                                    x.ThoiGianBatDau.Date == timelineSelectedDate ||
+                                                    (x.ThoiGianKetThuc.Date == timelineSelectedDate && x.ThoiGianBatDau.Date != x.ThoiGianKetThuc.Date)
+                                                ).OrderBy(x => x.ThoiGianBatDau).ToList();
+
+                                                int topPos = 15;
+                                                double totalMins = 24 * 60.0;
+                                            }
+                                            @foreach (var s in dayTimelineSchedules)
+                                            {
+                                                double startMins = 0;
+                                                double durMins = 0;
+
+                                                // Tính toán chính xác vị trí khối trên timeline
+                                                if (s.ThoiGianBatDau.Date == timelineSelectedDate && s.ThoiGianKetThuc.Date == timelineSelectedDate)
+                                                {
+                                                    startMins = s.ThoiGianBatDau.Hour * 60 + s.ThoiGianBatDau.Minute;
+                                                    durMins = (s.ThoiGianKetThuc - s.ThoiGianBatDau).TotalMinutes;
+                                                }
+                                                else if (s.ThoiGianBatDau.Date == timelineSelectedDate && s.ThoiGianKetThuc.Date > timelineSelectedDate)
+                                                {
+                                                    // Vẽ từ giờ bắt đầu đến 23:59
+                                                    startMins = s.ThoiGianBatDau.Hour * 60 + s.ThoiGianBatDau.Minute;
+                                                    durMins = (timelineSelectedDate.AddDays(1) - s.ThoiGianBatDau).TotalMinutes;
+                                                }
+                                                else if (s.ThoiGianBatDau.Date < timelineSelectedDate && s.ThoiGianKetThuc.Date == timelineSelectedDate)
+                                                {
+                                                    // Vẽ từ 00:00 đến giờ kết thúc
+                                                    startMins = 0;
+                                                    durMins = (s.ThoiGianKetThuc - timelineSelectedDate).TotalMinutes;
+                                                }
+
+                                                double leftPct = (startMins / totalMins) * 100;
+                                                double widthPct = (durMins / totalMins) * 100;
+
+                                                string leftStr = leftPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                                                string widthStr = widthPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+                                                string tColor = s.ChucVu == "Lễ tân" ? "bg-letan"
+                                                              : s.ChucVu == "Buồng phòng" ? "bg-buongphong"
+                                                              : s.ChucVu == "Nhân viên Kỹ thuật" ? "bg-baotri"
+                                                              : s.ChucVu == "Thu ngân Nhà hàng" ? "bg-thungan"
+                                                              : s.ChucVu == "Phục vụ" ? "bg-phucvu"
+                                                              : s.ChucVu == "Đầu bếp" ? "bg-daubep"
+                                                              : s.ChucVu == "Thủ kho" ? "bg-thukho"
+                                                              : s.ChucVu == "Sales" ? "bg-sales"
+                                                              : s.ChucVu == "Kế toán" ? "bg-ketoan"
+                                                              : "bg-default";
+
+                                                <div class="tl-event-block @tColor" data-department="@s.ChucVu"
+                                                     style="left: @(leftStr)%; width: @(widthStr)%; top: @(topPos)px;"
+                                                     onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
+                                                    <div class="tl-event-title">@s.TieuDe</div>
+                                                    <div class="tl-event-time">@s.ThoiGianBatDau.ToString("HH:mm") – @s.ThoiGianKetThuc.ToString("HH:mm")</div>
+                                                </div>
+
+                                                topPos += 60;
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -552,7 +992,6 @@
     </div>
 </div>
 
-<!-- POPUP THÔNG TIN NHANH -->
 <div id="quickViewPopup" style="display:none; position:absolute; z-index:1050; width:320px; background:#fff; border-radius:8px; border: 1px solid #dee2e6; box-shadow:0 4px 20px rgba(0,0,0,0.15);">
     <div class="p-3">
         <h6 class="fw-bold text-primary" id="qvTitle">Chi tiết</h6>
@@ -567,7 +1006,6 @@
             <form method="post" asp-page-handler="Delete" class="mt-3 text-end">
                 <input type="hidden" id="qvDeleteId" name="deleteId" />
                 <input type="hidden" name="selectedDate" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" />
-                <!-- Thêm id qvActiveTab để JS tự động điền Tab hiện tại -->
                 <input type="hidden" id="qvActiveTab" name="activeTab" value="@Model.ActiveTab" />
 
                 <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm fw-bold">
@@ -578,28 +1016,21 @@
     </div>
 </div>
 
-<!-- MODAL TẠO CA LÀM VIỆC CHUẨN DB -->
 @if (isManager)
 {
-    <!-- ========================================== -->
-    <!-- MODAL TẠO CA LÀM VIỆC (POPUP FORM GIAO VIỆC) -->
-    <!-- ========================================== -->
     <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <!-- Phần Header của Modal -->
                 <div class="modal-header bg-white border-bottom pb-3">
                     <h5 class="modal-title fw-bold text-primary" id="createModalLabel"><i class="bi bi-clipboard-plus me-2"></i>Phân công tác vụ & Ca làm việc</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                <!-- Phần Body chứa Form -->
                 <form method="post" asp-page-handler="Create">
                     <input type="hidden" name="ActiveTab" value="@Model.ActiveTab" />
 
                     <div class="modal-body p-4">
                         <div class="row">
-                            <!-- Cột 1: Thông tin cơ bản -->
                             <div class="col-lg-5 border-end pe-4">
                                 <h6 class="fw-bold text-primary mb-3">1. THÔNG TIN CƠ BẢN</h6>
 
@@ -632,13 +1063,11 @@
 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Mã NV <span class="text-danger">*</span></label>
-                                    <!-- Field readonly, được JavaScript tự động fill -->
                                     <input type="text" class="form-control bg-light" id="inputMaNV" asp-for="InputData.MaNhanVien" readonly required />
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Ca làm việc</label>
-                                    <!-- Gọi hàm toggleCustomTime() khi thay đổi tùy chọn -->
                                     <select class="form-select" id="selectCaLamViec" asp-for="InputData.CaLamViec" onchange="toggleCustomTime()" required>
                                         <option value="CaSang">Ca sáng (06:00 - 14:00)</option>
                                         <option value="CaChieu">Ca chiều (14:00 - 22:00)</option>
@@ -648,22 +1077,32 @@
                                     </select>
                                 </div>
 
-                                <!-- Khung chọn giờ tùy chỉnh (Mặc định ẩn) -->
                                 <div class="mb-3 p-3 bg-light rounded border" id="customTimeDiv" style="display: none;">
                                     <div class="row">
                                         <div class="col-6">
                                             <label class="form-label fw-bold text-muted small">Giờ bắt đầu <span class="text-danger">*</span></label>
-                                            <input type="time" class="form-control form-control-sm" id="inputBatDau" asp-for="InputData.TuChonBatDau" />
+                                            <select class="form-select form-select-sm" id="inputBatDau" asp-for="InputData.TuChonBatDau">
+                                                <option value="">-- Chọn giờ --</option>
+                                                @for (int h = 0; h <= 23; h++)
+                                                {
+                                                    <option value="@(h.ToString("00") + ":00")">@(h.ToString("00") + ":00")</option>
+                                                }
+                                            </select>
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label fw-bold text-muted small">Giờ kết thúc <span class="text-danger">*</span></label>
-                                            <input type="time" class="form-control form-control-sm" id="inputKetThuc" asp-for="InputData.TuChonKetThuc" />
+                                            <select class="form-select form-select-sm" id="inputKetThuc" asp-for="InputData.TuChonKetThuc">
+                                                <option value="">-- Chọn giờ --</option>
+                                                @for (int h = 0; h <= 23; h++)
+                                                {
+                                                    <option value="@(h.ToString("00") + ":00")">@(h.ToString("00") + ":00")</option>
+                                                }
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Cột 2: Nội dung tác vụ -->
                             <div class="col-lg-7 ps-4">
                                 <h6 class="fw-bold text-primary mb-3">2. NỘI DUNG TÁC VỤ</h6>
 
@@ -690,7 +1129,6 @@
                         </div>
                     </div>
 
-                    <!-- Phần Footer chứa nút Xử lý -->
                     <div class="modal-footer border-top-0 bg-light rounded-bottom">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                         <button type="submit" class="btn btn-primary fw-bold px-4" onclick="prepareSubmit()"><i class="bi bi-send-check"></i> Xác nhận</button>
@@ -701,17 +1139,80 @@
     </div>
 }
 
+<div class="modal fade" id="createDonNghiModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-white border-bottom pb-3">
+                <h5 class="modal-title fw-bold text-primary"><i class="bi bi-calendar2-minus me-2"></i>Tạo đơn xin nghỉ phép</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="CreateDonNghi">
+                <input type="hidden" name="ActiveTab" value="@Model.ActiveTab" />
+                <input type="hidden" name="SelectedDate" value="@(Model.SelectedDate.HasValue ? Model.SelectedDate.Value.ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd"))" />
+
+                <div class="modal-body p-4">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-muted">Từ ngày <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" asp-for="DonNghiData.TuNgay" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-muted">Đến ngày <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" asp-for="DonNghiData.DenNgay" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted">Lý do nghỉ <span class="text-danger">*</span></label>
+                        <textarea class="form-control" asp-for="DonNghiData.LyDo" rows="3" required placeholder="VD: Khám bệnh, Việc gia đình..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top-0">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-send me-1"></i> Gửi đơn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="duyetDonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-white border-bottom pb-3">
+                <h5 class="modal-title fw-bold text-primary"><i class="bi bi-check2-square me-2"></i>Duyệt đơn xin nghỉ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-page-handler="DuyetDon">
+                <input type="hidden" name="ActiveTab" value="@Model.ActiveTab" />
+                <input type="hidden" name="SelectedDate" value="@(Model.SelectedDate.HasValue ? Model.SelectedDate.Value.ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd"))" />
+
+                <input type="hidden" name="donId" id="duyetDonId" />
+                <input type="hidden" name="actionType" id="duyetAction" />
+
+                <div class="modal-body p-4">
+                    <div class="bg-light p-3 rounded mb-3">
+                        <div class="mb-2"><strong class="text-dark">Nhân viên:</strong> <span id="ddTenNV"></span> (<span id="ddChucVu" class="text-muted"></span>)</div>
+                        <div class="mb-2"><strong class="text-dark">Số ngày nghỉ:</strong> <span id="ddSoNgay" class="text-danger fw-bold"></span> ngày</div>
+                        <div class="mb-2"><strong class="text-dark">Thời gian:</strong> <span id="ddThoiGian"></span></div>
+                        <div><strong class="text-dark">Lý do:</strong> <span id="ddLyDo"></span></div>
+                    </div>
+                    <p class="mb-0 text-center text-muted small">Vui lòng chọn thao tác duyệt đơn bên dưới.</p>
+                </div>
+                <div class="modal-footer border-top-0 justify-content-center">
+                    <button type="submit" class="btn btn-danger fw-bold px-4" onclick="document.getElementById('duyetAction').value='Reject'"><i class="bi bi-x-circle me-1"></i> Từ chối</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4" onclick="document.getElementById('duyetAction').value='Approve'"><i class="bi bi-check-circle me-1"></i> Phê duyệt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        // 1. Khởi tạo biến toàn cục an toàn (Xử lý Null exception từ C#)
         let currentDateStr = '@(Model.SelectedDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))';
         let currentActiveTab = '@(string.IsNullOrEmpty(Model.ActiveTab) ? "month" : Model.ActiveTab)';
-
         const dbEmployees = @Html.Raw(string.IsNullOrEmpty(Model.EmployeeDataJson) ? "{}" : Model.EmployeeDataJson);
 
-        // ==========================================
-        // 2. LOGIC ĐIỀU HƯỚNG & TAB
-        // ==========================================
         function changeTabDOM(tabName) {
             currentActiveTab = tabName;
 
@@ -753,54 +1254,36 @@
 
         function navigateCalendar(direction) {
             let d = new Date(currentDateStr);
-            if (direction === 0) {
-                d = new Date();
-            } else {
-                if (currentActiveTab === 'month') {
-                    d.setMonth(d.getMonth() + direction);
-                } else if (currentActiveTab === 'week') {
-                    d.setDate(d.getDate() + (direction * 7));
-                } else if (currentActiveTab === 'day') {
-                    d.setDate(d.getDate() + direction);
-                }
+            if (direction === 0) { d = new Date(); }
+            else {
+                if (currentActiveTab === 'month') { d.setMonth(d.getMonth() + direction); }
+                else if (currentActiveTab === 'week') { d.setDate(d.getDate() + (direction * 7)); }
+                else if (currentActiveTab === 'day') { d.setDate(d.getDate() + direction); }
             }
-
-            let year = d.getFullYear();
-            let month = String(d.getMonth() + 1).padStart(2, '0');
-            let day = String(d.getDate()).padStart(2, '0');
-            let newDate = `${year}-${month}-${day}`;
-
-            window.location.href = `?SelectedDate=${newDate}&ActiveTab=${currentActiveTab}`;
+            let year = d.getFullYear(); let month = String(d.getMonth() + 1).padStart(2, '0'); let day = String(d.getDate()).padStart(2, '0');
+            window.location.href = `?SelectedDate=${year}-${month}-${day}&ActiveTab=${currentActiveTab}`;
         }
 
         function datePickerChanged(val) {
             window.location.href = `?SelectedDate=${val}&ActiveTab=${currentActiveTab}`;
         }
 
-        // ==========================================
-        // 3. LOGIC HIỂN THỊ POPUP CHI TIẾT
-        // ==========================================
         function showQuickView(event, maLich, empName, caLam, start, end, notes) {
             event.stopPropagation();
-
             document.getElementById('qvTitle').innerText = caLam;
             document.getElementById('qvEmp').innerText = empName;
             document.getElementById('qvTime').innerText = new Date(start).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + " - " + new Date(end).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
             document.getElementById('qvNotes').innerText = notes || 'Không có ghi chú';
 
-            // Gán dữ liệu vào Form Xóa
-            document.getElementById('qvDeleteId').value = maLich;
-            const activeTabInput = document.getElementById('qvActiveTab');
-            if(activeTabInput) activeTabInput.value = currentActiveTab;
+            if (document.getElementById('qvDeleteId')) { document.getElementById('qvDeleteId').value = maLich; }
+            if (document.getElementById('qvActiveTab')) { document.getElementById('qvActiveTab').value = currentActiveTab; }
 
             const popup = document.getElementById('quickViewPopup');
-            if(popup) {
+            if (popup) {
                 popup.style.display = 'block';
-                let x = event.pageX + 10;
-                let y = event.pageY + 10;
+                let x = event.pageX + 10; let y = event.pageY + 10;
                 if (x + 320 > window.innerWidth) { x = event.pageX - 330; }
-                popup.style.left = x + 'px';
-                popup.style.top = y + 'px';
+                popup.style.left = x + 'px'; popup.style.top = y + 'px';
             }
         }
 
@@ -811,9 +1294,17 @@
             }
         });
 
-        // ==========================================
-        // 4. LOGIC MODAL GIAO VIỆC (CASCADING DROPDOWN & CHECKLIST)
-        // ==========================================
+        function showDuyetDonModal(id, tenNV, chucVu, tuNgay, denNgay, soNgay, lyDo) {
+            document.getElementById('duyetDonId').value = id;
+            document.getElementById('ddTenNV').innerText = tenNV;
+            document.getElementById('ddChucVu').innerText = chucVu;
+            let t = new Date(tuNgay); let d = new Date(denNgay);
+            document.getElementById('ddThoiGian').innerText = t.toLocaleDateString('vi-VN') + " đến " + d.toLocaleDateString('vi-VN');
+            document.getElementById('ddSoNgay').innerText = soNgay;
+            document.getElementById('ddLyDo').innerText = lyDo;
+            new bootstrap.Modal(document.getElementById('duyetDonModal')).show();
+        }
+
         function loadEmployees() {
             const chucVu = document.getElementById('selectChucVu').value;
             const selectNhanVien = document.getElementById('selectNhanVien');
@@ -826,86 +1317,64 @@
                 selectNhanVien.disabled = false;
                 dbEmployees[chucVu].forEach(emp => {
                     const option = document.createElement('option');
-                    option.value = emp.name;
-                    option.dataset.code = emp.id;
-                    option.textContent = emp.name;
+                    option.value = emp.name; option.dataset.code = emp.id; option.textContent = emp.name;
                     selectNhanVien.appendChild(option);
                 });
-            } else {
-                selectNhanVien.disabled = true;
-            }
+            } else { selectNhanVien.disabled = true; }
         }
 
         function updateEmpCode() {
             const selectNhanVien = document.getElementById('selectNhanVien');
             const inputMaNV = document.getElementById('inputMaNV');
-
-            if (selectNhanVien.selectedIndex > 0) {
-                inputMaNV.value = selectNhanVien.options[selectNhanVien.selectedIndex].dataset.code;
-            } else {
-                inputMaNV.value = '';
-            }
+            if (selectNhanVien.selectedIndex > 0) { inputMaNV.value = selectNhanVien.options[selectNhanVien.selectedIndex].dataset.code; }
+            else { inputMaNV.value = ''; }
         }
 
         let checklistArray = [];
         function addChecklistItem() {
             const input = document.getElementById('checklistInput');
-            if (input.value.trim() !== "") {
-                checklistArray.push(input.value.trim());
-                renderChecklist();
-                input.value = ""; input.focus();
-            }
+            if (input.value.trim() !== "") { checklistArray.push(input.value.trim()); renderChecklist(); input.value = ""; input.focus(); }
         }
 
-        function removeChecklistItem(index) {
-            checklistArray.splice(index, 1);
-            renderChecklist();
-        }
+        function removeChecklistItem(index) { checklistArray.splice(index, 1); renderChecklist(); }
 
         function renderChecklist() {
-            const box = document.getElementById('checklistBox');
-            box.innerHTML = "";
-            checklistArray.forEach((item, index) => {
-                box.innerHTML += `<li class="list-group-item d-flex justify-content-between py-1"><span class="small"><i class="bi bi-square me-2"></i> ${item}</span><button type="button" class="btn btn-sm text-danger p-0" onclick="removeChecklistItem(${index})"><i class="bi bi-x-circle-fill"></i></button></li>`;
-            });
+            const box = document.getElementById('checklistBox'); box.innerHTML = "";
+            checklistArray.forEach((item, index) => { box.innerHTML += `<li class="list-group-item d-flex justify-content-between py-1"><span class="small"><i class="bi bi-square me-2"></i> ${item}</span><button type="button" class="btn btn-sm text-danger p-0" onclick="removeChecklistItem(${index})"><i class="bi bi-x-circle-fill"></i></button></li>`; });
         }
 
         function prepareSubmit() {
             const hiddenChecklist = document.getElementById('hiddenChecklistData');
             if (hiddenChecklist) hiddenChecklist.value = checklistArray.join(' | ');
+            const selectNV = document.getElementById('selectNhanVien');
+            if (selectNV) selectNV.disabled = false;
         }
 
-        // ==========================================
-        // 5. KHỞI TẠO KHI TRANG TẢI XONG
-        // ==========================================
-        document.addEventListener("DOMContentLoaded", function() {
-            changeTabDOM(currentActiveTab);
+        function filterSchedules() {
+            const selectedDept = document.getElementById('departmentFilter').value;
+            const shifts = document.querySelectorAll('.shift-block, .tl-event-block');
+            shifts.forEach(shift => {
+                const dept = shift.getAttribute('data-department');
+                if (selectedDept === 'ALL' || dept === selectedDept) { shift.style.display = ''; } else { shift.style.display = 'none'; }
+            });
+        }
 
-            @if (!string.IsNullOrEmpty(Model.AlertMessage))
-            {
-                    @:alert('@Html.Raw(Model.AlertMessage.Replace("'", "\\'"))');
-            }
-        });
-        // ==========================================
-        // 6. LOGIC ẨN/HIỆN Ô CHỌN GIỜ TÙY CHỈNH
-        // ==========================================
         function toggleCustomTime() {
             const caLamViec = document.getElementById('selectCaLamViec').value;
             const customDiv = document.getElementById('customTimeDiv');
             const inputBatDau = document.getElementById('inputBatDau');
             const inputKetThuc = document.getElementById('inputKetThuc');
 
-            if (caLamViec === 'Khac') {
-                customDiv.style.display = 'block';
-                inputBatDau.required = true;
-                inputKetThuc.required = true;
-            } else {
-                customDiv.style.display = 'none';
-                inputBatDau.required = false;
-                inputKetThuc.required = false;
-                inputBatDau.value = '';
-                inputKetThuc.value = '';
-            }
+            if (caLamViec === 'Khac') { customDiv.style.display = 'block'; inputBatDau.required = true; inputKetThuc.required = true; }
+            else { customDiv.style.display = 'none'; inputBatDau.required = false; inputKetThuc.required = false; inputBatDau.value = ''; inputKetThuc.value = ''; }
         }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            changeTabDOM(currentActiveTab);
+            @if (!string.IsNullOrEmpty(Model.AlertMessage))
+            {
+                @:alert('@Html.Raw(Model.AlertMessage.Replace("'", "\\'"))');
+        }
+                });
     </script>
 }
