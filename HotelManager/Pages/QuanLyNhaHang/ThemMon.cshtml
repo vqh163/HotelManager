@@ -1,0 +1,113 @@
+﻿@page
+@model HotelManagement.Pages.NhaHang.NhaBep.ThemMonModel
+@{
+    ViewData["Title"] = "Thêm Món Mới";
+}
+
+<style>
+    .bg-brand-yellow { background-color: #f39c12 !important; color: #fff !important; }
+    
+    #imagePreview { max-width: 100%; max-height: 250px; border-radius: 12px; display: none; margin-top: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+</style>
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                
+                <div class="card-header bg-brand-yellow text-center py-3 border-0">
+                    <h4 class="mb-0 fw-bold text-uppercase">Thêm Món Mới</h4>
+                </div>
+                
+                <div class="card-body p-4 bg-light">
+                    <!-- Tech Lead đổi thành All để bắt mọi lỗi validation ẩn -->
+                    <div asp-validation-summary="All" class="alert alert-danger mb-3 fw-bold" style="display: @(ModelState.IsValid ? "none" : "block")"></div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ThemMonInfo.MaDichVu" class="form-label fw-bold">Mã món (SKU) <span class="text-danger">*</span></label>
+                                <input asp-for="ThemMonInfo.MaDichVu" class="form-control" placeholder="VD: DRINK-06..." required />
+                                <span asp-validation-for="ThemMonInfo.MaDichVu" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ThemMonInfo.TenDichVu" class="form-label fw-bold">Tên món ăn <span class="text-danger">*</span></label>
+                                <input asp-for="ThemMonInfo.TenDichVu" class="form-control" placeholder="VD: Nước Cam Ép..." required />
+                                <span asp-validation-for="ThemMonInfo.TenDichVu" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ThemMonInfo.LoaiDichVu" class="form-label fw-bold">Danh mục <span class="text-danger">*</span></label>
+                                <select asp-for="ThemMonInfo.LoaiDichVu" class="form-select">
+                                    <option value="Khai vị">Khai vị</option>
+                                    <option value="Món chính">Món chính</option>
+                                    <option value="Tráng miệng">Tráng miệng</option>
+                                    <option value="Đồ uống" selected>Đồ uống</option>
+                                </select>
+                                <span asp-validation-for="ThemMonInfo.LoaiDichVu" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Giá bán (VND) <span class="text-danger">*</span></label>
+                                <input type="text" id="DonGiaDisplay" class="form-control" placeholder="VD: 120.000 VND" oninput="formatCurrency(this)" required />
+                                <input type="hidden" asp-for="ThemMonInfo.DonGia" id="DonGiaActual" />
+                                <span asp-validation-for="ThemMonInfo.DonGia" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tải hình ảnh lên</label>
+                            <input type="file" asp-for="ThemMonInfo.HinhAnhUpload" class="form-control" accept="image/*" id="imageInput" />
+                            <div class="form-text">Khuyến nghị kích thước 600x400px, định dạng JPG/PNG.</div>
+                            <img id="imagePreview" src="#" alt="Xem trước món ăn" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="ThemMonInfo.MoTa" class="form-label fw-bold">Mô tả nguyên liệu / Hương vị</label>
+                            <textarea asp-for="ThemMonInfo.MoTa" class="form-control" rows="3" placeholder="Ví dụ: Nước cam ép nguyên chất..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
+                            <a asp-page="./QuanLyThucDon" class="btn btn-light border px-4 py-2 fw-bold text-muted shadow-sm">
+                                <i class="bi bi-arrow-left me-1"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-primary px-5 py-2 fw-bold shadow-sm">
+                                <i class="bi bi-save me-1"></i> Lưu thông tin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // JS 1: Xem trước hình ảnh
+    document.getElementById('imageInput').addEventListener('change', function(event) {
+        const [file] = event.target.files;
+        const preview = document.getElementById('imagePreview');
+        if (file) {
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    });
+
+    // JS 2: Format Giá Bán chuẩn VND
+    function formatCurrency(input) {
+        let rawValue = input.value.replace(/\D/g, '');
+        if (rawValue === '') {
+            document.getElementById('DonGiaActual').value = '';
+            input.value = '';
+            return;
+        }
+        let numberValue = parseInt(rawValue, 10);
+        document.getElementById('DonGiaActual').value = numberValue;
+        input.value = numberValue.toLocaleString('vi-VN') + ' VND';
+    }
+</script>
