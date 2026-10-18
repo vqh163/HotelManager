@@ -1,9 +1,13 @@
+using HotelManager.Data;
+using HotelManager.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Security.Claims;
-using HotelManager.Data;
-using HotelManager.Models;
+using System.Threading.Tasks;
 
 namespace HotelManager.Pages.QuanLySoDoPhong
 {
@@ -16,51 +20,69 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             _context = context;
         }
 
-        // Chứa thông tin phòng để hiển thị tóm tắt
         public PHONG PhongDuocChon { get; set; } = new PHONG();
 
-        // Chứa thông tin khách hàng lấy tự động từ CSDL
-        public KHACH_HANG KhachHangInfo { get; set; } = new KHACH_HANG();
-
-        // Binding dữ liệu form đặt phòng
         [BindProperty]
         public DAT_PHONG ThongTinDatPhong { get; set; } = new DAT_PHONG();
 
-        public async Task<IActionResult> OnGetAsync(string id)
+        // BỔ SUNG: 3 biến hứng dữ liệu thông tin cá nhân trên form
+        [BindProperty]
+        [Required(ErrorMessage = "Vui lòng nhập họ và tên.")]
+        public string HoTenKhach { get; set; } = string.Empty;
+
+        [BindProperty]
+        [Required(ErrorMessage = "Vui lòng nhập số điện thoại.")]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "Số điện thoại bắt buộc phải đúng 10 chữ số.")]
+        public string SDTKhach { get; set; } = string.Empty;
+
+        [BindProperty]
+        [Required(ErrorMessage = "Vui lòng nhập email.")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng.")]
+        public string EmailKhach { get; set; } = string.Empty;
+
+        public async Task<IActionResult> OnGetAsync(string id, DateTime? ngayNhan, DateTime? ngayTra, int? soKhach)
         {
-            // Kiểm tra bảo mật: Nếu chưa đăng nhập thì đẩy về trang Đăng nhập kèm ReturnUrl
             if (User.Identity == null || !User.Identity.IsAuthenticated)
             {
-                return RedirectToPage("/Auth/DangNhap", new { ReturnUrl = $"/QuanLySoDoPhong/DatPhong/{id}" });
+                string currentUrl = Url.Page("./DatPhong", new { id, ngayNhan = ngayNhan?.ToString("yyyy-MM-dd"), ngayTra = ngayTra?.ToString("yyyy-MM-dd"), soKhach });
+                return RedirectToPage("/Auth/DangNhap", new { ReturnUrl = currentUrl });
             }
 
             if (string.IsNullOrEmpty(id)) return RedirectToPage("/QuanLySoDoPhong/TimPhong");
 
             try
             {
-                // 1. Lấy thông tin phòng
                 var phong = await _context.PHONG.AsNoTracking().FirstOrDefaultAsync(p => p.MaPhong == id);
                 if (phong == null) return NotFound();
                 PhongDuocChon = phong;
 
-                // 2. Tự động lấy thông tin Khách hàng từ tài khoản đang đăng nhập
+                // Điền sẵn thông tin khách hàng nếu đã có trong CSDL
                 var tenDangNhap = User.Identity.Name;
                 var taiKhoan = await _context.TAI_KHOAN.AsNoTracking().FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap);
 
-                if (taiKhoan != null)
+                if (taiKhoan != null && !string.IsNullOrEmpty(taiKhoan.KHACH_HANGMaKH))
                 {
-                    // Lấy hồ sơ khách hàng dựa trên khóa ngoại (Điều chỉnh tên thuộc tính KHACH_HANGMaKH theo đúng Model thực tế của nhóm)
                     var khachHang = await _context.KHACH_HANG.AsNoTracking().FirstOrDefaultAsync(k => k.MaKH == taiKhoan.KHACH_HANGMaKH);
                     if (khachHang != null)
                     {
-                        KhachHangInfo = khachHang;
+                        HoTenKhach = khachHang.HoTen ?? "";
+                        SDTKhach = khachHang.SDT ?? "";
+                        EmailKhach = khachHang.Email ?? "";
                     }
                 }
 
-                // 3. Khởi tạo giá trị mặc định cho form
-                ThongTinDatPhong.NgayNhan = DateTime.Now.Date.AddHours(14); // Mặc định check-in 14:00
-                ThongTinDatPhong.NgayTra = DateTime.Now.Date.AddDays(1).AddHours(12); // Mặc định check-out 12:00 hôm sau
-                ThongTinDatPhong.SoLuongKhach = 1;
+                if (ngayNhan.HasValue && ngayTra.HasValue)
+                {
+                    ThongTinDatPhong.NgayNhan = ngayNhan.Value.Date.AddHours(14);
+                    ThongTinDatPhong.NgayTra = ngayTra.Value.Date.AddHours(12);
+                }
+                else
+                {
+                    ThongTinDatPhong.NgayNhan = DateTime.Now.Date.AddHours(14);
+                    ThongTinDatPhong.NgayTra = DateTime.Now.Date.AddDays(1).AddHours(12);
+                }
+
+                ThongTinDatPhong.SoLuongKhach = soKhach ?? 1;
 
                 return Page();
             }
@@ -75,18 +97,72 @@ namespace HotelManager.Pages.QuanLySoDoPhong
         {
             if (User.Identity == null || !User.Identity.IsAuthenticated) return RedirectToPage("/Auth/DangNhap");
 
+            // ===== FIX LỖI VALIDATION ẨN =====
+            // Gỡ bỏ kiểm tra lỗi cho các thuộc tính không có trên Form HTML (do Server tự sinh)
+            ModelState.Remove("ThongTinDatPhong.MaDatPhong");
+            ModelState.Remove("ThongTinDatPhong.TrangThaiDatPhong");
+            ModelState.Remove("ThongTinDatPhong.KenhDatPhong");
+            ModelState.Remove("ThongTinDatPhong.KHACH_HANGMaKH");
+            ModelState.Remove("ThongTinDatPhong.NgayDat");
+
+            // Lúc này ModelState mới đánh giá chính xác các trường khách hàng thực sự nhập
+            if (!ModelState.IsValid)
+            {
+                // Load lại thông tin phòng để giao diện không bị vỡ khi báo lỗi
+                var phongLoadLai = await _context.PHONG.AsNoTracking().FirstOrDefaultAsync(p => p.MaPhong == id);
+                if (phongLoadLai != null) PhongDuocChon = phongLoadLai;
+
+                ModelState.AddModelError(string.Empty, "Vui lòng kiểm tra và điền đầy đủ các thông tin bắt buộc!");
+                return Page();
+            }
+
             try
             {
                 var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == id);
                 if (phong == null) return NotFound();
 
-                // Sinh mã đặt phòng tự động (Ví dụ: DP20261004143000)
+                DateTime requestedIn = ThongTinDatPhong.NgayNhan.Value.Date;
+                DateTime requestedOut = ThongTinDatPhong.NgayTra.Value.Date;
+
+                bool isDoubleBooked = await (from dp in _context.DAT_PHONG
+                                             join ct in _context.CHI_TIET_DAT_PHONG on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
+                                             where ct.PHONGMaPhong == phong.MaPhong
+                                                && dp.TrangThaiDatPhong != "Đã hủy"
+                                                && dp.TrangThaiDatPhong != "Đã check-out"
+                                                && dp.TrangThaiDatPhong != "Đã hoàn tất"
+                                                && dp.NgayNhan < requestedOut
+                                                && dp.NgayTra > requestedIn
+                                             select dp.MaDatPhong).AnyAsync();
+
+                if (isDoubleBooked)
+                {
+                    ModelState.AddModelError(string.Empty, "Phòng này vừa được đặt. Vui lòng chọn ngày khác.");
+                    return Page();
+                }
+
+                var tenDangNhap = User.Identity.Name;
+                var taiKhoan = await _context.TAI_KHOAN.AsNoTracking().FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap);
+
+                if (taiKhoan != null && !string.IsNullOrEmpty(taiKhoan.KHACH_HANGMaKH))
+                {
+                    ThongTinDatPhong.KHACH_HANGMaKH = taiKhoan.KHACH_HANGMaKH;
+
+                    // TỰ ĐỘNG CẬP NHẬT THÔNG TIN CÁ NHÂN VÀO CSDL NẾU KHÁCH NHẬP MỚI
+                    var khachHang = await _context.KHACH_HANG.FirstOrDefaultAsync(k => k.MaKH == taiKhoan.KHACH_HANGMaKH);
+                    if (khachHang != null)
+                    {
+                        khachHang.HoTen = HoTenKhach;
+                        khachHang.SDT = SDTKhach;
+                        khachHang.Email = EmailKhach;
+                        _context.KHACH_HANG.Update(khachHang);
+                    }
+                }
+
                 ThongTinDatPhong.MaDatPhong = "DP" + DateTime.Now.ToString("yyyyMMddHHmmss");
                 ThongTinDatPhong.NgayDat = DateTime.Now;
-                ThongTinDatPhong.TrangThaiDatPhong = "Chờ xác nhận"; // Sẽ đổi thành "Thành công" sau khi quét QR thanh toán
+                ThongTinDatPhong.TrangThaiDatPhong = "Chờ xác nhận";
                 ThongTinDatPhong.KenhDatPhong = "Website Trực tuyến";
 
-                // Tính toán số ngày ở
                 int soNgayO = 1;
                 if (ThongTinDatPhong.NgayTra.HasValue && ThongTinDatPhong.NgayNhan.HasValue)
                 {
@@ -94,35 +170,27 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 }
                 if (soNgayO <= 0) soNgayO = 1;
 
-                // Lưu vào bảng DAT_PHONG
                 _context.DAT_PHONG.Add(ThongTinDatPhong);
 
-                // Lưu vào bảng CHI_TIET_DAT_PHONG
                 var chiTiet = new CHI_TIET_DAT_PHONG
                 {
                     MaChiTietDatPhong = "CT" + ThongTinDatPhong.MaDatPhong,
                     DAT_PHONGMaDatPhong = ThongTinDatPhong.MaDatPhong,
                     PHONGMaPhong = phong.MaPhong,
                     DonGia = phong.GiaTheoNgay,
-
-                    // Gán trực tiếp biến soNgayO (kiểu int) thay vì gọi .ToString()
                     SoNgayO = soNgayO
                 };
                 _context.CHI_TIET_DAT_PHONG.Add(chiTiet);
 
-                // Cập nhật trạng thái phòng thành Đã đặt (Giữ chỗ)
                 phong.MaTrangThai = "TT02";
                 _context.PHONG.Update(phong);
 
-                // Lưu toàn bộ Transaction vào CSDL
                 await _context.SaveChangesAsync();
-
-                // Thành công -> Chuyển hướng sang trang sinh mã QR thanh toán
                 return RedirectToPage("./XacNhanDatPhong", new { maDatPhong = ThongTinDatPhong.MaDatPhong });
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi trong quá trình đặt phòng: " + ex.Message);
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi: " + ex.Message);
                 return Page();
             }
         }
