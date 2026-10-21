@@ -12,7 +12,7 @@ using HotelManager.Models;
 namespace HotelManager.Pages.QuanLySoDoPhong
 {
     // Phân quyền truy cập theo tài liệu thiết kế của dự án
-    [Authorize(Roles = "Quản lý,Lễ tân,Sales,Buồng phòng")]
+    [Authorize(Roles = "Quản lý,Lễ tân,Sales,Nhân viên Buồng phòng")]
     public class SoDoPhongModel : PageModel
     {
         private readonly ApplicationDbContext _context;
