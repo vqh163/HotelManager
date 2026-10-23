@@ -5,7 +5,7 @@
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class CapNhatDB1 : Migration
+    public partial class DB1 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

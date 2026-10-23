@@ -44,7 +44,7 @@
 
                 <div class="col">
                     <div class="card text-white @bgClass shadow-sm h-100 position-relative" style="cursor: pointer; transition: 0.2s;"
-                         onclick="showRoomDetails('@room.MaPhong', '@room.SoPhong', '@room.LoaiPhong', '@room.SoGiuong', '@room.SucChuaToiDa', '@room.TrangThaiPhong', '@room.TrangThaiVeSinh', '@room.TenKhachHang', '@room.GhiChuKhachHang')">
+                         onclick="showRoomDetails('@room.MaPhong', '@room.SoPhong', '@room.LoaiPhong', '@room.SoGiuong', '@room.SucChuaToiDa', '@room.TrangThaiPhong', '@room.TrangThaiVeSinh', '@(room.TenKhachHang)', '@(room.SDTKhachHang)', '@(room.GhiChuKhachHang)', '@(room.NgayNhan?.ToString("dd/MM/yyyy HH:mm"))', '@(room.NgayTra?.ToString("dd/MM/yyyy HH:mm"))')">
 
                         @if (User.IsInRole("Buồng phòng") || User.IsInRole("Quản lý"))
                         {
@@ -131,9 +131,20 @@
                     <div class="row mb-2">
                         <div class="col-12">
                             <span class="text-muted small d-block mb-1">Khách hàng đang lưu trú/đặt:</span>
-                            <strong id="rdKhachHang" class="fs-6 text-danger"></strong>
+                            <strong id="rdKhachHang" class="fs-6 text-danger d-block"></strong>
+                            <!-- BỔ SUNG SỐ ĐIỆN THOẠI -->
+                            <span class="text-dark small"><i class="bi bi-telephone-fill me-1"></i> <span id="rdSDTKhach"></span></span>
                         </div>
                     </div>
+
+                    <!-- BỔ SUNG: Hiển thị thời gian lưu trú -->
+                    <div class="row mb-2" id="rdTimeSection">
+                        <div class="col-12">
+                            <span class="text-muted small d-block mb-1">Thời gian lưu trú:</span>
+                            <span class="fw-bold" style="font-size: 0.9rem;"><i class="bi bi-clock-history me-1"></i> Từ <span id="rdNgayNhan" class="text-primary"></span> đến <span id="rdNgayTra" class="text-primary"></span></span>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-12">
                             <span class="text-muted small d-block mb-1">Ghi chú:</span>
@@ -145,9 +156,21 @@
 
             <div class="modal-footer bg-white border-top-0 px-4 pb-4 pt-0">
                 <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
-                <a href="#" id="btnDatPhong" class="btn btn-primary fw-bold px-4" style="display: none;" target="_blank">
-                    <i class="bi bi-check-square me-1"></i> Đặt phòng
-                </a>
+
+                @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý") || User.IsInRole("Sales"))
+                {
+                    <a href="#" id="btnDatPhong" class="btn btn-primary fw-bold px-4" style="display: none;" target="_blank">
+                        <i class="bi bi-calendar-plus me-1"></i> Đặt phòng
+                    </a>
+
+                    <!-- BỔ SUNG: Form Check-in ẩn -->
+                    <form method="post" asp-page-handler="CheckIn" id="formCheckIn" style="display: none; margin: 0;">
+                        <input type="hidden" name="maPhongCheckIn" id="maPhongCheckIn" value="" />
+                        <button type="submit" class="btn btn-warning text-dark fw-bold px-4 shadow-sm">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Check-in
+                        </button>
+                    </form>
+                }
             </div>
         </div>
     </div>
@@ -155,7 +178,20 @@
 
 @section Scripts {
     <script>
-        function showRoomDetails(maPhong, soPhong, loaiPhong, soGiuong, sucChua, trangThai, veSinh, khachHang, ghiChu) {
+        document.addEventListener("DOMContentLoaded", function() {
+            // Kiểm tra xem người dùng có đang dùng bộ lọc thời gian hay không
+            const filterInput = document.getElementById('searchTimeInput') || document.querySelector('input[type="datetime-local"]');
+
+            // CHỈ tự động làm mới trang nếu Lễ tân đang xem "Thời gian thực" (không nhập ngày tra cứu)
+            if (!filterInput || !filterInput.value) {
+                setTimeout(function () {
+                    window.location.reload();
+                }, 30000); // 30000 ms = 30 giây
+            }
+        });
+        // Bổ sung tham số ngayNhan, ngayTra
+        // Bổ sung tham số sdtKhach vào vị trí số 9
+        function showRoomDetails(maPhong, soPhong, loaiPhong, soGiuong, sucChua, trangThai, veSinh, khachHang, sdtKhach, ghiChu, ngayNhan, ngayTra) {
             document.getElementById('rdTitle').innerText = 'Chi tiết Phòng ' + soPhong;
             document.getElementById('rdLoaiPhong').innerText = loaiPhong || 'Chưa cập nhật';
             document.getElementById('rdSoGiuong').innerText = soGiuong || '0';
@@ -166,18 +202,43 @@
             const customerDiv = document.getElementById('rdCustomerInfo');
             if (khachHang && khachHang.trim() !== '') {
                 document.getElementById('rdKhachHang').innerText = khachHang;
+
+                // Gán dữ liệu SĐT và các thông tin khác
+                document.getElementById('rdSDTKhach').innerText = sdtKhach || 'Chưa cung cấp';
                 document.getElementById('rdGhiChu').innerText = ghiChu || 'Không có ghi chú';
+
+                // (Nếu bạn đã thêm ID rdNgayNhan, rdNgayTra từ code trước thì gán ở đây)
+                const elNgayNhan = document.getElementById('rdNgayNhan');
+                const elNgayTra = document.getElementById('rdNgayTra');
+                if(elNgayNhan) elNgayNhan.innerText = ngayNhan || '...';
+                if(elNgayTra) elNgayTra.innerText = ngayTra || '...';
+
                 customerDiv.style.display = 'block';
             } else {
                 customerDiv.style.display = 'none';
             }
 
+            // ... (Phần logic check nút Check-in và Đặt phòng giữ nguyên như cũ) ...
+
             const btnDatPhong = document.getElementById('btnDatPhong');
-            if (trangThai && trangThai.toLowerCase() === 'trống') {
-                btnDatPhong.style.display = 'inline-block';
-                btnDatPhong.href = '/QuanLySoDoPhong/DatPhong/' + encodeURIComponent(maPhong);
-            } else {
-                btnDatPhong.style.display = 'none';
+            const formCheckIn = document.getElementById('formCheckIn');
+            const hiddenMaPhong = document.getElementById('maPhongCheckIn');
+
+            // Reset hiển thị nút
+            if (btnDatPhong) btnDatPhong.style.display = 'none';
+            if (formCheckIn) formCheckIn.style.display = 'none';
+
+            let ttStr = (trangThai || '').trim().toLowerCase();
+            if (ttStr === 'trống') {
+                if (btnDatPhong) {
+                    btnDatPhong.style.display = 'inline-block';
+                    btnDatPhong.href = '/QuanLySoDoPhong/DatPhong/' + encodeURIComponent(maPhong);
+                }
+            } else if (ttStr === 'đã đặt') {
+                if (formCheckIn && hiddenMaPhong) {
+                    hiddenMaPhong.value = maPhong;
+                    formCheckIn.style.display = 'inline-block';
+                }
             }
 
             const modal = new bootstrap.Modal(document.getElementById('roomDetailModal'));
