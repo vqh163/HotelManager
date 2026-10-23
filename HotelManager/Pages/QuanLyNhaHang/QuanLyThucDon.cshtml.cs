@@ -4,15 +4,56 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace HotelManagement.Pages.NhaHang.NhaBep
 {
-    // LƯU TRẠNG THÁI TẠM TRÊN RAM ĐỂ KHÔNG SỬA DATABASE
+    // NÂNG CẤP: LƯU TRỮ VĨNH VIỄN BẰNG FILE JSON TRÊN SERVER
     public static class TrangThaiMonStore
     {
         public static Dictionary<string, bool> DuLieu = new Dictionary<string, bool>();
+        public static Dictionary<string, string> MoTaDict = new Dictionary<string, string>();
+        public static Dictionary<string, string> DiUngDict = new Dictionary<string, string>();
+
+        private static readonly string FilePath = Path.Combine(Directory.GetCurrentDirectory(), "menu_data.json");
+
+        public class MenuDataState
+        {
+            public Dictionary<string, bool> DuLieu { get; set; } = new Dictionary<string, bool>();
+            public Dictionary<string, string> MoTaDict { get; set; } = new Dictionary<string, string>();
+            public Dictionary<string, string> DiUngDict { get; set; } = new Dictionary<string, string>();
+        }
+
+        // Đọc dữ liệu từ ổ cứng lên RAM
+        public static void LoadData()
+        {
+            if (File.Exists(FilePath))
+            {
+                try
+                {
+                    var json = File.ReadAllText(FilePath);
+                    var data = JsonSerializer.Deserialize<MenuDataState>(json);
+                    if (data != null)
+                    {
+                        DuLieu = data.DuLieu ?? new Dictionary<string, bool>();
+                        MoTaDict = data.MoTaDict ?? new Dictionary<string, string>();
+                        DiUngDict = data.DiUngDict ?? new Dictionary<string, string>();
+                    }
+                }
+                catch { /* Bỏ qua nếu lỗi đọc file */ }
+            }
+        }
+
+        // Ghi dữ liệu từ RAM xuống ổ cứng
+        public static void SaveData()
+        {
+            var data = new MenuDataState { DuLieu = DuLieu, MoTaDict = MoTaDict, DiUngDict = DiUngDict };
+            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(FilePath, json);
+        }
     }
 
     public class ThucDonViewModel
@@ -49,6 +90,9 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         {
             try
             {
+                // Kích hoạt nạp dữ liệu từ File JSON khi load trang
+                TrangThaiMonStore.LoadData();
+
                 var query = _context.DICH_VU.AsQueryable();
 
                 if (!string.IsNullOrEmpty(TuKhoaTimKiem))
@@ -72,6 +116,8 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                     if (TrangThaiMonStore.DuLieu.ContainsKey(d.MaDichVu))
                         isConMon = TrangThaiMonStore.DuLieu[d.MaDichVu];
 
+                    string moTa = TrangThaiMonStore.MoTaDict.ContainsKey(d.MaDichVu) ? TrangThaiMonStore.MoTaDict[d.MaDichVu] : "";
+
                     return new ThucDonViewModel
                     {
                         MaDichVu = d.MaDichVu,
@@ -79,7 +125,7 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                         LoaiDichVu = string.IsNullOrEmpty(d.LoaiDichVu) ? "Món chính" : d.LoaiDichVu,
                         DonGia = d.DonGia ?? 0m,
                         HinhAnh = !string.IsNullOrEmpty(d.HinhAnh) ? d.HinhAnh : foodImages[index % foodImages.Length],
-                        MoTa = "Thành phần cơ bản của món ăn...",
+                        MoTa = moTa,
                         ConMon = isConMon
                     };
                 }).ToList();
@@ -104,7 +150,6 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
             }
         }
 
-        // XỬ LÝ XÓA MÓN & CẬP NHẬT LẠI THANH THỐNG KÊ
         public async Task<IActionResult> OnPostDeleteAsync(string id)
         {
             try
@@ -115,8 +160,12 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                     _context.DICH_VU.Remove(mon);
                     await _context.SaveChangesAsync();
 
-                    if (TrangThaiMonStore.DuLieu.ContainsKey(id))
-                        TrangThaiMonStore.DuLieu.Remove(id);
+                    if (TrangThaiMonStore.DuLieu.ContainsKey(id)) TrangThaiMonStore.DuLieu.Remove(id);
+                    if (TrangThaiMonStore.MoTaDict.ContainsKey(id)) TrangThaiMonStore.MoTaDict.Remove(id);
+                    if (TrangThaiMonStore.DiUngDict.ContainsKey(id)) TrangThaiMonStore.DiUngDict.Remove(id);
+
+                    // LƯU CẬP NHẬT XUỐNG Ổ CỨNG SAU KHI XÓA
+                    TrangThaiMonStore.SaveData();
                 }
                 return RedirectToPage();
             }
@@ -127,7 +176,6 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
             }
         }
 
-        // NHẬN TÍN HIỆU GẠT CÔNG TẮC & TÍNH LẠI THỐNG KÊ CHO GIAO DIỆN
         public async Task<IActionResult> OnPostToggleStatusAsync(string id)
         {
             try
@@ -137,6 +185,9 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                     currentStatus = TrangThaiMonStore.DuLieu[id];
 
                 TrangThaiMonStore.DuLieu[id] = !currentStatus;
+
+                // LƯU CẬP NHẬT XUỐNG Ổ CỨNG SAU KHI ĐỔI TRẠNG THÁI CÒN/HẾT MÓN
+                TrangThaiMonStore.SaveData();
 
                 var tongSo = await _context.DICH_VU.CountAsync();
                 var allDichVu = await _context.DICH_VU.ToListAsync();

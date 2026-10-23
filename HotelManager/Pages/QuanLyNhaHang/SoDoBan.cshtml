@@ -2,192 +2,197 @@
 @model HotelManagement.Pages.NhaHang.PhucVu.SoDoBanModel
 @{
     ViewData["Title"] = "Sơ Đồ Bàn";
-
-    string btnFilterClass = "btn-outline-secondary text-dark";
-    switch (Model.TrangThaiLoc)
-    {
-        case "Trống": btnFilterClass = "btn-success text-white"; break;
-        case "Đang có khách": btnFilterClass = "btn-danger text-white"; break;
-        case "Đang dọn dẹp": btnFilterClass = "btn-warning text-dark"; break;
-        case "Đã đặt trước": btnFilterClass = "btn-info text-dark"; break;
-        default: btnFilterClass = "btn-outline-secondary text-dark"; break;
-    }
+    string currentFilter = string.IsNullOrEmpty(Model.TrangThaiLoc) || Model.TrangThaiLoc == "Tất cả bàn" ? "Tất cả" : Model.TrangThaiLoc;
 }
 
 <style>
-    /* Các dải màu hiển thị trạng thái bàn */
+    .table-card {
+        border-radius: 12px;
+        transition: transform 0.2s;
+        border: none;
+        min-height: 150px;
+    }
+
+        .table-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+        }
+
     .bg-trong {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
+        background-color: #d1e7dd;
     }
 
-    .bg-khach {
+    .bg-co-khach {
         background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
     }
 
-    .bg-dondep {
+    .bg-don-dep {
         background-color: #fff3cd;
-        border: 1px solid #ffeeba;
     }
 
-    .bg-datruoc {
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
+    .bg-dat-truoc {
+        background-color: #cff4fc;
     }
 
     .btn-brand-yellow {
         background-color: #f39c12;
         color: #fff;
-        border: none;
         font-weight: bold;
+        border: none;
     }
 
         .btn-brand-yellow:hover {
             background-color: #e67e22;
             color: #fff;
         }
-
-    /* Layout thẻ bàn */
-    .card-ban {
-        border-radius: 12px;
-        transition: all 0.2s ease-in-out;
-        display: flex;
-        flex-direction: column;
-    }
-
-        .card-ban:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-    .legend-box {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        display: inline-block;
-        margin-right: 8px;
-        vertical-align: middle;
-    }
 </style>
 
-<div class="container-fluid mt-4">
-    <h3 class="fw-bold mb-4 text-uppercase">Sơ Đồ Bàn</h3>
+<div class="container-fluid mt-4 mb-5">
 
-    <!-- Thanh công cụ: Chú thích, Tìm kiếm và Lọc -->
-    <div class="row align-items-center mb-4 bg-light p-3 rounded shadow-sm">
-        <div class="col-lg-5 col-md-12 mb-3 mb-lg-0">
-            <div class="d-flex flex-wrap gap-3 fw-bold text-secondary small">
-                <span><div class="legend-box bg-trong"></div> Trống</span>
-                <span><div class="legend-box bg-khach"></div> Đang có khách</span>
-                <span><div class="legend-box bg-dondep"></div> Đang dọn dẹp</span>
-                <span><div class="legend-box bg-datruoc"></div> Đã đặt trước</span>
-            </div>
+    <!-- HIỂN THỊ THÔNG BÁO THÀNH CÔNG -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show fw-bold shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- HIỂN THỊ THÔNG BÁO LỖI (Quan trọng để Debug) -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show fw-bold shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-uppercase mb-0">SƠ ĐỒ BÀN</h2>
+    </div>
+
+    <!-- Khu vực tìm kiếm và lọc -->
+    <div class="row align-items-center mb-4 bg-light p-3 rounded-4 shadow-sm mx-0">
+        <div class="col-lg-6 d-flex gap-4">
+            <div class="d-flex align-items-center gap-2"><span class="d-inline-block rounded p-2 bg-trong"></span> <span class="small fw-bold text-muted">Trống</span></div>
+            <div class="d-flex align-items-center gap-2"><span class="d-inline-block rounded p-2 bg-co-khach"></span> <span class="small fw-bold text-muted">Đang có khách</span></div>
+            <div class="d-flex align-items-center gap-2"><span class="d-inline-block rounded p-2 bg-don-dep"></span> <span class="small fw-bold text-muted">Đang dọn dẹp</span></div>
+            <div class="d-flex align-items-center gap-2"><span class="d-inline-block rounded p-2 bg-dat-truoc"></span> <span class="small fw-bold text-muted">Đã đặt trước</span></div>
         </div>
 
-        <div class="col-lg-7 col-md-12 d-flex justify-content-lg-end justify-content-start gap-2 flex-wrap">
-            <form method="get" class="d-flex gap-2 align-items-center">
-                <div class="input-group" style="width: 250px;">
-                    <span class="input-group-text bg-white rounded-start-pill border-end-0"><i class="bi bi-search"></i></span>
-                    <input asp-for="TuKhoaTimKiem" class="form-control rounded-end-pill border-start-0" placeholder="Nhập số bàn..." />
-                </div>
-
-                <div class="dropdown">
-                    <button class="btn @btnFilterClass rounded-pill dropdown-toggle px-3" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-funnel-fill"></i> Lọc
-                    </button>
-                    <ul class="dropdown-menu shadow-sm" aria-labelledby="filterDropdown">
-                        <li><button type="submit" name="TrangThaiLoc" value="Tất cả bàn" class="dropdown-item">Tất cả bàn</button></li>
-                        <li><button type="submit" name="TrangThaiLoc" value="Trống" class="dropdown-item text-success fw-bold"><i class="bi bi-circle-fill me-2"></i> Trống</button></li>
-                        <li><button type="submit" name="TrangThaiLoc" value="Đang có khách" class="dropdown-item text-danger fw-bold"><i class="bi bi-circle-fill me-2"></i> Đang có khách</button></li>
-                        <li><button type="submit" name="TrangThaiLoc" value="Đang dọn dẹp" class="dropdown-item text-warning fw-bold"><i class="bi bi-circle-fill me-2"></i> Đang dọn dẹp</button></li>
-                        <li><button type="submit" name="TrangThaiLoc" value="Đã đặt trước" class="dropdown-item text-info fw-bold"><i class="bi bi-circle-fill me-2"></i> Đã đặt trước</button></li>
-                    </ul>
+        <div class="col-lg-6 d-flex justify-content-end align-items-center gap-3">
+            <form method="get" id="searchForm" class="m-0">
+                <input type="hidden" name="TrangThaiLoc" value="@Model.TrangThaiLoc" />
+                <div class="input-group bg-white rounded-pill border overflow-hidden shadow-sm" style="width: 200px;">
+                    <span class="input-group-text bg-white border-0 pe-1"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" asp-for="TuKhoaTimKiem" class="form-control border-0 shadow-none ps-1" placeholder="Nhập số bàn..." onkeypress="if(event.keyCode==13) document.getElementById('searchForm').submit();">
                 </div>
             </form>
 
-            <!-- Cập nhật xóa text dấu + dư thừa, chỉ giữ icon -->
-            <a asp-page="./ThemBan" class="btn btn-brand-yellow rounded-pill shadow-sm px-3 text-nowrap">
-                <i class="bi bi-plus-circle"></i> Thêm bàn mới
+            <div class="dropdown">
+                <button class="btn bg-white border rounded-pill px-3 shadow-sm dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-funnel-fill text-muted"></i> @currentFilter
+                </button>
+                <ul class="dropdown-menu shadow-sm border-0 rounded-3">
+                    <li><a class="dropdown-item" href="?TuKhoaTimKiem=@Model.TuKhoaTimKiem&TrangThaiLoc=Tất cả bàn">Tất cả</a></li>
+                    <li><a class="dropdown-item" href="?TuKhoaTimKiem=@Model.TuKhoaTimKiem&TrangThaiLoc=Trống"><span class="d-inline-block rounded-circle me-2 bg-trong" style="width:12px;height:12px;"></span>Trống</a></li>
+                    <li><a class="dropdown-item" href="?TuKhoaTimKiem=@Model.TuKhoaTimKiem&TrangThaiLoc=Đang có khách"><span class="d-inline-block rounded-circle me-2 bg-co-khach" style="width:12px;height:12px;"></span>Đang có khách</a></li>
+                    <li><a class="dropdown-item" href="?TuKhoaTimKiem=@Model.TuKhoaTimKiem&TrangThaiLoc=Đang dọn dẹp"><span class="d-inline-block rounded-circle me-2 bg-don-dep" style="width:12px;height:12px;"></span>Đang dọn dẹp</a></li>
+                    <li><a class="dropdown-item" href="?TuKhoaTimKiem=@Model.TuKhoaTimKiem&TrangThaiLoc=Đã đặt trước"><span class="d-inline-block rounded-circle me-2 bg-dat-truoc" style="width:12px;height:12px;"></span>Đã đặt trước</a></li>
+                </ul>
+            </div>
+
+            <a asp-page="./ThemBan" class="btn btn-brand-yellow rounded-pill px-4 py-2 shadow-sm d-flex align-items-center">
+                <i class="bi bi-plus-circle me-2"></i> Thêm bàn mới
             </a>
         </div>
     </div>
 
-    <!-- Lưới sơ đồ bàn -->
-    <div class="row g-3">
+    <div asp-validation-summary="All" class="text-danger fw-bold mb-3"></div>
+
+    <div class="row g-4">
         @if (Model.DanhSachBan.Any())
         {
             @foreach (var ban in Model.DanhSachBan)
             {
-                string colorClass = ban.TrangThai switch
+                string bgClass = ban.TrangThai switch
                 {
-                    "Trống" => "bg-trong text-success",
-                    "Đang có khách" => "bg-khach text-danger",
-                    "Đang dọn dẹp" => "bg-dondep text-warning",
-                    "Đã đặt trước" => "bg-datruoc text-info",
+                    "Trống" => "bg-trong",
+                    "Đang có khách" => "bg-co-khach",
+                    "Đang dọn dẹp" => "bg-don-dep",
+                    "Đã đặt trước" => "bg-dat-truoc",
                     _ => "bg-light"
                 };
 
-                <div class="col-md-3 col-sm-6">
-                    <div class="card card-ban @colorClass h-100">
-                        <div class="card-body d-flex flex-column">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h4 class="fw-bold mb-0 text-dark">@ban.TenBan</h4>
-                                <div class="d-flex align-items-center gap-1 text-dark">
-                                    <i class="bi bi-people-fill fs-6"></i>
-                                    <span class="fw-bold small">@ban.SucChua</span>
-                                </div>
-                            </div>
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="card table-card @bgClass shadow-sm p-3 d-flex flex-column justify-content-between">
 
-                            <!-- Hiển thị Nội dung tùy thuộc vào trạng thái -->
-                            <div class="mb-3 text-dark small lh-lg flex-grow-1">
-                                @if (ban.TrangThai == "Trống")
-                                {
-                                    <div>Sẵn sàng phục vụ</div>
-                                }
-                                else if (ban.TrangThai == "Đang có khách")
-                                {
-                                    <div><strong>Mã đơn:</strong> @ban.MaHoaDonNhaHang</div>
-                                }
-                                else if (ban.TrangThai == "Đang dọn dẹp")
-                                {
-                                    <div>Đang trong quá trình vệ sinh</div>
-                                }
-                                else if (ban.TrangThai == "Đã đặt trước")
-                                {
-                                    <div><strong>Khách hàng:</strong> @ban.TenKhachDat</div>
-                                }
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h2 class="fw-bold text-dark mb-0" style="font-size: 1.8rem;">@ban.TenBan.Replace("Bàn ", "").Replace(" - Tầng trệt", "")</h2>
+                            <div class="d-flex align-items-center fw-bold text-dark fs-5">
+                                <i class="bi bi-people-fill me-2"></i> @ban.SucChua
                             </div>
+                        </div>
 
-                            <!-- Hiển thị Nút hành động tùy thuộc vào trạng thái -->
-                            <div class="mt-auto">
-                                @if (ban.TrangThai == "Trống")
+                        <div class="mt-3 flex-grow-1">
+                            @if (ban.TrangThai == "Đang có khách")
+                            {
+                                <p class="small fw-bold text-dark mb-1">Mã đơn: <span class="fw-normal">@ban.MaHoaDonNhaHang</span></p>
+                            }
+                            else if (ban.TrangThai == "Đang dọn dẹp")
+                            {
+                                <p class="small text-dark mb-1">Đang trong quá trình vệ sinh</p>
+                            }
+                            else if (ban.TrangThai == "Trống")
+                            {
+                                <p class="small text-dark mb-1">Sẵn sàng phục vụ</p>
+                            }
+                            else if (ban.TrangThai == "Đã đặt trước")
+                            {
+                                <p class="small fw-bold text-dark mb-1">Khách hàng: <span class="fw-normal">@ban.TenKhachDat</span></p>
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-end mt-3">
+                            <div class="action-link">
+                                @if (ban.TrangThai == "Đang có khách")
                                 {
-                                    <a asp-page="./GoiMon" asp-route-id="@ban.MaBan" class="text-success fw-bold text-decoration-none">
-                                        Gọi món <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                }
-                                else if (ban.TrangThai == "Đang có khách")
-                                {
-                                    <a asp-page="./ThanhToan" asp-route-id="@ban.MaHoaDonNhaHang" class="text-danger fw-bold text-decoration-none">
-                                        Thanh toán <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                }
-                                else if (ban.TrangThai == "Đang dọn dẹp")
-                                {
-                                    <form method="post" asp-page-handler="XacNhanSach">
+                                    <!-- FORM YÊU CẦU THANH TOÁN KẾT NỐI VỚI BÀN -->
+                                    <form method="post" asp-page-handler="YeuCauThanhToan" class="m-0">
                                         <input type="hidden" name="maBan" value="@ban.MaBan" />
-                                        <button type="submit" class="btn btn-link p-0 text-warning fw-bold text-decoration-none shadow-none">
+                                        <input type="hidden" name="maHoaDon" value="@ban.MaHoaDonNhaHang" />
+                                        <button type="submit" class="btn btn-link text-danger fw-bold text-decoration-none small p-0 m-0 border-0">
+                                            Thanh toán <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else if (ban.TrangThai == "Đang dọn dẹp")
+                                {
+                                    <form method="post" asp-page-handler="XacNhanSach" asp-route-maBan="@ban.MaBan" class="m-0">
+                                        <button type="submit" class="btn btn-link text-warning fw-bold text-decoration-none small p-0 m-0 border-0">
                                             Xác nhận sạch <i class="bi bi-chevron-right"></i>
                                         </button>
                                     </form>
                                 }
+                                else if (ban.TrangThai == "Trống")
+                                {
+                                    <a asp-page="./GoiMon" asp-route-id="@ban.MaBan" class="text-success fw-bold text-decoration-none small">Gọi món <i class="bi bi-chevron-right"></i></a>
+                                }
                                 else if (ban.TrangThai == "Đã đặt trước")
                                 {
-                                    <a asp-page="./NhanBan" asp-route-id="@ban.MaBan" class="text-info fw-bold text-decoration-none">
-                                        Nhận bàn <i class="bi bi-chevron-right"></i>
-                                    </a>
+                                    <a href="#" class="text-info fw-bold text-decoration-none small">Nhận bàn <i class="bi bi-chevron-right"></i></a>
                                 }
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <a asp-page="./SuaBan" asp-route-id="@ban.MaBan" class="btn bg-white rounded-circle shadow-sm text-muted p-0 d-flex justify-content-center align-items-center border" style="width: 32px; height: 32px;" title="Chỉnh sửa bàn">
+                                    <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
+                                </a>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@ban.MaBan" class="m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn XÓA bàn này?');">
+                                    <button type="submit" class="btn bg-white rounded-circle shadow-sm text-danger p-0 d-flex justify-content-center align-items-center border" style="width: 32px; height: 32px;" title="Xóa bàn">
+                                        <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -198,7 +203,7 @@
         {
             <div class="col-12 text-center py-5 text-muted">
                 <i class="bi bi-inboxes fs-1"></i>
-                <p class="mt-2">Không tìm thấy dữ liệu bàn với điều kiện đã lọc.</p>
+                <p class="mt-2">Không tìm thấy bàn nào phù hợp.</p>
             </div>
         }
     </div>
