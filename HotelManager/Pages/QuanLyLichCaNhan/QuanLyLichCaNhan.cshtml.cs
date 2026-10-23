@@ -42,6 +42,7 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         public int DaysInMonth { get; set; }
         public int StartDayOfWeek { get; set; }
 
+        public List<string> DanhSachChucVu { get; set; } = new List<string>();
         public class ScheduleViewModel
         {
             public string MaLich { get; set; } = string.Empty;
@@ -176,15 +177,29 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
                 DaysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
                 StartDayOfWeek = CurrentDate.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)CurrentDate.DayOfWeek - 1;
 
-                var mockEmployees = new List<dynamic> {
-                    new { MaNV = "LT001", HoTen = "Nguyễn Thu Hà", ChucVu = "Lễ tân" },
-                    new { MaNV = "LT002", HoTen = "Trần Bảo Ngọc", ChucVu = "Lễ tân" },
+                // ============================================
+                // LẤY DANH SÁCH NHÂN VIÊN THỰC TẾ TỪ CSDL
+                // ============================================
+                var dsNhanVienDB = await _context.TAI_KHOAN
+                    .Where(x => x.VaiTro != "Khách hàng" && x.VaiTro != "Quản trị viên") // Chỉ lấy nhân viên, bỏ qua khách hàng và Admin
+                    .Select(x => new
+                    {
+                        MaNV = x.MaTaiKhoan,      // Lấy mã tài khoản
+                        HoTen = x.TenDangNhap,    // Dùng tên đăng nhập làm tên hiển thị
+                        ChucVu = x.VaiTro         // Dùng cột VaiTro làm chức vụ phân ca
+                    })
+                    .ToListAsync();
 
-                };
-
-                var groupedEmployees = mockEmployees
-                    .GroupBy(x => x.ChucVu)
+                // Gom nhóm nhân viên theo từng chức vụ
+                var groupedEmployees = dsNhanVienDB
+                    .GroupBy(x => !string.IsNullOrEmpty(x.ChucVu) ? x.ChucVu : "Chưa phân công")
                     .ToDictionary(g => g.Key, g => g.Select(nv => new { id = nv.MaNV, name = nv.HoTen }).ToList());
+
+                // Lấy danh sách chức vụ tự động để hiển thị ở Dropdown Lọc và Giao việc
+                DanhSachChucVu = groupedEmployees.Keys.OrderBy(k => k).ToList();
+
+                // Chuyển dữ liệu sang JSON để Javascript ở file .cshtml đọc
+                EmployeeDataJson = JsonSerializer.Serialize(groupedEmployees);
 
                 EmployeeDataJson = JsonSerializer.Serialize(groupedEmployees);
 

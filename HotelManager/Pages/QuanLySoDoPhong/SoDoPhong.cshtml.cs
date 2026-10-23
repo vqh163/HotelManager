@@ -11,7 +11,6 @@ using HotelManager.Models;
 
 namespace HotelManager.Pages.QuanLySoDoPhong
 {
-    // Cấp quyền cho các Role liên quan đến sơ đồ phòng
     [Authorize(Roles = "Quản lý,Lễ tân,Sales,Nhân viên Buồng phòng")]
     public class SoDoPhongModel : PageModel
     {

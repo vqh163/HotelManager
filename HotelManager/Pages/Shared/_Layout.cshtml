@@ -88,13 +88,18 @@
                                     }
 
                                     <!-- LUỒNG DÀNH CHO NHÂN VIÊN / QUẢN LÝ -->
-                                    @if (User.IsInRole("Quản lý") || User.IsInRole("Lễ tân") || User.IsInRole("Buồng phòng") || User.IsInRole("Bảo trì"))
+                                    @if (User.IsInRole("Quản lý"))
                                     {
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/QuanLyDSPhong"><i class="bi bi-door-open me-2"></i>Danh sách phòng</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
-
+                                    @if (User.IsInRole("Lễ tân") || User.IsInRole("Nhân viên Buồng phòng") || User.IsInRole("Nhân viên Kỹ thuật"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/SoDoDong"><i class="bi bi-door-open me-2"></i>Sơ đồ phòng</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
                                     <!-- LUỒNG DÀNH CHO QUẢN TRỊ VIÊN -->
                                     @if (User.IsInRole("Quản trị viên"))
                                     {
