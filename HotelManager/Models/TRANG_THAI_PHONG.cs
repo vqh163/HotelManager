@@ -15,5 +15,8 @@ namespace HotelManager.Models
 
         [Column(TypeName = "nvarchar(50)")]
         public string? TrangThaiVeSinh { get; set; }
+
+        [Column(TypeName = "datetime")]
+        public DateTime? ThoiGianDonVeSinh { get; set; }
     }
 }

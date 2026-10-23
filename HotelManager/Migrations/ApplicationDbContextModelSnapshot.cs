@@ -454,6 +454,7 @@ namespace HotelManager.Migrations
 
                     b.ToTable("LICH_LAM_VIEC");
                 });
+
             modelBuilder.Entity("HotelManager.Models.NHAN_VIEN", b =>
                 {
                     b.Property<string>("MaNV")
@@ -697,6 +698,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("MaTrangThai")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<DateTime?>("ThoiGianDonVeSinh")
+                        .HasColumnType("datetime");
+
                     b.Property<string>("TrangThaiPhong")
                         .HasColumnType("nvarchar(50)");
 
@@ -706,77 +710,6 @@ namespace HotelManager.Migrations
                     b.HasKey("MaTrangThai");
 
                     b.ToTable("TRANG_THAI_PHONG");
-                });
-
-            modelBuilder.Entity("LICH_LAM_VIEC", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BoPhan")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Checklist")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ChucVu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CongCu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DoUuTien")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GhiChu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HinhAnh")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("KhuVuc")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LoaiCa")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MaNhanVien")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TenNhanVien")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("ThoiGianBatDau")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ThoiGianKetThuc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TieuDe")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TrangThai")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LICH_LAM_VIEC");
                 });
 #pragma warning restore 612, 618
         }

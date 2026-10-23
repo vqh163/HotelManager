@@ -1,19 +1,20 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class ThemCotHinhAnhDichVu : Migration
+    public partial class AddThoiGianDonVeSinh : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "HinhAnh",
-                table: "DICH_VU",
-                type: "nvarchar(255)",
+            migrationBuilder.AddColumn<DateTime>(
+                name: "ThoiGianDonVeSinh",
+                table: "TRANG_THAI_PHONG",
+                type: "datetime",
                 nullable: true);
         }
 
@@ -21,8 +22,8 @@ namespace HotelManager.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "HinhAnh",
-                table: "DICH_VU");
+                name: "ThoiGianDonVeSinh",
+                table: "TRANG_THAI_PHONG");
         }
     }
 }
