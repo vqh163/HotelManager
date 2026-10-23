@@ -7,55 +7,77 @@
 <div class="container-fluid py-3">
     <h3 class="fw-bold text-primary mb-4"><i class="bi bi-grid-3x3-gap-fill me-2"></i>SƠ ĐỒ PHÒNG TỔNG QUAN</h3>
 
+    <!-- THANH CÔNG CỤ: LỌC THEO THỜI GIAN THỰC -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 p-3 bg-white rounded shadow-sm border border-primary border-opacity-25">
+        <form method="get" id="timeFilterForm" class="d-flex align-items-center gap-2 mb-0">
+            <!-- Dùng type="datetime-local" để chọn cả ngày lẫn giờ. Sẽ hiển thị trống (thời gian thực) nếu chưa tra cứu -->
+            <input type="datetime-local" asp-for="ThoiGianLoc" class="form-control" style="max-width: 250px;" onchange="document.getElementById('timeFilterForm').submit();" />
+            <a asp-page="./SoDoPhong" class="btn btn-outline-secondary text-nowrap">
+                <i class="bi bi-arrow-counterclockwise"></i> Về hiện tại
+            </a>
+        </form>
+    </div>
+
     @if (!ModelState.IsValid)
     {
-        <div class="alert alert-danger">
-            <div asp-validation-summary="All"></div>
-        </div>
+        <div class="alert alert-danger"><div asp-validation-summary="All"></div></div>
     }
 
     @{
-        // Nhóm phòng theo Tầng để vẽ lưới
         var groupedRooms = Model.DanhSachLieuPhong.GroupBy(x => x.Tang).OrderBy(g => g.Key);
     }
 
-    <!-- ========================================== -->
-    <!-- DANH SÁCH LƯỚI PHÒNG -->
-    <!-- ========================================== -->
     @foreach (var group in groupedRooms)
     {
         <h5 class="fw-bold text-secondary mt-4 mb-3">Tầng @group.Key</h5>
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xl-5 g-4">
             @foreach (var room in group)
             {
-                // Xác định màu sắc theo trạng thái
-                string bgClass = "bg-success"; // Mặc định Trống
-                if (room.TrangThaiPhong?.ToLower() == "đang ở") bgClass = "bg-danger";
-                else if (room.TrangThaiPhong?.ToLower() == "đã đặt") bgClass = "bg-warning text-dark";
-                else if (room.TrangThaiPhong?.ToLower() == "bảo trì") bgClass = "bg-secondary";
+                // LOGIC MÀU NỀN CỦA LỄ TÂN
+                string bgClass = "bg-success";
+                string ttPhong = room.TrangThaiPhong?.Trim().ToLower() ?? "";
+
+                if (ttPhong == "đang ở") bgClass = "bg-danger";
+                else if (ttPhong == "đã đặt") bgClass = "bg-warning text-dark";
+                else if (ttPhong == "bảo trì") bgClass = "bg-secondary";
+                else if (ttPhong == "dnd") bgClass = "bg-dark";
 
                 <div class="col">
-                    <!-- SỰ KIỆN ONCLICK: Truyền đầy đủ MaPhong và SoPhong -->
-                    <div class="card text-white @bgClass shadow-sm h-100" style="cursor: pointer; transition: 0.2s;"
-                         onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'"
-                         onclick="showRoomDetails('@room.MaPhong', '@room.SoPhong', '@room.LoaiPhong', '@room.SoGiuong', '@room.SucChuaToiDa', '@room.TrangThaiPhong', '@room.TrangThaiVeSinh', '@(room.TenKhachHang ?? "")', '@(room.GhiChuKhachHang ?? "")')">
-                        
-                        <div class="card-body">
+                    <div class="card text-white @bgClass shadow-sm h-100 position-relative" style="cursor: pointer; transition: 0.2s;"
+                         onclick="showRoomDetails('@room.MaPhong', '@room.SoPhong', '@room.LoaiPhong', '@room.SoGiuong', '@room.SucChuaToiDa', '@room.TrangThaiPhong', '@room.TrangThaiVeSinh', '@room.TenKhachHang', '@room.GhiChuKhachHang')">
+
+                        @if (User.IsInRole("Buồng phòng") || User.IsInRole("Quản lý"))
+                        {
+                            <div class="dropdown position-absolute top-0 end-0 m-1" onclick="event.stopPropagation();">
+                                <button class="btn btn-sm text-white border-0" type="button" data-bs-toggle="dropdown" style="background: rgba(0,0,0,0.15);">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu shadow">
+                                    <li><h6 class="dropdown-header text-success fw-bold">Nghiệp vụ Buồng phòng</h6></li>
+                                    <li>
+                                        <!-- Form để buồng phòng xác nhận đã dọn dẹp xong -->
+                                        <form method="post" asp-page-handler="DoiTrangThai">
+                                            <input type="hidden" name="maPhong" value="@room.MaPhong" />
+                                            <input type="hidden" name="loaiCapNhat" value="BuongPhong" />
+                                            <input type="hidden" name="trangThaiMoi" value="Sạch" />
+                                            <button type="submit" class="dropdown-item fw-bold text-success">
+                                                <i class="bi bi-stars"></i> Đánh dấu phòng Sạch
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+
+                        <div class="card-body mt-2">
                             <h5 class="card-title fw-bold fs-4">@room.SoPhong</h5>
                             <p class="card-text mb-1 small">Hạng: <strong>@room.LoaiPhong</strong></p>
-                            <p class="card-text mb-1 small"><i class="bi bi-person-fill"></i> Tối đa @room.SucChuaToiDa</p>
+                            <p class="card-text mb-1 small text-truncate">Khách: @(room.TenKhachHang ?? "Chưa có")</p>
                         </div>
-                        
-                        <div class="card-footer bg-white text-dark d-flex justify-content-between align-items-center rounded-bottom m-1">
-                            <span class="fw-bold small text-uppercase">@room.TrangThaiPhong</span>
-                            @if (room.TrangThaiVeSinh?.ToLower() == "sạch")
-                            {
-                                <i class="bi bi-stars text-success" title="Phòng Sạch"></i>
-                            }
-                            else
-                            {
-                                <i class="bi bi-x-circle text-danger" title="Chưa dọn"></i>
-                            }
+
+                        <!-- THANH FOOTER: Đổi sang justify-content-end và xóa biến TrangThaiPhong -->
+                        <div class="card-footer bg-white text-dark d-flex justify-content-end align-items-center rounded-bottom m-1">
+                            <i class="bi @room.IconVeSinh @room.MauIconVeSinh fs-5" title="Tình trạng: @room.TrangThaiVeSinh"></i>
                         </div>
                     </div>
                 </div>
@@ -64,18 +86,16 @@
     }
 </div>
 
-<!-- ========================================== -->
 <!-- MODAL CHI TIẾT PHÒNG -->
-<!-- ========================================== -->
 <div class="modal fade" id="roomDetailModal" tabindex="-1" aria-labelledby="rdTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-3">
-            
+
             <div class="modal-header bg-white border-bottom-0 pt-4 px-4 pb-0">
                 <h5 class="modal-title fw-bold text-primary fs-5" id="rdTitle">Chi tiết Phòng</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <div class="modal-body p-4 text-dark">
                 <div class="row mb-4">
                     <div class="col-6">
@@ -87,7 +107,7 @@
                         <strong class="fs-6"><span id="rdSucChua"></span> người</strong>
                     </div>
                 </div>
-                
+
                 <div class="row mb-4">
                     <div class="col-6">
                         <span class="text-muted small d-block mb-1">Số giường</span>
@@ -106,7 +126,6 @@
                     </div>
                 </div>
 
-                <!-- Phân vùng hiển thị tên khách (Mặc định ẩn) -->
                 <div id="rdCustomerInfo" style="display: none;">
                     <hr class="text-muted my-3" />
                     <div class="row mb-2">
@@ -123,11 +142,9 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="modal-footer bg-white border-top-0 px-4 pb-4 pt-0">
                 <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
-                
-                <!-- NÚT ĐẶT PHÒNG: target="_blank" để mở Tab mới -->
                 <a href="#" id="btnDatPhong" class="btn btn-primary fw-bold px-4" style="display: none;" target="_blank">
                     <i class="bi bi-check-square me-1"></i> Đặt phòng
                 </a>
@@ -136,15 +153,9 @@
     </div>
 </div>
 
-<!-- ========================================== -->
-<!-- SCRIPT XỬ LÝ GIAO DIỆN -->
-<!-- ========================================== -->
 @section Scripts {
     <script>
-        // Tham số đầu tiên bắt buộc phải là maPhong để truyền URL an toàn
         function showRoomDetails(maPhong, soPhong, loaiPhong, soGiuong, sucChua, trangThai, veSinh, khachHang, ghiChu) {
-            
-            // 1. Đổ dữ liệu
             document.getElementById('rdTitle').innerText = 'Chi tiết Phòng ' + soPhong;
             document.getElementById('rdLoaiPhong').innerText = loaiPhong || 'Chưa cập nhật';
             document.getElementById('rdSoGiuong').innerText = soGiuong || '0';
@@ -152,7 +163,6 @@
             document.getElementById('rdTrangThai').innerText = trangThai || 'Không xác định';
             document.getElementById('rdVeSinh').innerText = veSinh || 'Sạch';
 
-            // 2. Logic khách hàng
             const customerDiv = document.getElementById('rdCustomerInfo');
             if (khachHang && khachHang.trim() !== '') {
                 document.getElementById('rdKhachHang').innerText = khachHang;
@@ -162,18 +172,14 @@
                 customerDiv.style.display = 'none';
             }
 
-            // 3. Logic kích hoạt nút Đặt phòng
             const btnDatPhong = document.getElementById('btnDatPhong');
             if (trangThai && trangThai.toLowerCase() === 'trống') {
                 btnDatPhong.style.display = 'inline-block';
-                
-                // Trỏ URL về trang DatPhong, truyền tham số id theo mã phòng (MaPhong)
-                btnDatPhong.href = '/QuanLySoDoPhong/DatPhong/' + encodeURIComponent(maPhong); 
+                btnDatPhong.href = '/QuanLySoDoPhong/DatPhong/' + encodeURIComponent(maPhong);
             } else {
                 btnDatPhong.style.display = 'none';
             }
 
-            // 4. Khởi chạy Modal
             const modal = new bootstrap.Modal(document.getElementById('roomDetailModal'));
             modal.show();
         }
