@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261010050805_NewDB")]
+    [Migration("20261018023812_NewDB")]
     partial class NewDB
     {
         /// <inheritdoc />
@@ -233,6 +233,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("DonViTinh")
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("HinhAnh")
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("LoaiDichVu")
                         .HasColumnType("nvarchar(50)");
@@ -572,6 +575,9 @@ namespace HotelManager.Migrations
                 {
                     b.Property<string>("MaPhong")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<double?>("DienTich")
+                        .HasColumnType("float");
 
                     b.Property<decimal?>("GiaTheoGio")
                         .HasColumnType("decimal(18,2)");
