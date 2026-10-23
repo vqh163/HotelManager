@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class CapNhatDB : Migration
+    public partial class DB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -369,7 +369,8 @@ namespace HotelManager.Migrations
                 {
                     MaTrangThai = table.Column<string>(type: "varchar(20)", nullable: false),
                     TrangThaiPhong = table.Column<string>(type: "nvarchar(50)", nullable: true),
-                    TrangThaiVeSinh = table.Column<string>(type: "nvarchar(50)", nullable: true)
+                    TrangThaiVeSinh = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    ThoiGianDonVeSinh = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
                 {
