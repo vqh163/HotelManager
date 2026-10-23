@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class NewDB : Migration
+    public partial class DB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -103,7 +103,8 @@ namespace HotelManager.Migrations
                     TenDichVu = table.Column<string>(type: "nvarchar(100)", nullable: true),
                     LoaiDichVu = table.Column<string>(type: "nvarchar(50)", nullable: true),
                     DonGia = table.Column<decimal>(type: "decimal(12,2)", nullable: true),
-                    DonViTinh = table.Column<string>(type: "nvarchar(20)", nullable: true)
+                    DonViTinh = table.Column<string>(type: "nvarchar(20)", nullable: true),
+                    HinhAnh = table.Column<string>(type: "nvarchar(255)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -304,6 +305,7 @@ namespace HotelManager.Migrations
                     LoaiPhong = table.Column<string>(type: "nvarchar(50)", nullable: true),
                     SoGiuong = table.Column<int>(type: "int", nullable: true),
                     SucChuaToiDa = table.Column<int>(type: "int", nullable: true),
+                    DienTich = table.Column<double>(type: "float", nullable: true),
                     GiaTheoNgay = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     GiaTheoGio = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     MoTa = table.Column<string>(type: "nvarchar(255)", nullable: true),

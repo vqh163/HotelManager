@@ -17,7 +17,7 @@ namespace HotelManager.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -32,6 +32,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("TenBan")
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TenKhachDat")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TrangThai")
                         .HasColumnType("nvarchar(50)");
@@ -336,6 +339,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("DAT_PHONGMaDatPhong")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("DanhSachMonJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("GiamGia")
                         .HasColumnType("decimal(18,2)");
 
@@ -454,6 +460,7 @@ namespace HotelManager.Migrations
 
                     b.ToTable("LICH_LAM_VIEC");
                 });
+
             modelBuilder.Entity("HotelManager.Models.NHAN_VIEN", b =>
                 {
                     b.Property<string>("MaNV")
@@ -706,77 +713,6 @@ namespace HotelManager.Migrations
                     b.HasKey("MaTrangThai");
 
                     b.ToTable("TRANG_THAI_PHONG");
-                });
-
-            modelBuilder.Entity("LICH_LAM_VIEC", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BoPhan")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Checklist")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ChucVu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CongCu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DoUuTien")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GhiChu")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HinhAnh")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("KhuVuc")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LoaiCa")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MaNhanVien")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TenNhanVien")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("ThoiGianBatDau")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ThoiGianKetThuc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TieuDe")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TrangThai")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LICH_LAM_VIEC");
                 });
 #pragma warning restore 612, 618
         }

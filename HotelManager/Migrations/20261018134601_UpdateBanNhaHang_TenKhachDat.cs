@@ -5,15 +5,15 @@
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class ThemCotHinhAnhDichVu : Migration
+    public partial class UpdateBanNhaHang_TenKhachDat : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "HinhAnh",
-                table: "DICH_VU",
-                type: "nvarchar(255)",
+                name: "TenKhachDat",
+                table: "BAN_NHA_HANG",
+                type: "nvarchar(max)",
                 nullable: true);
         }
 
@@ -21,8 +21,8 @@ namespace HotelManager.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "HinhAnh",
-                table: "DICH_VU");
+                name: "TenKhachDat",
+                table: "BAN_NHA_HANG");
         }
     }
 }

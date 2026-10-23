@@ -1,0 +1,252 @@
+﻿@page
+@model HotelManagement.Pages.NhaHang.ThuNgan.QuayThuNganModel
+@{
+    ViewData["Title"] = "Quầy Thu Ngân";
+}
+
+<div class="container-fluid mt-4 mb-5">
+
+    <!-- Thông báo hệ thống khi Thanh toán thành công -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success fw-bold shadow-sm mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger fw-bold shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div class="row">
+        <!-- CỘT TRÁI: KHU VỰC HIỂN THỊ ĐỘNG -->
+        <div class="col-lg-8">
+
+            <!-- VIEW 1: DANH SÁCH HÓA ĐƠN (Hiển thị mặc định) -->
+            <div id="viewDanhSach" class="card shadow-sm border-0 rounded-4 p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                    <h3 class="fw-bold mb-0">Danh sách Hoá Đơn</h3>
+                    <small class="text-muted"><i class="bi bi-clock-history"></i> Lịch sử gọi món</small>
+                </div>
+
+                <div class="row text-center fw-bold text-muted mb-3 px-3">
+                    <div class="col-2">STT</div>
+                    <div class="col-4">MÃ HOÁ ĐƠN</div>
+                    <div class="col-3">SỐ BÀN</div>
+                    <div class="col-3">TRẠNG THÁI</div>
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                    @if (Model.DanhSachHoaDon.Any())
+                    {
+                        foreach (var hd in Model.DanhSachHoaDon)
+                        {
+                            string bgClass = "bg-light";
+                            string textClass = "text-dark";
+                            string iconClass = "bi-receipt";
+
+                            if (hd.HinhThucThanhToan == "Chờ Thanh Toán")
+                            {
+                                bgClass = "bg-danger bg-opacity-10 border-danger border-opacity-25";
+                                textClass = "text-danger";
+                            }
+                            else if (hd.HinhThucThanhToan == "Đã Thanh Toán")
+                            {
+                                bgClass = "bg-success text-white border-success";
+                                textClass = "text-white";
+                                iconClass = "bi-check-circle";
+                            }
+
+                            <!-- TRUYỀN DỮ LIỆU ĐỘNG VÀO JAVASCRIPT -->
+                            <div class="row align-items-center py-3 px-3 rounded-pill border shadow-sm @bgClass"
+                                 style="cursor: pointer; transition: transform 0.2s;"
+                                 onmouseover="this.style.transform='translateY(-2px)'"
+                                 onmouseout="this.style.transform='translateY(0)'"
+                                 onclick="hienThiChiTiet('@hd.MaHoaDonNhaHang', '@hd.TenBan', '@hd.DanhSachMonJson', @hd.TamTinh, @hd.PhiPhucVu, @hd.ThueVAT, @hd.TongCong)">
+                                <div class="col-2 text-center fw-bold @textClass">@hd.STT</div>
+                                <div class="col-4 text-center fw-bold @textClass">@hd.MaHoaDonNhaHang</div>
+                                <div class="col-3 text-center fw-bold @textClass">@hd.TenBan</div>
+                                <div class="col-3 text-center fw-bold @textClass">
+                                    <i class="bi @iconClass me-1"></i> @hd.HinhThucThanhToan
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1"></i>
+                            <p class="mt-2">Chưa có hóa đơn nào cần xử lý.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- VIEW 2: CHI TIẾT HÓA ĐƠN -->
+            <div id="viewChiTiet" class="card shadow-sm border-0 rounded-4 p-4 h-100" style="display: none;">
+                <h3 class="fw-bold mb-3">Chi Tiết Hóa Đơn</h3>
+
+                <div class="d-flex align-items-center gap-3 border-bottom pb-3 mb-4">
+                    <span class="badge bg-info text-white rounded-pill px-3 py-2 fw-bold" id="lblSoBanCT">BÀN SỐ: --</span>
+                    <span class="text-muted fw-bold">Mã HD: <span id="lblMaHDCT" class="text-dark">--</span></span>
+                    <span class="text-muted">Giờ vào: @DateTime.Now.ToString("HH:mm")</span>
+                </div>
+
+                <div class="row fw-bold text-muted mb-3 border-bottom pb-2">
+                    <div class="col-6">SẢN PHẨM / GHI CHÚ</div>
+                    <div class="col-2 text-center">ĐƠN GIÁ</div>
+                    <div class="col-2 text-center">SỐ LƯỢNG</div>
+                    <div class="col-2 text-end">THÀNH TIỀN</div>
+                </div>
+
+                <!-- Khu vực render Món ăn tự động bằng JS -->
+                <div id="danhSachMonContainer" class="mb-3 border-bottom pb-3"></div>
+
+                <div class="row mt-4">
+                    <div class="col-6">
+                        <label class="form-label fw-bold text-muted text-uppercase small">GHI CHÚ CHO KHÁCH HÀNG</label>
+                        <textarea class="form-control bg-light border-0 shadow-sm" rows="3" placeholder="Nhập lời chúc hoặc lưu ý đặc biệt in trên hóa đơn..."></textarea>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between mb-2 text-muted">
+                            <span>Tạm tính</span>
+                            <span class="fw-bold text-dark" id="lblTamTinh">0 VND</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-muted">
+                            <span>Phí phục vụ (5%)</span>
+                            <span class="fw-bold text-dark" id="lblPhiPhucVu">0 VND</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 text-muted border-bottom pb-3">
+                            <span>Thuế VAT (10%)</span>
+                            <span class="fw-bold text-dark" id="lblVAT">0 VND</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark fs-5">Tổng cộng thanh toán</span>
+                            <span class="fw-bold text-primary fs-4" id="lblTongCong">0 VND</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CỘT PHẢI: THAO TÁC THU NGÂN (BỌC BỞI FORM ĐỂ GỬI POST VỀ BACKEND) -->
+        <div class="col-lg-4">
+            <form method="post">
+                <!-- Input ẩn lưu mã hóa đơn đang chọn để gửi về Server -->
+                <input type="hidden" name="maHoaDonToPay" id="maHoaDonToPayInput" value="" />
+
+                <div id="khuVucThaoTac" class="card shadow-sm border-0 rounded-4 p-4" style="opacity: 0.5; pointer-events: none; transition: 0.3s;">
+                    <h4 class="fw-bold mb-4">Thao Tác Thu Ngân</h4>
+
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Mã giảm giá / Voucher</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-ticket-perforated text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 border-end-0" placeholder="VD: HOLIDAY2024">
+                            <button class="btn text-primary fw-bold border-start-0 bg-white border" type="button">Áp dụng</button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-info text-white fw-bold w-100 py-3 rounded-3 mb-3 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-door-closed me-2"></i> Ghi nợ vào phòng</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+
+                    <!-- Nút Submit gọi hàm OnPostThanhToanAsync -->
+                    <button type="submit" asp-page-handler="ThanhToan" class="btn btn-success fw-bold w-100 py-3 rounded-3 mb-3 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-cash me-2"></i> THANH TOÁN & Chốt hóa đơn</span>
+                        <i class="bi bi-check-circle-fill"></i>
+                    </button>
+
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-light border flex-grow-1 text-muted fw-bold rounded-3 py-2"><i class="bi bi-printer me-2"></i> Tạm tính</button>
+                        <button type="button" class="btn btn-light border flex-grow-1 text-muted fw-bold rounded-3 py-2"><i class="bi bi-credit-card me-2"></i> Quẹt thẻ</button>
+                    </div>
+
+                    <!-- Nút quay lại (Không submit form) -->
+                    <button type="button" id="btnQuayLai" class="btn btn-secondary fw-bold w-100 py-2 rounded-3 mt-2" style="display: none;" onclick="quayLaiDanhSach()">
+                        <i class="bi bi-arrow-return-left me-2"></i> Quay lại
+                    </button>
+                </div>
+            </form>
+
+            <div class="card shadow-sm border-0 rounded-4 p-3 mt-4 bg-light">
+                <div class="d-flex gap-3">
+                    <i class="bi bi-shield-check text-primary fs-4"></i>
+                    <div>
+                        <p class="fw-bold mb-1 small">An toàn & Bảo mật</p>
+                        <p class="text-muted mb-0" style="font-size: 0.8rem;">Mọi giao dịch ghi nợ vào phòng yêu cầu chữ ký xác nhận của khách hàng trên máy tính bảng hoặc thẻ từ phòng.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPTS XỬ LÝ LOGIC ẨN HIỆN & RENDER MÓN -->
+@section Scripts {
+    <script>
+        function formatVND(amount) {
+            return amount.toLocaleString('vi-VN') + ' VND';
+        }
+
+        function hienThiChiTiet(maHD, tenBan, dsMonJsonEncoded, tamTinh, phiPhucVu, vat, tongCong) {
+            document.getElementById('viewDanhSach').style.display = 'none';
+            document.getElementById('viewChiTiet').style.display = 'block';
+
+            document.getElementById('lblMaHDCT').innerText = maHD;
+            document.getElementById('lblSoBanCT').innerText = tenBan.toUpperCase();
+
+            // Cập nhật input ẩn để chuẩn bị dữ liệu gửi POST Thanh toán
+            document.getElementById('maHoaDonToPayInput').value = maHD;
+
+            // Render động danh sách món ăn từ JSON
+            const dsMon = JSON.parse(decodeURIComponent(dsMonJsonEncoded));
+            const container = document.getElementById('danhSachMonContainer');
+            container.innerHTML = '';
+
+            dsMon.forEach(mon => {
+                let ghiChuHtml = mon.GhiChu ? `<small class="text-muted"><i class="bi bi-info-circle"></i> ${mon.GhiChu}</small>` : '';
+                container.innerHTML += `
+                            <div class="row mb-3 align-items-center">
+                                <div class="col-6">
+                                    <div class="fw-bold text-dark">${mon.TenMon}</div>
+                                    ${ghiChuHtml}
+                                </div>
+                                <div class="col-2 text-center text-muted fw-bold">${formatVND(mon.DonGia).replace(' VND', '')}</div>
+                                <div class="col-2 text-center fw-bold">${mon.SoLuong}</div>
+                                <div class="col-2 text-end fw-bold text-primary">${formatVND(mon.ThanhTien)}</div>
+                            </div>
+                        `;
+            });
+
+            // Cập nhật giá tiền tổng kết
+            document.getElementById('lblTamTinh').innerText = formatVND(tamTinh);
+            document.getElementById('lblPhiPhucVu').innerText = formatVND(phiPhucVu);
+            document.getElementById('lblVAT').innerText = formatVND(vat);
+            document.getElementById('lblTongCong').innerText = formatVND(tongCong);
+
+            // Mở khóa bảng Thao tác thu ngân
+            let panelThaoTac = document.getElementById('khuVucThaoTac');
+            panelThaoTac.style.opacity = '1';
+            panelThaoTac.style.pointerEvents = 'auto';
+
+            document.getElementById('btnQuayLai').style.display = 'block';
+        }
+
+        function quayLaiDanhSach() {
+            document.getElementById('viewChiTiet').style.display = 'none';
+            document.getElementById('viewDanhSach').style.display = 'block';
+            document.getElementById('maHoaDonToPayInput').value = '';
+
+            let panelThaoTac = document.getElementById('khuVucThaoTac');
+            panelThaoTac.style.opacity = '0.5';
+            panelThaoTac.style.pointerEvents = 'none';
+
+            document.getElementById('btnQuayLai').style.display = 'none';
+        }
+    </script>
+}

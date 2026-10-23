@@ -12,15 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261010050805_NewDB")]
-    partial class NewDB
+    [Migration("20261023032807_Them_DanhSachMon_Vao_HoaDon")]
+    partial class Them_DanhSachMon_Vao_HoaDon
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -35,6 +35,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("TenBan")
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TenKhachDat")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TrangThai")
                         .HasColumnType("nvarchar(50)");
@@ -234,6 +237,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("DonViTinh")
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("HinhAnh")
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("LoaiDichVu")
                         .HasColumnType("nvarchar(50)");
 
@@ -335,6 +341,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("DAT_PHONGMaDatPhong")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<string>("DanhSachMonJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("GiamGia")
                         .HasColumnType("decimal(18,2)");
@@ -572,6 +581,9 @@ namespace HotelManager.Migrations
                 {
                     b.Property<string>("MaPhong")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<double?>("DienTich")
+                        .HasColumnType("float");
 
                     b.Property<decimal?>("GiaTheoGio")
                         .HasColumnType("decimal(18,2)");
