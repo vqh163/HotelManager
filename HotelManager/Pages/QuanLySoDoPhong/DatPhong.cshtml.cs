@@ -42,12 +42,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
         public async Task<IActionResult> OnGetAsync(string id, DateTime? ngayNhan, DateTime? ngayTra, int? soKhach)
         {
-            if (User.Identity == null || !User.Identity.IsAuthenticated)
-            {
-                string currentUrl = Url.Page("./DatPhong", new { id, ngayNhan = ngayNhan?.ToString("yyyy-MM-dd"), ngayTra = ngayTra?.ToString("yyyy-MM-dd"), soKhach });
-                return RedirectToPage("/Auth/DangNhap", new { ReturnUrl = currentUrl });
-            }
-
             if (string.IsNullOrEmpty(id)) return RedirectToPage("/QuanLySoDoPhong/TimPhong");
 
             try
@@ -56,18 +50,21 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 if (phong == null) return NotFound();
                 PhongDuocChon = phong;
 
-                // Điền sẵn thông tin khách hàng nếu đã có trong CSDL
-                var tenDangNhap = User.Identity.Name;
-                var taiKhoan = await _context.TAI_KHOAN.AsNoTracking().FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap);
-
-                if (taiKhoan != null && !string.IsNullOrEmpty(taiKhoan.KHACH_HANGMaKH))
+                // CHỈ tự động lấy thông tin cá nhân nếu khách ĐÃ ĐĂNG NHẬP
+                if (User.Identity != null && User.Identity.IsAuthenticated)
                 {
-                    var khachHang = await _context.KHACH_HANG.AsNoTracking().FirstOrDefaultAsync(k => k.MaKH == taiKhoan.KHACH_HANGMaKH);
-                    if (khachHang != null)
+                    var tenDangNhap = User.Identity.Name;
+                    var taiKhoan = await _context.TAI_KHOAN.AsNoTracking().FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap);
+
+                    if (taiKhoan != null && !string.IsNullOrEmpty(taiKhoan.KHACH_HANGMaKH))
                     {
-                        HoTenKhach = khachHang.HoTen ?? "";
-                        SDTKhach = khachHang.SDT ?? "";
-                        EmailKhach = khachHang.Email ?? "";
+                        var khachHang = await _context.KHACH_HANG.AsNoTracking().FirstOrDefaultAsync(k => k.MaKH == taiKhoan.KHACH_HANGMaKH);
+                        if (khachHang != null)
+                        {
+                            HoTenKhach = khachHang.HoTen ?? "";
+                            SDTKhach = khachHang.SDT ?? "";
+                            EmailKhach = khachHang.Email ?? "";
+                        }
                     }
                 }
 
