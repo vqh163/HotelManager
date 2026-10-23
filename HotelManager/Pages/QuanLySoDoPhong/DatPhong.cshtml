@@ -111,9 +111,24 @@
                             <a asp-page="./TimPhong" class="btn btn-light fw-bold px-4 py-3 rounded-pill border">
                                 <i class="bi bi-search me-1"></i> Tìm phòng khác
                             </a>
-                            <button type="submit" class="btn btn-warning text-white fw-bold flex-fill py-3 rounded-pill shadow-sm fs-5">
-                                XÁC NHẬN ĐẶT PHÒNG <i class="bi bi-arrow-right-circle ms-2"></i>
-                            </button>
+                            
+                            @if (User.Identity != null && User.Identity.IsAuthenticated)
+                            {
+                                <!-- KHÁCH ĐÃ ĐĂNG NHẬP -> CHO PHÉP ĐẶT PHÒNG -->
+                                <button type="submit" class="btn btn-warning text-white fw-bold flex-fill py-3 rounded-pill shadow-sm fs-5">
+                                    XÁC NHẬN ĐẶT PHÒNG <i class="bi bi-arrow-right-circle ms-2"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                // Khai báo biến trực tiếp trong khối else của Razor
+                                string returnUrl = $"/QuanLySoDoPhong/DatPhong/{Model.PhongDuocChon.MaPhong}?ngayNhan={Model.ThongTinDatPhong.NgayNhan?.ToString("yyyy-MM-dd")}&ngayTra={Model.ThongTinDatPhong.NgayTra?.ToString("yyyy-MM-dd")}&soKhach={Model.ThongTinDatPhong.SoLuongKhach}";
+
+                                <!-- KHÁCH VÃNG LAI -> CHUYỂN HƯỚNG ĐĂNG NHẬP KÈM RETURN URL -->
+                                <a asp-page="/Auth/DangNhap" asp-route-ReturnUrl="@returnUrl" class="btn btn-primary text-white fw-bold flex-fill py-3 rounded-pill shadow-sm fs-5">
+                                    ĐĂNG NHẬP ĐỂ ĐẶT PHÒNG <i class="bi bi-person-lock ms-2"></i>
+                                </a>
+                            }
                         </div>
                     </form>
                 </div>
