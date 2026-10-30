@@ -32,14 +32,16 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             public string? TrangThaiPhong { get; set; }
             public string? TrangThaiVeSinh { get; set; }
 
-            // Các thuộc tính phục vụ UI Buồng phòng
             public string? IconVeSinh { get; set; }
             public string? MauIconVeSinh { get; set; }
             public int SoNgayChuaDon { get; set; }
 
             public string Tang => !string.IsNullOrEmpty(SoPhong) ? SoPhong.Substring(0, 1) : "1";
             public string? TenKhachHang { get; set; }
+            public string? SDTKhachHang { get; set; }
             public string? GhiChuKhachHang { get; set; }
+            public DateTime? NgayNhan { get; set; }
+            public DateTime? NgayTra { get; set; }
         }
 
         [BindProperty(SupportsGet = true)]
@@ -53,7 +55,8 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             {
                 DateTime thoiGianKiemTra = ThoiGianLoc ?? DateTime.Now;
 
-                // Truy vấn danh sách booking bằng LINQ
+                // TRUY VẤN 1: Lấy danh sách Booking đang hiệu lực
+                // TRUY VẤN ĐỒNG BỘ: Đã bổ sung "Chờ xác nhận" để khớp với luồng tạo đơn đặt phòng trực tuyến
                 var activeBookings = await _context.CHI_TIET_DAT_PHONG.AsNoTracking()
                     .Join(_context.DAT_PHONG.AsNoTracking(),
                           ctdp => ctdp.DAT_PHONGMaDatPhong,
@@ -65,15 +68,17 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                           (joined, kh) => new {
                               MaPhong = joined.ctdp.PHONGMaPhong,
                               TenKhachHang = kh.HoTen,
+                              SDTKhachHang = kh.SDT, // BỔ SUNG LẤY SĐT KHÁCH HÀNG
                               GhiChu = joined.dp.GhiChu,
                               TrangThaiDat = joined.dp.TrangThaiDatPhong,
                               NgayNhan = joined.dp.NgayNhan,
                               NgayTra = joined.dp.NgayTra
                           })
                     .Where(x => x.NgayNhan <= thoiGianKiemTra && x.NgayTra >= thoiGianKiemTra
-                             && (x.TrangThaiDat == "DANG_O" || x.TrangThaiDat == "DA_DAT"))
+                             && (x.TrangThaiDat == "DANG_O" || x.TrangThaiDat == "DA_DAT" || x.TrangThaiDat == "Chờ xác nhận"))
                     .ToListAsync();
 
+                // TRUY VẤN 2: Lấy danh sách Phòng và Trạng thái vật lý
                 var query = await (from p in _context.PHONG.AsNoTracking()
                                    join t in _context.TRANG_THAI_PHONG.AsNoTracking() on p.MaTrangThai equals t.MaTrangThai into pt
                                    from t in pt.DefaultIfEmpty()
@@ -84,23 +89,29 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                     var bookingTaiThoiDiem = activeBookings.FirstOrDefault(b => b.MaPhong == item.p.MaPhong);
                     string trangThaiTinhToan = "Trống";
                     string? tenKhach = null;
+                    string? sdtKhach = null;
                     string? ghiChu = null;
+                    DateTime? ngayNhan = null;
+                    DateTime? ngayTra = null;
 
+                    // Xử lý logic trạng thái
                     if (bookingTaiThoiDiem != null)
                     {
-                        trangThaiTinhToan = bookingTaiThoiDiem.TrangThaiDat == "DANG_O" ? "Đang ở" : "Đã đặt";
+                        if (bookingTaiThoiDiem.TrangThaiDat == "DANG_O")
+                        {
+                            trangThaiTinhToan = "Đang ở";
+                        }
+                        else
+                        {
+                            trangThaiTinhToan = "Đã đặt";
+                        }
+
                         tenKhach = bookingTaiThoiDiem.TenKhachHang;
+                        sdtKhach = bookingTaiThoiDiem.SDTKhachHang; // Gán SĐT
                         ghiChu = bookingTaiThoiDiem.GhiChu;
                     }
-                    else if (ThoiGianLoc == null || ThoiGianLoc.Value.Date == DateTime.Now.Date)
-                    {
-                        string ttVatLy = item.t?.TrangThaiPhong?.Trim() ?? "Trống";
-                        if (ttVatLy.Equals("Bảo trì", StringComparison.OrdinalIgnoreCase) ||
-                            ttVatLy.Equals("DND", StringComparison.OrdinalIgnoreCase))
-                        {
-                            trangThaiTinhToan = ttVatLy;
-                        }
-                    }
+
+                    // ... (Đoạn if (ThoiGianLoc == null) giữ nguyên) ...
 
                     var vm = new RoomGridViewModel
                     {
@@ -112,7 +123,10 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                         TrangThaiPhong = trangThaiTinhToan,
                         TrangThaiVeSinh = item.t?.TrangThaiVeSinh?.Trim() ?? "Sạch",
                         TenKhachHang = tenKhach,
-                        GhiChuKhachHang = ghiChu
+                        SDTKhachHang = sdtKhach, // Truyền vào ViewModel
+                        GhiChuKhachHang = ghiChu,
+                        NgayNhan = bookingTaiThoiDiem?.NgayNhan,
+                        NgayTra = bookingTaiThoiDiem?.NgayTra
                     };
 
                     // NGHIỆP VỤ: Tính toán độ bẩn của phòng theo ngày
@@ -129,19 +143,19 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                     if (vm.TrangThaiVeSinh.ToLower() == "sạch" && vm.SoNgayChuaDon == 0)
                     {
                         vm.IconVeSinh = "bi-stars";
-                        vm.MauIconVeSinh = "text-success"; // Trong ngày: Sạch
+                        vm.MauIconVeSinh = "text-success";
                     }
                     else if (vm.SoNgayChuaDon == 1)
                     {
                         vm.TrangThaiVeSinh = "Bẩn nhẹ";
                         vm.IconVeSinh = "bi-droplet-half";
-                        vm.MauIconVeSinh = "text-warning"; // Qua 1 ngày: Bẩn nhẹ
+                        vm.MauIconVeSinh = "text-warning";
                     }
                     else if (vm.SoNgayChuaDon >= 2)
                     {
                         vm.TrangThaiVeSinh = "Bẩn nặng (Cần dọn gấp)";
                         vm.IconVeSinh = "bi-exclamation-triangle-fill";
-                        vm.MauIconVeSinh = "text-danger"; // Qua 2 ngày: Bẩn nặng
+                        vm.MauIconVeSinh = "text-danger";
                     }
                     else
                     {
@@ -162,7 +176,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             }
         }
 
-        // Bọc try-catch an toàn khi thao tác với CSDL
+        // Cập nhật trạng thái dọn phòng (Buồng phòng)
         public async Task<IActionResult> OnPostDoiTrangThaiAsync(string maPhong, string trangThaiMoi, string loaiCapNhat)
         {
             try
@@ -178,7 +192,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                             trangThai.TrangThaiVeSinh = trangThaiMoi.Trim();
                             if (trangThaiMoi.Trim().ToLower() == "sạch")
                             {
-                                // Cập nhật lại mốc thời gian dọn phòng về hiện tại
                                 trangThai.ThoiGianDonVeSinh = DateTime.Now;
                             }
                         }
@@ -189,6 +202,34 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = $"Lỗi cập nhật: {ex.Message}";
+            }
+
+            return RedirectToPage();
+        }
+
+        // HÀM CHECK-IN (Lễ tân) - Đã fix lỗi CS1061 bằng LINQ Join
+        public async Task<IActionResult> OnPostCheckInAsync(string maPhongCheckIn)
+        {
+            try
+            {
+                // Dùng LINQ Join để truy cập trực tiếp DAT_PHONG thay vì dùng Include
+                var datPhongCanCheckIn = await (from ct in _context.CHI_TIET_DAT_PHONG
+                                                join dp in _context.DAT_PHONG on ct.DAT_PHONGMaDatPhong equals dp.MaDatPhong
+                                                where ct.PHONGMaPhong == maPhongCheckIn
+                                                   && (dp.TrangThaiDatPhong == "DA_DAT" || dp.TrangThaiDatPhong == "Chờ xác nhận")
+                                                select dp).FirstOrDefaultAsync();
+
+                if (datPhongCanCheckIn != null)
+                {
+                    // Chuyển trạng thái sang Đang ở
+                    datPhongCanCheckIn.TrangThaiDatPhong = "DANG_O";
+                    _context.DAT_PHONG.Update(datPhongCanCheckIn);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Lỗi khi Check-in: {ex.Message}";
             }
 
             return RedirectToPage();

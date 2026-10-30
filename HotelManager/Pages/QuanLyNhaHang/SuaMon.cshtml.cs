@@ -13,7 +13,6 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 {
     public class SuaMonViewModel
     {
-        // Mã món không được phép sửa, chỉ để hiển thị
         public string MaDichVu { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vui lòng nhập tên món.")]
@@ -26,9 +25,12 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         [Range(0, double.MaxValue, ErrorMessage = "Giá bán phải lớn hơn hoặc bằng 0.")]
         public decimal DonGia { get; set; }
 
-        public string MoTa { get; set; } = string.Empty;
+        // Bổ sung dấu ? để cho phép Null
+        public string? MoTa { get; set; }
 
-        // Đường dẫn ảnh hiện tại lưu trong DB
+        // ĐÃ SỬA LỖI: Bổ sung dấu ? để không bắt buộc nhập dị ứng
+        public string? LuuYDiUng { get; set; }
+
         public string HinhAnh { get; set; } = string.Empty;
     }
 
@@ -46,46 +48,36 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         [BindProperty]
         public SuaMonViewModel MonInfo { get; set; } = new SuaMonViewModel();
 
-        // Biến riêng hứng file upload mới (nếu có)
         [BindProperty]
         public IFormFile? HinhAnhUpload { get; set; }
 
-        // 1. HÀM LOAD DỮ LIỆU CŨ LÊN FORM
         public async Task<IActionResult> OnGetAsync(string id)
         {
-            if (string.IsNullOrEmpty(id))
-            {
-                return RedirectToPage("./QuanLyThucDon");
-            }
+            if (string.IsNullOrEmpty(id)) return RedirectToPage("./QuanLyThucDon");
 
             var monAn = await _context.DICH_VU.FirstOrDefaultAsync(d => d.MaDichVu == id);
+            if (monAn == null) return RedirectToPage("./QuanLyThucDon");
 
-            if (monAn == null)
-            {
-                return RedirectToPage("./QuanLyThucDon");
-            }
+            string moTaCache = TrangThaiMonStore.MoTaDict.ContainsKey(id) ? TrangThaiMonStore.MoTaDict[id] : "";
+            string diUngCache = TrangThaiMonStore.DiUngDict.ContainsKey(id) ? TrangThaiMonStore.DiUngDict[id] : "";
 
-            // Đổ dữ liệu từ DB vào ViewModel để hiển thị lên Form HTML
             MonInfo = new SuaMonViewModel
             {
                 MaDichVu = monAn.MaDichVu,
-                TenDichVu = monAn.TenDichVu,
+                TenDichVu = monAn.TenDichVu ?? string.Empty,
                 LoaiDichVu = string.IsNullOrEmpty(monAn.LoaiDichVu) ? "Món chính" : monAn.LoaiDichVu,
                 DonGia = monAn.DonGia ?? 0m,
-                HinhAnh = monAn.HinhAnh ?? "", // Gắn ảnh cũ vào
-                MoTa = "Thành phần cơ bản của món ăn..." // Chỗ này nếu DB bạn có cột Mô tả thì thay bằng monAn.MoTa
+                HinhAnh = monAn.HinhAnh ?? "",
+                MoTa = moTaCache,
+                LuuYDiUng = diUngCache
             };
 
             return Page();
         }
 
-        // 2. HÀM LƯU DỮ LIỆU SAU KHI CHỈNH SỬA
         public async Task<IActionResult> OnPostAsync(string id)
         {
-            if (!ModelState.IsValid)
-            {
-                return Page();
-            }
+            if (!ModelState.IsValid) return Page();
 
             try
             {
@@ -97,14 +89,10 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                     return Page();
                 }
 
-                // Xử lý upload ảnh mới nếu Đầu bếp có chọn file
                 if (HinhAnhUpload != null && HinhAnhUpload.Length > 0)
                 {
                     string uploadsFolder = Path.Combine(_environment.WebRootPath, "images", "thuc-don");
-                    if (!Directory.Exists(uploadsFolder))
-                    {
-                        Directory.CreateDirectory(uploadsFolder);
-                    }
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
                     string uniqueFileName = Guid.NewGuid().ToString() + "_" + HinhAnhUpload.FileName;
                     string filePath = Path.Combine(uploadsFolder, uniqueFileName);
@@ -114,31 +102,26 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                         await HinhAnhUpload.CopyToAsync(fileStream);
                     }
 
-                    // Xóa ảnh vật lý cũ để giải phóng bộ nhớ (Optional)
                     if (!string.IsNullOrEmpty(monAnInDb.HinhAnh))
                     {
                         string oldFilePath = Path.Combine(_environment.WebRootPath, monAnInDb.HinhAnh.TrimStart('/'));
-                        if (System.IO.File.Exists(oldFilePath))
-                        {
-                            System.IO.File.Delete(oldFilePath);
-                        }
+                        if (System.IO.File.Exists(oldFilePath)) System.IO.File.Delete(oldFilePath);
                     }
 
-                    // Cập nhật đường dẫn ảnh mới vào DB
                     monAnInDb.HinhAnh = "/images/thuc-don/" + uniqueFileName;
                 }
-                else
-                {
-                    // NẾU KHÔNG CHỌN ẢNH MỚI: Hệ thống tự động giữ nguyên monAnInDb.HinhAnh cũ
-                }
 
-                // Cập nhật các thông tin khác
                 monAnInDb.TenDichVu = MonInfo.TenDichVu;
                 monAnInDb.LoaiDichVu = MonInfo.LoaiDichVu;
                 monAnInDb.DonGia = MonInfo.DonGia;
 
-                // Lưu thay đổi xuống CSDL
                 await _context.SaveChangesAsync();
+
+                // Lưu thay đổi vào bộ nhớ RAM (xử lý Null Coalescing cho an toàn)
+                TrangThaiMonStore.MoTaDict[id] = MonInfo.MoTa ?? "";
+                TrangThaiMonStore.DiUngDict[id] = MonInfo.LuuYDiUng ?? "";
+
+                TrangThaiMonStore.SaveData();
 
                 return RedirectToPage("./QuanLyThucDon");
             }

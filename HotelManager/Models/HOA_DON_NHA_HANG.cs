@@ -33,5 +33,8 @@ namespace HotelManager.Models
 
         [Column(TypeName = "nvarchar(50)")]
         public string? HinhThucThanhToan { get; set; }
+
+        // Thêm vào class HOA_DON_NHA_HANG
+        public string? DanhSachMonJson { get; set; }
     }
 }

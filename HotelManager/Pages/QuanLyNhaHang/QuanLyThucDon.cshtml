@@ -8,25 +8,128 @@
 @Html.AntiForgeryToken()
 
 <style>
-    .btn-brand-yellow { background-color: #f39c12; color: #fff; border: none; font-weight: bold;}
-    .btn-brand-yellow:hover { background-color: #e67e22; color: #fff; }
-    .stat-card { border-radius: 12px; background-color: #fff; border: 1px solid #eaeaea; padding: 12px 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
-    .price-label { font-size: 0.7rem; color: #999; text-transform: uppercase; font-weight: bold;}
-    .nav-pills .nav-link.active { background-color: #0d6efd; color: white; font-weight: bold;}
-    .nav-pills .nav-link { color: #555; background-color: #f8f9fa; border: 1px solid #eaeaea; margin-right: 12px; border-radius: 25px; padding: 8px 22px; font-weight: 500; transition: 0.2s;}
-    .menu-item-row { background-color: #fff; border: 1px solid #eaeaea; border-radius: 15px; margin-bottom: 15px; display: flex; align-items: center; padding: 15px;}
-    
-    .item-image-wrapper { position: relative; width: 100px; height: 100px; border-radius: 12px; overflow: hidden; flex-shrink: 0; margin-right: 20px;}
-    .item-image { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-    .out-of-stock-overlay { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; z-index: 10;}
-    .out-of-stock-badge { background-color: #dc3545; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;}
-    
-    .price-text { font-size: 1.3rem; color: #3498db; font-weight: bold; }
-    .form-switch .form-check-input { width: 3.2em; height: 1.6em; cursor: pointer; }
-    .form-check-input:checked { background-color: #198754; border-color: #198754; }
-    .status-text { font-size: 0.85rem; font-weight: bold;}
-    .status-active { color: #198754; } 
-    .status-inactive { color: #dc3545; } 
+    .btn-brand-yellow {
+        background-color: #f39c12;
+        color: #fff;
+        border: none;
+        font-weight: bold;
+    }
+
+        .btn-brand-yellow:hover {
+            background-color: #e67e22;
+            color: #fff;
+        }
+
+    .stat-card {
+        border-radius: 12px;
+        background-color: #fff;
+        border: 1px solid #eaeaea;
+        padding: 12px 25px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+
+    .price-label {
+        font-size: 0.7rem;
+        color: #999;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: #0d6efd;
+        color: white;
+        font-weight: bold;
+    }
+
+    .nav-pills .nav-link {
+        color: #555;
+        background-color: #f8f9fa;
+        border: 1px solid #eaeaea;
+        margin-right: 12px;
+        border-radius: 25px;
+        padding: 8px 22px;
+        font-weight: 500;
+        transition: 0.2s;
+    }
+
+    .menu-item-row {
+        background-color: #fff;
+        border: 1px solid #eaeaea;
+        border-radius: 15px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        padding: 15px;
+    }
+
+    .item-image-wrapper {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border-radius: 12px;
+        overflow: hidden;
+        flex-shrink: 0;
+        margin-right: 20px;
+    }
+
+    .item-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: 0.3s;
+    }
+
+    .out-of-stock-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+
+    .out-of-stock-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .price-text {
+        font-size: 1.3rem;
+        color: #3498db;
+        font-weight: bold;
+    }
+
+    .form-switch .form-check-input {
+        width: 3.2em;
+        height: 1.6em;
+        cursor: pointer;
+    }
+
+    .form-check-input:checked {
+        background-color: #198754;
+        border-color: #198754;
+    }
+
+    .status-text {
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+
+    .status-active {
+        color: #198754;
+    }
+
+    .status-inactive {
+        color: #dc3545;
+    }
 </style>
 
 <div class="container-fluid mt-4">
@@ -37,7 +140,7 @@
             </h2>
             <p class="text-muted mb-0 small">Cập nhật trạng thái món ăn, giá cả dành cho bộ phận Bếp & Nhà hàng.</p>
         </div>
-        
+
         <div class="d-flex gap-4 align-items-center">
             <div class="stat-card d-flex gap-4">
                 <div>
@@ -53,7 +156,7 @@
                     <div class="fw-bold fs-5 text-danger" id="stat-tam-ngung">@Model.TamNgung</div>
                 </div>
             </div>
-            
+
             <a asp-page="./ThemMon" class="btn btn-brand-yellow rounded-pill px-4 py-2 shadow-sm text-nowrap">
                 <i class="bi bi-plus-lg me-1"></i> Thêm món mới
             </a>
@@ -82,6 +185,9 @@
                 <a class="nav-link @(currentCategory == "Món chính" ? "active shadow-sm" : "")" href="?DanhMucLoc=Món chính&TrangThaiLoc=@Model.TrangThaiLoc"><i class="bi bi-egg-fried me-1"></i> Món chính</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link @(currentCategory == "Tráng miệng" ? "active shadow-sm" : "")" href="?DanhMucLoc=Tráng miệng&TrangThaiLoc=@Model.TrangThaiLoc"><i class="bi bi-cake me-1"></i> Tráng miệng</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link @(currentCategory == "Đồ uống" ? "active shadow-sm" : "")" href="?DanhMucLoc=Đồ uống&TrangThaiLoc=@Model.TrangThaiLoc"><i class="bi bi-cup-straw me-1"></i> Đồ uống</a>
             </li>
         </ul>
@@ -102,7 +208,7 @@
                         </div>
                         <img src="@mon.HinhAnh" id="img-@mon.MaDichVu" class="item-image @(!mon.ConMon ? "opacity-50" : "")" alt="@mon.TenDichVu">
                     </div>
-                    
+
                     <div class="flex-grow-1 pe-3">
                         <div class="mb-1">
                             <span class="small text-primary fw-bold text-uppercase">@mon.MaDichVu</span>
@@ -111,33 +217,31 @@
                         <h5 class="fw-bold text-dark mb-1">@mon.TenDichVu</h5>
                         <p class="text-muted small mb-0 lh-sm">@mon.MoTa</p>
                     </div>
-                    
+
                     <div class="px-4 text-center border-start border-light" style="min-width: 160px;">
                         <div class="price-label mb-1">GIÁ BÁN</div>
                         <div class="price-text">@mon.DonGia.ToString("N0") VND</div>
                     </div>
-                    
+
                     <div class="px-4 text-center border-start border-light" style="min-width: 200px;">
                         <div class="price-label mb-2">TRẠNG THÁI</div>
                         <div class="d-flex align-items-center justify-content-center gap-2">
                             <span class="status-text fw-bold text-success" id="lbl-con-@mon.MaDichVu" style="display: @(mon.ConMon ? "inline" : "none");">Còn món</span>
-                            
+
                             <!-- Công tắc gạt trạng thái -->
                             <div class="form-check form-switch m-0 p-0 d-flex align-items-center">
                                 <input class="form-check-input ms-0 mt-0 shadow-none" type="checkbox" role="switch" @(mon.ConMon ? "checked" : "") onchange="toggleStatus('@mon.MaDichVu', this.checked)">
                             </div>
-                            
+
                             <span class="status-text fw-bold text-danger" id="lbl-het-@mon.MaDichVu" style="display: @(!mon.ConMon ? "inline" : "none");">Hết món</span>
                         </div>
                     </div>
-                    
+
                     <div class="ps-3 pe-2 border-start border-light d-flex gap-2">
-                        <!-- CHUẨN XÁC YÊU CẦU: Nút Bút Chì chuyển hướng tới trang SuaMon, mang theo mã SKU -->
                         <a asp-page="./SuaMon" asp-route-id="@mon.MaDichVu" class="btn btn-light rounded-circle text-muted border shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Chỉnh sửa thông tin món">
                             <i class="bi bi-pencil"></i>
                         </a>
-                        
-                        <!-- Nút Thùng Rác -->
+
                         <form method="post" asp-page-handler="Delete" asp-route-id="@mon.MaDichVu" class="m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn XÓA món này khỏi thực đơn không?');">
                             <button type="submit" class="btn btn-light rounded-circle text-danger border shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Xóa món">
                                 <i class="bi bi-trash"></i>
@@ -183,13 +287,13 @@
                 'RequestVerificationToken': token
             }
         })
-        .then(response => response.json())
-        .then(data => {
-            if(data.success) {
-                document.getElementById('stat-tong').innerText = data.tongSoMon;
-                document.getElementById('stat-dang-ban').innerText = data.dangBan;
-                document.getElementById('stat-tam-ngung').innerText = data.tamNgung;
-            }
-        });
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('stat-tong').innerText = data.tongSoMon;
+                    document.getElementById('stat-dang-ban').innerText = data.dangBan;
+                    document.getElementById('stat-tam-ngung').innerText = data.tamNgung;
+                }
+            });
     }
 </script>

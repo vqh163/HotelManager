@@ -27,13 +27,15 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         [Range(0, double.MaxValue, ErrorMessage = "Giá bán phải lớn hơn hoặc bằng 0.")]
         public decimal DonGia { get; set; }
 
-        public string MoTa { get; set; } = string.Empty;
+        // Thêm dấu ? để cho phép thuộc tính Mô tả để trống
+        public string? MoTa { get; set; }
+
+        // ĐÃ SỬA LỖI: Thêm dấu ? để biến Lưu ý dị ứng thành trường không bắt buộc (Optional)
+        public string? LuuYDiUng { get; set; }
 
         public IFormFile? HinhAnhUpload { get; set; }
 
         public string HinhAnh { get; set; } = string.Empty;
-
-        // ĐÃ XÓA BIẾN ConMon THEO YÊU CẦU
     }
 
     public class ThemMonModel : PageModel
@@ -52,12 +54,10 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 
         public void OnGet()
         {
-            // Form mặc định trống, không cần khởi tạo trạng thái nữa
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // Bắt lỗi Validation từ form
             if (!ModelState.IsValid)
             {
                 return Page();
@@ -72,7 +72,7 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                     return Page();
                 }
 
-                // Xử lý lưu ảnh
+                // Xử lý lưu hình ảnh
                 if (ThemMonInfo.HinhAnhUpload != null && ThemMonInfo.HinhAnhUpload.Length > 0)
                 {
                     string uploadsFolder = Path.Combine(_environment.WebRootPath, "images", "thuc-don");
@@ -91,6 +91,7 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 
                     ThemMonInfo.HinhAnh = "/images/thuc-don/" + uniqueFileName;
                 }
+
                 var dichVuMoi = new DICH_VU
                 {
                     MaDichVu = ThemMonInfo.MaDichVu,
@@ -103,6 +104,10 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 
                 _context.DICH_VU.Add(dichVuMoi);
                 await _context.SaveChangesAsync();
+
+                // Lưu dữ liệu tùy chọn vào RAM, nếu người dùng để trống thì lưu chuỗi rỗng
+                TrangThaiMonStore.MoTaDict[dichVuMoi.MaDichVu] = ThemMonInfo.MoTa ?? "";
+                TrangThaiMonStore.DiUngDict[dichVuMoi.MaDichVu] = ThemMonInfo.LuuYDiUng ?? "";
 
                 return RedirectToPage("./QuanLyThucDon");
             }
