@@ -1,0 +1,123 @@
+﻿@page
+@model HotelManager.Pages.QuanLyNhanSu.ThemNhanVienModel
+@{
+    ViewData["Title"] = "Thêm Nhân Viên";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+
+            <!-- Form Nhập Liệu -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-gradient bg-primary text-white p-4 border-0">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill me-2"></i> Đăng ký Nhân Sự Mới</h4>
+                    <p class="mb-0 text-white-50 small mt-1">Vui lòng điền thông tin nhân viên</p>
+                </div>
+                <div class="card-body p-5 bg-light">
+                    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+                    {
+                        <div class="alert alert-danger rounded-4 shadow-sm mb-4">
+                            <i class="bi bi-x-circle-fill me-2"></i> @Model.ThongBaoLoi
+                        </div>
+                    }
+
+                    <form method="post">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="Input.HoTen" class="form-control rounded-3 border-0 shadow-sm" placeholder="Họ và Tên" required />
+                                    <label asp-for="Input.HoTen" class="text-muted"><i class="bi bi-person me-1"></i> Họ và Tên</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="Input.SoCCCD" class="form-control rounded-3 border-0 shadow-sm" placeholder="CCCD" maxlength="12" pattern="^\d{12}$" required />
+                                    <label asp-for="Input.SoCCCD" class="text-muted"><i class="bi bi-card-text me-1"></i> Số CCCD (12 số)</label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <select asp-for="Input.GioiTinh" class="form-select rounded-3 border-0 shadow-sm">
+                                        <option value="Nam">Nam</option>
+                                        <option value="Nữ">Nữ</option>
+                                    </select>
+                                    <label asp-for="Input.GioiTinh" class="text-muted"><i class="bi bi-gender-ambiguous me-1"></i> Giới tính</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="Input.SDT" class="form-control rounded-3 border-0 shadow-sm" placeholder="SDT" maxlength="10" pattern="^\d{10}$" required />
+                                    <label asp-for="Input.SDT" class="text-muted"><i class="bi bi-telephone me-1"></i> Số điện thoại</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="Input.Email" type="email" class="form-control rounded-3 border-0 shadow-sm" placeholder="Email" required />
+                                    <label asp-for="Input.Email" class="text-muted"><i class="bi bi-envelope me-1"></i> Email</label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="Input.NgaySinh" type="date" class="form-control rounded-3 border-0 shadow-sm" required />
+                                    <label asp-for="Input.NgaySinh" class="text-muted"><i class="bi bi-calendar-event me-1"></i> Ngày sinh</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="Input.NgayVaoLam" type="date" class="form-control rounded-3 border-0 shadow-sm" required />
+                                    <label asp-for="Input.NgayVaoLam" class="text-muted"><i class="bi bi-calendar-check me-1"></i> Ngày vào làm</label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <select asp-for="Input.MaChucVu" class="form-select rounded-3 border-0 shadow-sm" asp-items="Model.DanhSachChucVu" required>
+                                        <option value="">-- Chọn chức vụ --</option>
+                                    </select>
+                                    <label asp-for="Input.MaChucVu" class="text-muted"><i class="bi bi-briefcase me-1"></i> Chức vụ công tác</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input asp-for="Input.LuongCoBan" type="text" id="inputLuong" class="form-control rounded-3 border-0 shadow-sm" placeholder="Mức lương" required />
+                                    <label asp-for="Input.LuongCoBan" class="text-muted"><i class="bi bi-cash-stack me-1"></i> Mức lươngn</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end mt-5 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow">
+                                <i class="bi bi-save2 me-2"></i> Lưu Nhân Viên
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var inputLuong = document.getElementById("inputLuong");
+            if (inputLuong) {
+                inputLuong.addEventListener("input", function (e) {
+                    var target = e.target;
+                    var value = target.value.replace(/\D/g, '');
+                    if (value !== '') {
+                        target.value = parseInt(value, 10).toLocaleString('en-US');
+                    } else {
+                        target.value = '';
+                    }
+                });
+            }
+        });
+    </script>
+}
