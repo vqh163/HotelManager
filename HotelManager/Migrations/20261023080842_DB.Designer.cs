@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261010081456_CapNhatDB")]
-    partial class CapNhatDB
+    [Migration("20261023080842_DB")]
+    partial class DB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -700,6 +700,9 @@ namespace HotelManager.Migrations
                 {
                     b.Property<string>("MaTrangThai")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("ThoiGianDonVeSinh")
+                        .HasColumnType("datetime");
 
                     b.Property<string>("TrangThaiPhong")
                         .HasColumnType("nvarchar(50)");

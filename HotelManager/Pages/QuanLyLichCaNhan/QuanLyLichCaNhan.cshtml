@@ -14,8 +14,9 @@
 
 <style>
     /* Ẩn header và footer mặc định */
-    header, footer {
+    header {
         display: none !important;
+    }
     }
 
     body {
@@ -34,13 +35,12 @@
     .pms-navbar {
         background-color: #ffffff;
         border-bottom: 1px solid #e0e0e0;
-        padding: 10px 30px;
+        padding: 10px 0;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
         width: 100%;
         box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         z-index: 1000;
+    }
     }
 
     .main-content-wrapper {
@@ -563,114 +563,105 @@
 
 <div class="app-container">
 
-    <nav class="pms-navbar shadow-sm">
-        <div class="d-flex align-items-center">
-            <a href="/"><img src="~/images/logo.png" alt="Grand Horizon Hotel" style="height: 45px; object-fit: contain;" /></a>
-        </div>
-        <div class="user-profile">
-            @if (isLoggedIn)
-            {
-                <div class="d-flex align-items-center gap-3">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-0 sticky-top" style="z-index: 1030;">
+        <div class="container d-flex justify-content-between align-items-center">
 
-                    <!-- CHUÔNG THÔNG BÁO CHO QUẢN LÝ VÀ NHÂN VIÊN -->
-                    <div class="dropdown">
-                        <a href="#" class="text-muted position-relative text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false" id="bellDropdown">
-                            <i class="bi bi-bell fs-5"></i>
-                            @if (isManager && Model.PendingRequests != null && Model.PendingRequests.Count > 0)
-                            {
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">@Model.PendingRequests.Count</span>
-                            }
-                            else if (!isManager && Model.EmployeeNotifications != null && Model.EmployeeNotifications.Count > 0)
-                            {
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">@Model.EmployeeNotifications.Count</span>
-                            }
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="bellDropdown" style="width: 330px; max-height: 400px; overflow-y: auto;">
+            <!-- 1. LOGO KHÁCH SẠN -->
+            <a class="navbar-brand d-flex align-items-center m-0" href="/Index">
+                <img src="~/images/logo.png" alt="Grand Horizon Logo" style="height: 50px; width: auto;" class="me-2">
+            </a>
 
-                            @if (isManager)
+            <!-- 2. KHU VỰC CHUÔNG & USER BÊN PHẢI -->
+            <ul class="navbar-nav align-items-center flex-row gap-3 m-0">
+
+                <!-- CHUÔNG THÔNG BÁO -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link text-muted position-relative p-0 mt-1 me-2" href="#" id="bellDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell fs-5 text-dark"></i>
+                        @if (isManager && Model.PendingRequests != null && Model.PendingRequests.Count > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">@Model.PendingRequests.Count</span>
+                        }
+                        else if (!isManager && Model.EmployeeNotifications != null && Model.EmployeeNotifications.Count > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">@Model.EmployeeNotifications.Count</span>
+                        }
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="bellDropdown" style="width: 330px; max-height: 400px; overflow-y: auto;">
+                        @if (isManager)
+                        {
+                            <li><h6 class="dropdown-header fw-bold text-dark border-bottom pb-2">Thông báo Đơn từ (@(Model.PendingRequests?.Count ?? 0))</h6></li>
+                            @if (Model.PendingRequests != null && Model.PendingRequests.Count > 0)
                             {
-                                <li><h6 class="dropdown-header fw-bold text-dark border-bottom pb-2">Thông báo Đơn từ (@(Model.PendingRequests?.Count ?? 0))</h6></li>
-                                @if (Model.PendingRequests != null && Model.PendingRequests.Count > 0)
+                                foreach (var req in Model.PendingRequests)
                                 {
-                                    foreach (var req in Model.PendingRequests)
-                                    {
-                                        <li>
-                                            <a class="dropdown-item py-3 border-bottom" href="#" onclick="showDuyetDonModal(@req.Id, '@req.TenNhanVien', '@req.ChucVu', '@req.TuNgay.ToString("yyyy-MM-dd")', '@req.DenNgay.ToString("yyyy-MM-dd")', @req.SoNgay, '@Html.Raw((req.LyDo ?? "").Replace("'", "\\'").Replace("\r\n", " "))')">
-                                                <div class="d-flex align-items-start">
-                                                    <i class="bi bi-envelope-paper fs-4 text-warning me-3"></i>
-                                                    <div>
-                                                        <div class="fw-bold text-dark" style="font-size: 0.85rem;">@req.TenNhanVien <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">Chờ duyệt</span></div>
-                                                        <div class="text-muted mt-1" style="font-size: 0.75rem;">Xin nghỉ @req.SoNgay ngày (Lý do: @req.LyDo)</div>
-                                                    </div>
+                                    <li>
+                                        <a class="dropdown-item py-3 border-bottom" href="#" onclick="showDuyetDonModal(@req.Id, '@req.TenNhanVien', '@req.ChucVu', '@req.TuNgay.ToString("yyyy-MM-dd")', '@req.DenNgay.ToString("yyyy-MM-dd")', @req.SoNgay, '@Html.Raw((req.LyDo ?? "").Replace("'", "\\'").Replace("\r\n", " "))')">
+                                            <div class="d-flex align-items-start">
+                                                <i class="bi bi-envelope-paper fs-4 text-warning me-3"></i>
+                                                <div>
+                                                    <div class="fw-bold text-dark" style="font-size: 0.85rem;">@req.TenNhanVien <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">Chờ duyệt</span></div>
+                                                    <div class="text-muted mt-1" style="font-size: 0.75rem;">Xin nghỉ @req.SoNgay ngày (Lý do: @req.LyDo)</div>
                                                 </div>
-                                            </a>
-                                        </li>
-                                    }
-                                }
-                                else
-                                {
-                                    <li><div class="dropdown-item py-3 text-muted text-center" style="font-size: 0.85rem;">Không có thông báo mới</div></li>
+                                            </div>
+                                        </a>
+                                    </li>
                                 }
                             }
                             else
                             {
-                                <li><h6 class="dropdown-header fw-bold text-dark border-bottom pb-2">Kết quả Đơn xin nghỉ (@(Model.EmployeeNotifications?.Count ?? 0))</h6></li>
-                                @if (Model.EmployeeNotifications != null && Model.EmployeeNotifications.Count > 0)
+                                <li><div class="dropdown-item py-3 text-muted text-center" style="font-size: 0.85rem;">Không có thông báo mới</div></li>
+                            }
+                        }
+                        else
+                        {
+                            <li><h6 class="dropdown-header fw-bold text-dark border-bottom pb-2">Kết quả Đơn xin nghỉ (@(Model.EmployeeNotifications?.Count ?? 0))</h6></li>
+                            @if (Model.EmployeeNotifications != null && Model.EmployeeNotifications.Count > 0)
+                            {
+                                foreach (var notif in Model.EmployeeNotifications)
                                 {
-                                    foreach (var notif in Model.EmployeeNotifications)
-                                    {
-                                        <li>
-                                            <form method="post" asp-page-handler="MarkNotificationRead">
-                                                <input type="hidden" name="notifId" value="@notif.Id" />
-                                                <input type="hidden" name="SelectedDate" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" />
-                                                <input type="hidden" name="ActiveTab" value="@Model.ActiveTab" />
-                                                <button type="submit" class="dropdown-item py-3 border-bottom text-start" style="white-space: normal;">
-                                                    <div class="d-flex align-items-start">
-                                                        <i class="bi bi-info-circle fs-4 @(notif.TrangThai == "Đã duyệt" ? "text-success" : "text-danger") me-3"></i>
-                                                        <div>
-                                                            <div class="fw-bold text-dark" style="font-size: 0.85rem;">Đơn nghỉ phép @notif.SoNgay ngày</div>
-                                                            <div class="text-muted mt-1" style="font-size: 0.75rem;">Kết quả: <strong class="@(notif.TrangThai == "Đã duyệt" ? "text-success" : "text-danger")">@notif.TrangThai</strong></div>
-                                                        </div>
+                                    <li>
+                                        <form method="post" asp-page-handler="MarkNotificationRead">
+                                            <input type="hidden" name="notifId" value="@notif.Id" />
+                                            <input type="hidden" name="SelectedDate" value="@Model.SelectedDate.Value.ToString("yyyy-MM-dd")" />
+                                            <input type="hidden" name="ActiveTab" value="@Model.ActiveTab" />
+                                            <button type="submit" class="dropdown-item py-3 border-bottom text-start" style="white-space: normal;">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="bi bi-info-circle fs-4 @(notif.TrangThai == "Đã duyệt" ? "text-success" : "text-danger") me-3"></i>
+                                                    <div>
+                                                        <div class="fw-bold text-dark" style="font-size: 0.85rem;">Đơn nghỉ phép @notif.SoNgay ngày</div>
+                                                        <div class="text-muted mt-1" style="font-size: 0.75rem;">Kết quả: <strong class="@(notif.TrangThai == "Đã duyệt" ? "text-success" : "text-danger")">@notif.TrangThai</strong></div>
                                                     </div>
-                                                </button>
-                                            </form>
-                                        </li>
-                                    }
-                                }
-                                else
-                                {
-                                    <li><div class="dropdown-item py-3 text-muted text-center" style="font-size: 0.85rem;">Không có thông báo mới</div></li>
+                                                </div>
+                                            </button>
+                                        </form>
+                                    </li>
                                 }
                             }
-                        </ul>
-                    </div>
-
-                    <div class="dropdown">
-                        <a href="#" class="user-account-btn" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> Xin chào, @Model.EmployeeName! <i class="bi bi-caret-down-fill" style="font-size: 0.7rem; color: #333;"></i>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end profile-dropdown-menu mt-2 shadow-sm border-0">
-                            <li>
-                                <a class="dropdown-item profile-dropdown-item text-dark" href="/QuanLyLichCaNhan/QuanLyLichCaNhan">
-                                    <i class="bi bi-calendar-check fs-6 text-muted"></i> Lịch làm việc
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item profile-dropdown-item text-dark" href="/QuanLySoDoPhong/QuanLyDSPhong">
-                                    <i class="bi bi-door-closed fs-6 text-muted"></i> Danh sách phòng
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider my-1 border-light"></li>
-                            <li>
-                                <a class="dropdown-item profile-dropdown-item text-danger fw-bold" href="?handler=Logout" onclick="return confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">
-                                    <i class="bi bi-box-arrow-right fs-6"></i> Đăng xuất
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-
-                </div>
-            }
+                            else
+                            {
+                                <li><div class="dropdown-item py-3 text-muted text-center" style="font-size: 0.85rem;">Không có thông báo mới</div></li>
+                            }
+                        }
+                    </ul>
+                </li>
+                <!-- DROPDOWN USER (Giống Layout) -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-dark fw-bold p-0 d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle text-warning me-1 fs-5"></i> Xin chào, @Model.EmployeeName!
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item py-2" href="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                        <li><a class="dropdown-item py-2" href="/QuanLySoDoPhong/QuanLyDSPhong"><i class="bi bi-door-open me-2"></i>Danh sách phòng</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger fw-bold py-2" href="?handler=Logout" onclick="return confirm('Bạn có chắc chắn muốn đăng xuất?');">
+                                <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
         </div>
     </nav>
 

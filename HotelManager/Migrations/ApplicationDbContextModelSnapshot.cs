@@ -698,6 +698,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("MaTrangThai")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<DateTime?>("ThoiGianDonVeSinh")
+                        .HasColumnType("datetime");
+
                     b.Property<string>("TrangThaiPhong")
                         .HasColumnType("nvarchar(50)");
 
