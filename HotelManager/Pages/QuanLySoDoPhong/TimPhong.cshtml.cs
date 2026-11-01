@@ -65,14 +65,18 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
             try
             {
-                // 1. Lấy danh sách phòng thỏa mãn tiêu chí Loại phòng và Sức chứa
+                // 1. Lấy danh sách phòng thỏa mãn tiêu chí Loại phòng, Sức chứa và KHÔNG BỊ KHÓA
                 var query = _context.PHONG.AsNoTracking().AsQueryable();
 
                 if (!string.IsNullOrEmpty(Input.LoaiPhongTimKiem) && Input.LoaiPhongTimKiem != "Tất cả")
                 {
                     query = query.Where(p => p.LoaiPhong == Input.LoaiPhongTimKiem);
                 }
+                
                 query = query.Where(p => p.SucChuaToiDa >= Input.SoKhach);
+                
+                // [FIX LỖI]: Lọc bỏ các phòng đang bị Khóa/Bảo trì (TT04)
+                query = query.Where(p => p.MaTrangThai != "TT04");
 
                 var rooms = await query.ToListAsync();
                 var result = new List<PhongHienThi>();

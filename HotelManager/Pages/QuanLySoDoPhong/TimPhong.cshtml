@@ -12,9 +12,15 @@
                 <div class="col-md-4 border-end">
                     <label class="form-label text-muted small mb-0">Nhận phòng - Trả phòng</label>
                     <div class="d-flex align-items-center">
-                        <input asp-for="Input.NgayNhan" type="date" class="form-control border-0 fw-bold shadow-none p-0" />
+                        <!-- Thêm thuộc tính min chặn ngày quá khứ -->
+                        <input asp-for="Input.NgayNhan" type="date" 
+                               min="@DateTime.Now.ToString("yyyy-MM-dd")" 
+                               class="form-control border-0 fw-bold shadow-none p-0" />
                         <span class="mx-2">—</span>
-                        <input asp-for="Input.NgayTra" type="date" class="form-control border-0 fw-bold shadow-none p-0" />
+                        <!-- Thêm thuộc tính min chặn ngày quá khứ (cộng thêm 1 ngày so với hiện tại) -->
+                        <input asp-for="Input.NgayTra" type="date" 
+                               min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" 
+                               class="form-control border-0 fw-bold shadow-none p-0" />
                     </div>
                 </div>
 

@@ -83,11 +83,17 @@
                         <div class="row g-4 mb-4 pb-4 border-bottom">
                             <div class="col-md-6">
                                 <label asp-for="ThongTinDatPhong.NgayNhan" class="form-label fw-bold">Ngày nhận (Check-in) <span class="text-danger">*</span></label>
-                                <input asp-for="ThongTinDatPhong.NgayNhan" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control form-control-lg" required />
+                                <!-- Thêm thuộc tính min chặn ngày quá khứ -->
+                                <input asp-for="ThongTinDatPhong.NgayNhan" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" 
+                                       min="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" 
+                                       class="form-control form-control-lg" required />
                             </div>
                             <div class="col-md-6">
                                 <label asp-for="ThongTinDatPhong.NgayTra" class="form-label fw-bold">Ngày trả (Check-out) <span class="text-danger">*</span></label>
-                                <input asp-for="ThongTinDatPhong.NgayTra" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control form-control-lg" required />
+                                <!-- Thêm thuộc tính min chặn ngày quá khứ (cộng thêm 1 ngày so với hiện tại) -->
+                                <input asp-for="ThongTinDatPhong.NgayTra" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" 
+                                       min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-ddTHH:mm")" 
+                                       class="form-control form-control-lg" required />
                             </div>
                             <div class="col-md-6">
                                 <label asp-for="ThongTinDatPhong.SoLuongKhach" class="form-label fw-bold">Số lượng khách <span class="text-danger">*</span></label>
