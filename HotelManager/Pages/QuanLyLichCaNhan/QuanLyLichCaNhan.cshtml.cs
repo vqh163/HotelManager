@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using HotelManager.Data;
 using HotelManager.Models;
+using System.IO;
 
 namespace HotelManager.Pages.QuanLyLichCaNhan
 {
@@ -35,8 +36,6 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
 
         public List<ScheduleViewModel> MySchedules { get; set; } = new List<ScheduleViewModel>();
         public List<DON_XIN_NGHI> PendingRequests { get; set; } = new List<DON_XIN_NGHI>();
-
-        // MỚI: DANH SÁCH THÔNG BÁO CHO NHÂN VIÊN
         public List<DON_XIN_NGHI> EmployeeNotifications { get; set; } = new List<DON_XIN_NGHI>();
 
         public int DaysInMonth { get; set; }
@@ -112,15 +111,12 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
                 SelectedDate = refDate;
                 CurrentDate = new DateTime(refDate.Year, refDate.Month, 1);
 
-                // --- MỚI: PHÂN LUỒNG THÔNG BÁO CHUÔNG ---
                 if (IsManager)
                 {
-                    // Quản lý thấy đơn chờ duyệt
                     PendingRequests = DatabaseDonNghi.Where(x => x.TrangThai == "Chờ duyệt").OrderByDescending(x => x.NgayTao).ToList();
                 }
                 else
                 {
-                    // Nhân viên thấy kết quả duyệt đơn chưa đọc
                     EmployeeNotifications = DatabaseDonNghi.Where(x => x.TenNhanVien == EmployeeName && x.TrangThai != "Chờ duyệt" && !x.IsReadByEmployee).OrderByDescending(x => x.NgayTao).ToList();
                 }
 
@@ -177,30 +173,33 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
                 DaysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
                 StartDayOfWeek = CurrentDate.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)CurrentDate.DayOfWeek - 1;
 
-                // ============================================
-                // LẤY DANH SÁCH NHÂN VIÊN THỰC TẾ TỪ CSDL
-                // ============================================
-                var dsNhanVienDB = await _context.TAI_KHOAN
-                    .Where(x => x.VaiTro != "Khách hàng" && x.VaiTro != "Quản trị viên") // Chỉ lấy nhân viên, bỏ qua khách hàng và Admin
-                    .Select(x => new
+                var danhSachNhanVienDB = await _context.NHAN_VIEN.AsNoTracking().ToListAsync();
+
+                var cacheChucVu = new Dictionary<string, string>();
+                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "nhanvien_meta.txt");
+                if (System.IO.File.Exists(filePath))
+                {
+                    var lines = System.IO.File.ReadAllLines(filePath);
+                    foreach (var line in lines)
                     {
-                        MaNV = x.MaTaiKhoan,      // Lấy mã tài khoản
-                        HoTen = x.TenDangNhap,    // Dùng tên đăng nhập làm tên hiển thị
-                        ChucVu = x.VaiTro         // Dùng cột VaiTro làm chức vụ phân ca
-                    })
-                    .ToListAsync();
+                        var parts = line.Split('|');
+                        if (parts.Length >= 2)
+                        {
+                            cacheChucVu[parts[0]] = parts[1];
+                        }
+                    }
+                }
 
-                // Gom nhóm nhân viên theo từng chức vụ
-                var groupedEmployees = dsNhanVienDB
-                    .GroupBy(x => !string.IsNullOrEmpty(x.ChucVu) ? x.ChucVu : "Chưa phân công")
+                var employeeList = danhSachNhanVienDB.Select(nv => new
+                {
+                    MaNV = nv.MaNV,
+                    HoTen = nv.HoTen,
+                    ChucVu = cacheChucVu.ContainsKey(nv.MaNV) ? cacheChucVu[nv.MaNV] : "Nhân viên (Mặc định)"
+                }).ToList();
+
+                var groupedEmployees = employeeList
+                    .GroupBy(x => x.ChucVu)
                     .ToDictionary(g => g.Key, g => g.Select(nv => new { id = nv.MaNV, name = nv.HoTen }).ToList());
-
-                // Lấy danh sách chức vụ tự động để hiển thị ở Dropdown Lọc và Giao việc
-                DanhSachChucVu = groupedEmployees.Keys.OrderBy(k => k).ToList();
-
-                // Chuyển dữ liệu sang JSON để Javascript ở file .cshtml đọc
-                EmployeeDataJson = JsonSerializer.Serialize(groupedEmployees);
-
                 EmployeeDataJson = JsonSerializer.Serialize(groupedEmployees);
 
                 return Page();
@@ -316,7 +315,6 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"], ActiveTab = Request.Form["ActiveTab"] });
         }
 
-        // --- MỚI: HÀM ĐÁNH DẤU NHÂN VIÊN ĐÃ ĐỌC THÔNG BÁO ---
         public IActionResult OnPostMarkNotificationRead(int notifId)
         {
             var don = DatabaseDonNghi.FirstOrDefault(x => x.Id == notifId);
@@ -340,8 +338,6 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         public string LyDo { get; set; } = string.Empty;
         public string TrangThai { get; set; } = "Chờ duyệt";
         public DateTime NgayTao { get; set; } = DateTime.Now;
-
-        // Cờ đánh dấu để đếm thông báo cho nhân viên
         public bool IsReadByEmployee { get; set; } = false;
     }
 }
