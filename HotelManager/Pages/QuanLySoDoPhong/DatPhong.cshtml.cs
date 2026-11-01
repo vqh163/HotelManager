@@ -121,6 +121,14 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 DateTime requestedIn = ThongTinDatPhong.NgayNhan.Value.Date;
                 DateTime requestedOut = ThongTinDatPhong.NgayTra.Value.Date;
 
+                // CHẶN ĐẶT PHÒNG TRONG QUÁ KHỨ
+                if (requestedIn < DateTime.Now.Date)
+                {
+                    PhongDuocChon = phong;
+                    ModelState.AddModelError(string.Empty, "Không thể đặt phòng cho những ngày đã qua trong quá khứ!");
+                    return Page();
+                }
+
                 bool isDoubleBooked = await (from dp in _context.DAT_PHONG
                                              join ct in _context.CHI_TIET_DAT_PHONG on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
                                              where ct.PHONGMaPhong == phong.MaPhong
