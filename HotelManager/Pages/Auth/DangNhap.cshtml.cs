@@ -110,6 +110,8 @@ namespace HotelManager.Pages.Auth
                     case "Quản lý": return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
                     case "Lễ tân": return RedirectToPage("/QuanLyTienSanh/Index");
                     case "Khách hàng": return RedirectToPage("/QuanLySoDoPhong/TimPhong");
+                    case "Đầu bếp": return RedirectToPage("/QuanLyNhaHang/QuanLyThucDon");
+                    case "Phục vụ Nhà hàng": return RedirectToPage("/QuanLyNhaHang/SoDoBan");
                     default: return RedirectToPage("/Index");
                 }
             }
