@@ -138,15 +138,14 @@ public async Task<IActionResult> OnPostAsync(string id)
                 DateTime requestedIn = ThongTinDatPhong.NgayNhan.Value.Date;
                 DateTime requestedOut = ThongTinDatPhong.NgayTra.Value.Date;
 
-                if (requestedIn < today)
+                // CHẶN ĐẶT PHÒNG TRONG QUÁ KHỨ
+                if (requestedIn < DateTime.Now.Date)
                 {
-                    ModelState.AddModelError(string.Empty, "Lỗi: Ngày nhận phòng không được chọn trong quá khứ.");
+                    PhongDuocChon = phong;
+                    ModelState.AddModelError(string.Empty, "Không thể đặt phòng cho những ngày đã qua trong quá khứ!");
                     return Page();
                 }
 
-                // =================================================================
-                // LỚP PHÒNG THỦ 2: KIỂM TRA OVERLAP DATE (Chống Double-Booking)
-                // =================================================================
                 bool isDoubleBooked = await (from dp in _context.DAT_PHONG
                                              join ct in _context.CHI_TIET_DAT_PHONG on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
                                              where ct.PHONGMaPhong == phong.MaPhong
