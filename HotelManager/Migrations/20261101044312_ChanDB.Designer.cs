@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261018062038_DB")]
-    partial class DB
+    [Migration("20261101044312_ChanDB")]
+    partial class ChanDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -35,6 +35,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("TenBan")
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TenKhachDat")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TrangThai")
                         .HasColumnType("nvarchar(50)");
@@ -338,6 +341,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("DAT_PHONGMaDatPhong")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<string>("DanhSachMonJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("GiamGia")
                         .HasColumnType("decimal(18,2)");
@@ -700,6 +706,9 @@ namespace HotelManager.Migrations
                 {
                     b.Property<string>("MaTrangThai")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("ThoiGianDonVeSinh")
+                        .HasColumnType("datetime");
 
                     b.Property<string>("TrangThaiPhong")
                         .HasColumnType("nvarchar(50)");

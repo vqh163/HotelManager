@@ -41,6 +41,7 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         public int DaysInMonth { get; set; }
         public int StartDayOfWeek { get; set; }
 
+        public List<string> DanhSachChucVu { get; set; } = new List<string>();
         public class ScheduleViewModel
         {
             public string MaLich { get; set; } = string.Empty;
@@ -199,7 +200,6 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
                 var groupedEmployees = employeeList
                     .GroupBy(x => x.ChucVu)
                     .ToDictionary(g => g.Key, g => g.Select(nv => new { id = nv.MaNV, name = nv.HoTen }).ToList());
-
                 EmployeeDataJson = JsonSerializer.Serialize(groupedEmployees);
 
                 return Page();

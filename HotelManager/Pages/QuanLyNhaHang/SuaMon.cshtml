@@ -5,37 +5,44 @@
 }
 
 <style>
-    .bg-brand-yellow { background-color: #f39c12 !important; color: #fff !important; }
-    #imagePreview { max-width: 100%; max-height: 250px; border-radius: 12px; margin-top: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .bg-brand-yellow {
+        background-color: #f39c12 !important;
+        color: #fff !important;
+    }
+
+    #imagePreview {
+        max-width: 100%;
+        max-height: 250px;
+        border-radius: 12px;
+        margin-top: 10px;
+        object-fit: cover;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
 </style>
 
 <div class="container mt-5 mb-5">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
             <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
-                
                 <div class="card-header bg-brand-yellow text-center py-3 border-0">
                     <h4 class="mb-0 fw-bold text-uppercase">Chỉnh Sửa Thông Tin Món</h4>
                 </div>
-                
+
                 <div class="card-body p-4 bg-light">
                     <div asp-validation-summary="All" class="alert alert-danger mb-3 fw-bold" style="display: @(ModelState.IsValid ? "none" : "block")"></div>
 
                     <form method="post" enctype="multipart/form-data">
-                        <!-- Giữ lại thông tin ảnh cũ đề phòng người dùng không chọn ảnh mới -->
                         <input type="hidden" asp-for="MonInfo.HinhAnh" />
                         <input type="hidden" asp-for="MonInfo.MaDichVu" />
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Mã món (SKU)</label>
-                                <!-- Khóa trường này, không cho phép đổi Mã món để tránh lỗi CSDL -->
                                 <input class="form-control bg-e9ecef text-muted" value="@Model.MonInfo.MaDichVu" readonly />
                             </div>
-
                             <div class="col-md-6 mb-3">
                                 <label asp-for="MonInfo.TenDichVu" class="form-label fw-bold">Tên món ăn <span class="text-danger">*</span></label>
-                                <input asp-for="MonInfo.TenDichVu" class="form-control" placeholder="VD: Nước Cam Ép..." required />
+                                <input asp-for="MonInfo.TenDichVu" class="form-control" required />
                                 <span asp-validation-for="MonInfo.TenDichVu" class="text-danger small"></span>
                             </div>
                         </div>
@@ -51,12 +58,10 @@
                                 </select>
                                 <span asp-validation-for="MonInfo.LoaiDichVu" class="text-danger small"></span>
                             </div>
-
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Giá bán (VND) <span class="text-danger">*</span></label>
-                                <!-- Cập nhật giá tiền cũ lên giao diện -->
                                 <input type="text" id="DonGiaDisplay" class="form-control" value="@Model.MonInfo.DonGia.ToString("N0") VND" oninput="formatCurrency(this)" required />
-                                <input type="hidden" asp-for="MonInfo.DonGia" id="DonGiaActual" />
+                                <input type="hidden" asp-for="MonInfo.DonGia" id="DonGiaActual" value="@Model.MonInfo.DonGia" />
                                 <span asp-validation-for="MonInfo.DonGia" class="text-danger small"></span>
                             </div>
                         </div>
@@ -65,14 +70,16 @@
                             <label class="form-label fw-bold">Tải hình ảnh mới (Bỏ trống nếu muốn giữ ảnh cũ)</label>
                             <input type="file" asp-for="HinhAnhUpload" class="form-control" accept="image/*" id="imageInput" />
                             <div class="form-text">Khuyến nghị kích thước 600x400px, định dạng JPG/PNG.</div>
-                            
-                            <!-- Hiển thị ảnh cũ của món ăn từ CSDL -->
                             <img id="imagePreview" src="@(!string.IsNullOrEmpty(Model.MonInfo.HinhAnh) ? Model.MonInfo.HinhAnh : "https://via.placeholder.com/600x400?text=No+Image")" alt="Xem trước món ăn" style="display: block;" />
                         </div>
 
                         <div class="mb-4">
                             <label asp-for="MonInfo.MoTa" class="form-label fw-bold">Mô tả nguyên liệu / Hương vị</label>
-                            <textarea asp-for="MonInfo.MoTa" class="form-control" rows="3" placeholder="Ví dụ: Nước cam ép nguyên chất..."></textarea>
+                            <textarea asp-for="MonInfo.MoTa" class="form-control" rows="2" placeholder="Ví dụ: Nước cam ép nguyên chất..."></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label asp-for="MonInfo.LuuYDiUng" class="form-label fw-bold text-danger"><i class="bi bi-exclamation-triangle"></i> Lưu ý dị ứng</label>
+                            <textarea asp-for="MonInfo.LuuYDiUng" class="form-control border-danger" rows="2" placeholder="Ví dụ: Có chứa đậu phộng, sữa... (Bỏ trống nếu không có)"></textarea>
                         </div>
 
                         <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
@@ -91,8 +98,7 @@
 </div>
 
 <script>
-    // JS 1: Cập nhật Xem trước hình ảnh nếu người dùng chọn ảnh mới
-    document.getElementById('imageInput').addEventListener('change', function(event) {
+    document.getElementById('imageInput').addEventListener('change', function (event) {
         const [file] = event.target.files;
         const preview = document.getElementById('imagePreview');
         if (file) {
@@ -100,7 +106,6 @@
         }
     });
 
-    // JS 2: Format Giá Bán chuẩn VND
     function formatCurrency(input) {
         let rawValue = input.value.replace(/\D/g, '');
         if (rawValue === '') {
