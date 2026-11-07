@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization; // Bắt buộc thêm thư viện này để dùng [Authorize]
 using HotelManager.Data;
 using HotelManager.Models;
 using System;
@@ -12,6 +13,8 @@ using System.IO;
 
 namespace HotelManager.Pages.QuanLyNhanSu
 {
+    // YÊU CẦU 2: Phân quyền - Chỉ tài khoản có Role "Quản lý" mới được truy cập Page này
+    [Authorize(Roles = "Quản lý")]
     public class ThemNhanVienModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -57,10 +60,10 @@ namespace HotelManager.Pages.QuanLyNhanSu
 
         private async Task LoadDropdownChucVuAsync()
         {
-            string[] vaiTroLoaiBo = { "Khách hàng", "Giám đốc", "Quản lý", "Quản trị viên hệ thống", "Quản trị viên" };
-
+            // YÊU CẦU 1: Bỏ mảng vaiTroLoaiBo cũ, chỉ loại bỏ vai trò "Khách hàng"
+            // Giữ lại Quản trị viên hệ thống, Giám đốc, Quản lý để nạp vào Dropdown
             var chucVus = await _context.CHUC_VU
-                .Where(cv => !vaiTroLoaiBo.Contains(cv.TenChucVu))
+                .Where(cv => cv.TenChucVu != "Khách hàng")
                 .ToListAsync();
 
             DanhSachChucVu = new SelectList(chucVus, "MaChucVu", "TenChucVu");
