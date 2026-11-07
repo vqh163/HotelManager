@@ -90,62 +90,75 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             }
         }
 
-public async Task<IActionResult> OnPostAsync(string id)
+        public async Task<IActionResult> OnPostAsync(string id)
         {
             // Chặn người dùng chưa đăng nhập
-            if (User.Identity == null || !User.Identity.IsAuthenticated) return RedirectToPage("/Auth/DangNhap");
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+                return RedirectToPage("/Auth/DangNhap");
 
-            // ===== FIX LỖI VALIDATION ẨN =====
+            // Bỏ qua validation các trường hệ thống tự sinh
             ModelState.Remove("ThongTinDatPhong.MaDatPhong");
             ModelState.Remove("ThongTinDatPhong.TrangThaiDatPhong");
             ModelState.Remove("ThongTinDatPhong.KenhDatPhong");
             ModelState.Remove("ThongTinDatPhong.KHACH_HANGMaKH");
             ModelState.Remove("ThongTinDatPhong.NgayDat");
 
-            if (!ModelState.IsValid)
+            // Hàm phụ trợ tải lại thông tin phòng khi có lỗi Validation để không bị trắng cột trái trên View
+            async Task LoadRoomInfoAsync()
             {
                 var phongLoadLai = await _context.PHONG.AsNoTracking().FirstOrDefaultAsync(p => p.MaPhong == id);
                 if (phongLoadLai != null) PhongDuocChon = phongLoadLai;
+            }
 
+            if (!ModelState.IsValid)
+            {
+                await LoadRoomInfoAsync();
                 ModelState.AddModelError(string.Empty, "Vui lòng kiểm tra và điền đầy đủ các thông tin bắt buộc!");
                 return Page();
             }
 
+            if (!ThongTinDatPhong.NgayNhan.HasValue || !ThongTinDatPhong.NgayTra.HasValue)
+            {
+                await LoadRoomInfoAsync();
+                ModelState.AddModelError(string.Empty, "Vui lòng chọn đầy đủ Ngày nhận và Ngày trả phòng.");
+                return Page();
+            }
+
+            DateTime requestedIn = ThongTinDatPhong.NgayNhan.Value.Date.AddHours(14);
+            DateTime requestedOut = ThongTinDatPhong.NgayTra.Value.Date.AddHours(12);
+            DateTime today = DateTime.Now.Date;
+
+            // Kiểm tra logic ngày tháng ở Backend (Chống F12 Bypass)
+            if (requestedIn.Date < today)
+            {
+                await LoadRoomInfoAsync();
+                ModelState.AddModelError(string.Empty, "Lỗi: Ngày nhận phòng không được chọn trong quá khứ.");
+                return Page();
+            }
+
+            if (requestedOut.Date <= requestedIn.Date)
+            {
+                await LoadRoomInfoAsync();
+                ModelState.AddModelError(string.Empty, "Lỗi: Ngày trả phòng phải lớn hơn ngày nhận phòng ít nhất 1 ngày.");
+                return Page();
+            }
+
+            // BẮT ĐẦU TRANSACTION NGUYÊN TỬ (Đảm bảo tính toàn vẹn dữ liệu & chống Double-Booking)
+            using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             try
             {
                 var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == id);
                 if (phong == null) return NotFound();
 
-                // [FIX LỖI]: Chặn đặt phòng nếu phòng đang bị Khóa hoặc Bảo trì
+                // Chặn đặt phòng nếu phòng đang bị Khóa hoặc Bảo trì (TT04)
                 if (phong.MaTrangThai == "TT04")
                 {
+                    await LoadRoomInfoAsync();
                     ModelState.AddModelError(string.Empty, "Phòng này hiện đang được bảo trì hoặc bị khóa. Vui lòng chọn phòng khác.");
                     return Page();
                 }
 
-                // =================================================================
-                // LỚP PHÒNG THỦ 1: KIỂM TRA NGÀY THÁNG HỢP LỆ (Chống F12 bypass)
-                // =================================================================
-                // [FIX LỖI CS0103]: Khai báo biến today và kiểm tra HasValue để tránh lỗi CS8602
-                DateTime today = DateTime.Now.Date;
-
-                if (!ThongTinDatPhong.NgayNhan.HasValue || !ThongTinDatPhong.NgayTra.HasValue)
-                {
-                    ModelState.AddModelError(string.Empty, "Lỗi: Bạn phải chọn Ngày nhận và Ngày trả.");
-                    return Page();
-                }
-
-                DateTime requestedIn = ThongTinDatPhong.NgayNhan.Value.Date;
-                DateTime requestedOut = ThongTinDatPhong.NgayTra.Value.Date;
-
-                // CHẶN ĐẶT PHÒNG TRONG QUÁ KHỨ
-                if (requestedIn < DateTime.Now.Date)
-                {
-                    PhongDuocChon = phong;
-                    ModelState.AddModelError(string.Empty, "Không thể đặt phòng cho những ngày đã qua trong quá khứ!");
-                    return Page();
-                }
-
+                // Kiểm tra Overlap Date ngay bên trong Transaction
                 bool isDoubleBooked = await (from dp in _context.DAT_PHONG
                                              join ct in _context.CHI_TIET_DAT_PHONG on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
                                              where ct.PHONGMaPhong == phong.MaPhong
@@ -158,92 +171,75 @@ public async Task<IActionResult> OnPostAsync(string id)
 
                 if (isDoubleBooked)
                 {
-                    ModelState.AddModelError(string.Empty, "Phòng này vừa được đặt trong khoảng thời gian trên. Vui lòng chọn ngày khác.");
+                    await LoadRoomInfoAsync();
+                    ModelState.AddModelError(string.Empty, "Phòng này vừa có người đặt trong khoảng thời gian bạn chọn. Vui lòng chọn ngày khác.");
                     return Page();
                 }
 
-                // =================================================================
-                // XỬ LÝ ĐỒNG BỘ HỒ SƠ KHÁCH HÀNG O2O (UC_03 & UC_05)
-                // =================================================================
-                // ... (GIỮ NGUYÊN TOÀN BỘ ĐOẠN CODE ĐỒNG BỘ O2O VÀ LƯU DATABASE TỪ ĐÂY TRỞ XUỐNG) ...
+                // Sinh chuỗi ngẫu nhiên 6 ký tự bảo mật (Chống trùng lặp PK và chống đoán mã đặt phòng)
+                string randomSuffix = Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper();
+                string timestampPrefix = DateTime.Now.ToString("yyMMdd");
 
-                // =================================================================
-                // XỬ LÝ ĐỒNG BỘ HỒ SƠ KHÁCH HÀNG O2O (UC_03 & UC_05)
-                // =================================================================
+                // Đồng bộ hồ sơ khách hàng O2O (UC_03 & UC_05)
                 string maKhachHangChot = string.Empty;
                 var tenDangNhap = User.Identity.Name;
                 var taiKhoanDangNhap = await _context.TAI_KHOAN.AsNoTracking().FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap);
+                bool isStaffBooking = taiKhoanDangNhap != null && (taiKhoanDangNhap.VaiTro == "Lễ tân" || taiKhoanDangNhap.VaiTro == "Quản lý" || taiKhoanDangNhap.VaiTro == "Sales");
 
-                if (taiKhoanDangNhap != null)
+                if (isStaffBooking)
                 {
-                    // Lễ tân / Quản lý đặt hộ khách tại quầy
-                    if (taiKhoanDangNhap.VaiTro == "Lễ tân" || taiKhoanDangNhap.VaiTro == "Quản lý")
+                    var khachHangCu = await _context.KHACH_HANG.FirstOrDefaultAsync(k => k.SDT == SDTKhach);
+                    if (khachHangCu != null)
                     {
-                        // Kiểm tra xem SDT khách đã có trong CSDL chưa
-                        var khachHangCu = await _context.KHACH_HANG.FirstOrDefaultAsync(k => k.SDT == SDTKhach);
-                        if (khachHangCu != null)
-                        {
-                            // Khách quen -> Tái sử dụng MaKH để đồng bộ lịch sử
-                            maKhachHangChot = khachHangCu.MaKH;
-                            khachHangCu.HoTen = HoTenKhach;
-                            khachHangCu.Email = EmailKhach;
-                            _context.KHACH_HANG.Update(khachHangCu);
-                        }
-                        else
-                        {
-                            // Khách mới -> Tạo hồ sơ mới
-                            maKhachHangChot = "KH" + DateTime.Now.ToString("yyyyMMddHHmmss");
-                            var khachHangMoi = new KHACH_HANG
-                            {
-                                MaKH = maKhachHangChot,
-                                HoTen = HoTenKhach,
-                                SDT = SDTKhach,
-                                Email = EmailKhach,
-                                HangThanhVien = "Thành viên mới",
-                                DiemThuong = 0
-                            };
-                            _context.KHACH_HANG.Add(khachHangMoi);
-                        }
+                        maKhachHangChot = khachHangCu.MaKH;
+                        khachHangCu.HoTen = HoTenKhach;
+                        khachHangCu.Email = EmailKhach;
+                        _context.KHACH_HANG.Update(khachHangCu);
                     }
-                    else // Khách hàng tự đặt trên Web
+                    else
                     {
-                        if (!string.IsNullOrEmpty(taiKhoanDangNhap.KHACH_HANGMaKH))
+                        maKhachHangChot = $"KH{timestampPrefix}{randomSuffix}";
+                        var khachHangMoi = new KHACH_HANG
                         {
-                            maKhachHangChot = taiKhoanDangNhap.KHACH_HANGMaKH;
-                            var khUpdate = await _context.KHACH_HANG.FirstOrDefaultAsync(k => k.MaKH == maKhachHangChot);
-                            if (khUpdate != null)
-                            {
-                                khUpdate.HoTen = HoTenKhach;
-                                khUpdate.SDT = SDTKhach;
-                                khUpdate.Email = EmailKhach;
-                                _context.KHACH_HANG.Update(khUpdate);
-                            }
-                        }
+                            MaKH = maKhachHangChot,
+                            HoTen = HoTenKhach,
+                            SDT = SDTKhach,
+                            Email = EmailKhach,
+                            HangThanhVien = "Thành viên mới",
+                            DiemThuong = 0
+                        };
+                        _context.KHACH_HANG.Add(khachHangMoi);
+                    }
+                }
+                else if (taiKhoanDangNhap != null && !string.IsNullOrEmpty(taiKhoanDangNhap.KHACH_HANGMaKH))
+                {
+                    maKhachHangChot = taiKhoanDangNhap.KHACH_HANGMaKH;
+                    var khUpdate = await _context.KHACH_HANG.FirstOrDefaultAsync(k => k.MaKH == maKhachHangChot);
+                    if (khUpdate != null)
+                    {
+                        khUpdate.HoTen = HoTenKhach;
+                        khUpdate.SDT = SDTKhach;
+                        khUpdate.Email = EmailKhach;
+                        _context.KHACH_HANG.Update(khUpdate);
                     }
                 }
 
-                // Gắn mã khách hàng vừa chốt vào phiếu đặt phòng
+                // Khởi tạo thông tin phiếu đặt phòng với mã khó đoán (Tổng 14 ký tự, vừa khít VARCHAR(20))
+                ThongTinDatPhong.MaDatPhong = $"DP{timestampPrefix}{randomSuffix}";
                 ThongTinDatPhong.KHACH_HANGMaKH = maKhachHangChot;
-                ThongTinDatPhong.MaDatPhong = "DP" + DateTime.Now.ToString("yyyyMMddHHmmss");
                 ThongTinDatPhong.NgayDat = DateTime.Now;
-                ThongTinDatPhong.TrangThaiDatPhong = "Chờ xác nhận";
-                
-                // Lưu vết Kênh đặt phòng để phục vụ báo cáo doanh thu UC_12
-                ThongTinDatPhong.KenhDatPhong = (taiKhoanDangNhap?.VaiTro == "Lễ tân" || taiKhoanDangNhap?.VaiTro == "Quản lý") ? "Trực tiếp tại quầy" : "Website Trực tuyến";
+                ThongTinDatPhong.NgayNhan = requestedIn;
+                ThongTinDatPhong.NgayTra = requestedOut;
+                ThongTinDatPhong.TrangThaiDatPhong = isStaffBooking ? "Đã xác nhận" : "Chờ xác nhận";
+                ThongTinDatPhong.KenhDatPhong = isStaffBooking ? "Trực tiếp tại quầy" : "Website Trực tuyến";
 
-                // Tính toán số ngày ở
-                int soNgayO = 1;
-                if (ThongTinDatPhong.NgayTra.HasValue && ThongTinDatPhong.NgayNhan.HasValue)
-                {
-                    soNgayO = (ThongTinDatPhong.NgayTra.Value.Date - ThongTinDatPhong.NgayNhan.Value.Date).Days;
-                }
-                if (soNgayO <= 0) soNgayO = 1;
+                int soNgayO = Math.Max(1, (requestedOut.Date - requestedIn.Date).Days);
 
                 _context.DAT_PHONG.Add(ThongTinDatPhong);
 
                 var chiTiet = new CHI_TIET_DAT_PHONG
                 {
-                    MaChiTietDatPhong = "CT" + ThongTinDatPhong.MaDatPhong,
+                    MaChiTietDatPhong = $"CT{timestampPrefix}{randomSuffix}",
                     DAT_PHONGMaDatPhong = ThongTinDatPhong.MaDatPhong,
                     PHONGMaPhong = phong.MaPhong,
                     DonGia = phong.GiaTheoNgay,
@@ -251,17 +247,23 @@ public async Task<IActionResult> OnPostAsync(string id)
                 };
                 _context.CHI_TIET_DAT_PHONG.Add(chiTiet);
 
-                phong.MaTrangThai = "TT02"; // Chuyển phòng sang trạng thái Đã đặt
-                _context.PHONG.Update(phong);
+                // CHỈ đổi trạng thái vật lý của phòng sang TT02 nếu ngày nhận phòng là NGAY HÔM NAY
+                if (requestedIn.Date == today)
+                {
+                    phong.MaTrangThai = "TT02";
+                    _context.PHONG.Update(phong);
+                }
 
-                // Lưu toàn bộ Transaction vào CSDL
                 await _context.SaveChangesAsync();
-                
+                await transaction.CommitAsync(); // Chốt giao dịch thành công
+
                 return RedirectToPage("./XacNhanDatPhong", new { maDatPhong = ThongTinDatPhong.MaDatPhong });
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi: " + ex.Message);
+                await transaction.RollbackAsync(); // Hoàn tác toàn bộ nếu có bất kỳ lỗi nào xảy ra
+                await LoadRoomInfoAsync();
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi xử lý giao dịch: " + ex.Message);
                 return Page();
             }
         }

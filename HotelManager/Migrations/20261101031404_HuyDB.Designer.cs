@@ -12,15 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261023043226_DB1")]
-    partial class DB1
+    [Migration("20261101031404_HuyDB")]
+    partial class HuyDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -35,6 +35,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("TenBan")
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TenKhachDat")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TrangThai")
                         .HasColumnType("nvarchar(50)");
@@ -338,6 +341,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("DAT_PHONGMaDatPhong")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<string>("DanhSachMonJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("GiamGia")
                         .HasColumnType("decimal(18,2)");
