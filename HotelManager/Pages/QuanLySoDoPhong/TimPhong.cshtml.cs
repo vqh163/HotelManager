@@ -57,54 +57,59 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (Input.NgayNhan >= Input.NgayTra)
+            // Kiểm tra tính hợp lệ của ngày nhận và ngày trả
+            if (Input.NgayNhan.Date < DateTime.Now.Date)
             {
-                ModelState.AddModelError(string.Empty, "Ngày trả phòng phải lớn hơn ngày nhận phòng.");
+                ModelState.AddModelError(string.Empty, "Lỗi: Ngày nhận phòng không được chọn trong quá khứ.");
+                return Page();
+            }
+
+            if (Input.NgayNhan.Date >= Input.NgayTra.Date)
+            {
+                ModelState.AddModelError(string.Empty, "Lỗi: Ngày trả phòng phải lớn hơn ngày nhận phòng ít nhất 1 ngày.");
                 return Page();
             }
 
             try
             {
-                // 1. Lấy danh sách phòng thỏa mãn tiêu chí Loại phòng, Sức chứa và KHÔNG BỊ KHÓA
-                var query = _context.PHONG.AsNoTracking().AsQueryable();
+                DateTime requestedIn = Input.NgayNhan.Date.AddHours(14);  // Giờ check-in tiêu chuẩn 14:00
+                DateTime requestedOut = Input.NgayTra.Date.AddHours(12); // Giờ check-out tiêu chuẩn 12:00
+
+                // 1. Truy vấn danh sách phòng thỏa mãn tiêu chí và KHÔNG bị khóa bảo trì (TT04)
+                var query = _context.PHONG.AsNoTracking()
+                                          .Where(p => p.MaTrangThai != "TT04" && p.SucChuaToiDa >= Input.SoKhach);
 
                 if (!string.IsNullOrEmpty(Input.LoaiPhongTimKiem) && Input.LoaiPhongTimKiem != "Tất cả")
                 {
                     query = query.Where(p => p.LoaiPhong == Input.LoaiPhongTimKiem);
                 }
-                
-                query = query.Where(p => p.SucChuaToiDa >= Input.SoKhach);
-                
-                // [FIX LỖI]: Lọc bỏ các phòng đang bị Khóa/Bảo trì (TT04)
-                query = query.Where(p => p.MaTrangThai != "TT04");
 
-                var rooms = await query.ToListAsync();
-                var result = new List<PhongHienThi>();
+                var rooms = await query.OrderBy(p => p.SoPhong).ToListAsync();
 
-                DateTime requestedIn = Input.NgayNhan.Date;
-                DateTime requestedOut = Input.NgayTra.Date;
-
-                // 2. Thuật toán kiểm tra tình trạng phòng trống (Availability Check)
-                foreach (var r in rooms)
-                {
-                    // Truy vấn kiểm tra xem phòng này có bất kỳ đơn đặt phòng nào "Giao thoa" thời gian không
-                    bool isBooked = await (from dp in _context.DAT_PHONG
-                                           join ct in _context.CHI_TIET_DAT_PHONG on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
-                                           where ct.PHONGMaPhong == r.MaPhong
-                                              // Bỏ qua các phiếu đã hủy hoặc đã hoàn tất/check-out
-                                              && dp.TrangThaiDatPhong != "Đã hủy"
+                // 2. [TỐI ƯU HIỆU NĂNG - CHỐNG LỖI N+1 QUERY]:
+                // Chỉ dùng 1 câu truy vấn LINQ duy nhất để lấy toàn bộ Mã Phòng đã bị đặt trùng lịch
+                var bookedRoomIds = await (from dp in _context.DAT_PHONG.AsNoTracking()
+                                           join ct in _context.CHI_TIET_DAT_PHONG.AsNoTracking()
+                                                on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
+                                           where dp.TrangThaiDatPhong != "Đã hủy"
                                               && dp.TrangThaiDatPhong != "Đã check-out"
                                               && dp.TrangThaiDatPhong != "Đã hoàn tất"
-                                              // Thuật toán giao thoa thời gian (Overlap)
                                               && dp.NgayNhan < requestedOut
                                               && dp.NgayTra > requestedIn
-                                           select dp.MaDatPhong).AnyAsync();
+                                           select ct.PHONGMaPhong)
+                                           .Distinct()
+                                           .ToListAsync();
 
-                    // Nếu isBooked = true tức là phòng đã bị đặt trong khoảng ngày đó -> IsAvailable = false
-                    result.Add(new PhongHienThi { PhongInfo = r, IsAvailable = !isBooked });
-                }
+                // Đưa vào HashSet để tra cứu O(1) siêu tốc trên RAM
+                var bookedSet = new HashSet<string>(bookedRoomIds);
 
-                DanhSachPhong = result;
+                // 3. Ánh xạ kết quả ra ViewModel mà không cần gọi lại Database
+                DanhSachPhong = rooms.Select(r => new PhongHienThi
+                {
+                    PhongInfo = r,
+                    IsAvailable = !bookedSet.Contains(r.MaPhong)
+                }).ToList();
+
                 return Page();
             }
             catch (Exception ex)
