@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization; // Bắt buộc thêm thư viện này để dùng phân quyền
 using HotelManager.Data;
 using HotelManager.Models;
 using System;
@@ -11,6 +12,8 @@ using System.Security.Claims;
 
 namespace HotelManager.Pages.QuanLyNhanSu
 {
+    // 🛡️ BẢO MẬT: Chặn truy cập toàn bộ trang này nếu User không có Role là "Quản lý"
+    [Authorize(Roles = "Quản lý")]
     public class SuaThongTinModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -20,15 +23,12 @@ namespace HotelManager.Pages.QuanLyNhanSu
             _context = context;
         }
 
-        // Binding thông tin nhân viên để map với form HTML
         [BindProperty]
         public NHAN_VIEN Input { get; set; } = default!;
 
-        // Thuộc tính nhận giá trị mã chức vụ người dùng chọn từ thẻ <select>
         [BindProperty]
         public string MaChucVuSelected { get; set; } = string.Empty;
 
-        // Tập dữ liệu đổ vào thẻ <select> chức vụ
         public SelectList DanhSachChucVuSelectList { get; set; } = default!;
 
         public string ThongBaoLoi { get; set; } = string.Empty;
@@ -40,11 +40,9 @@ namespace HotelManager.Pages.QuanLyNhanSu
 
         private async Task LoadDropdownChucVuAsync()
         {
-            // TECH LEAD: Lọc bỏ các chức vụ quản lý cấp cao và khách hàng
-            string[] vaiTroLoaiBo = { "Khách hàng", "Giám đốc", "Quản lý", "Quản trị viên hệ thống", "Quản trị viên" };
-
+            // MỞ KHÓA: Chỉ lọc bỏ vai trò "Khách hàng", giữ lại Quản lý, Giám đốc, Quản trị viên
             var chucVus = await _context.CHUC_VU
-                .Where(cv => !vaiTroLoaiBo.Contains(cv.TenChucVu))
+                .Where(cv => cv.TenChucVu != "Khách hàng")
                 .ToListAsync();
 
             DanhSachChucVuSelectList = new SelectList(chucVus, "MaChucVu", "TenChucVu", MaChucVuSelected);
@@ -52,26 +50,17 @@ namespace HotelManager.Pages.QuanLyNhanSu
 
         public async Task<IActionResult> OnGetAsync(string id)
         {
-            // 🛡️ BẢO MẬT: Chặn truy cập nếu không phải Quản lý
-            if (User.Identity == null || !User.Identity.IsAuthenticated) return RedirectToPage("/Auth/DangNhap");
-            var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
-            string employeeRole = roleClaim != null ? roleClaim.Value : "Nhân viên";
-            IsManager = employeeRole == "Quản lý" || employeeRole == "Trưởng bộ phận" || User.IsInRole("Quản lý");
-
-            if (!IsManager)
-            {
-                TempData["ThongBaoLoi"] = "Truy cập bị từ chối! Chỉ Quản lý mới có quyền chỉnh sửa nhân sự.";
-                return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
-            }
-
             if (string.IsNullOrEmpty(id))
             {
                 return NotFound();
             }
 
+            // Đã đi qua được [Authorize] thì chắc chắn là Quản lý
+            IsManager = User.IsInRole("Quản lý");
+
             try
             {
-                // Dùng LINQ truy vấn thông tin nhân viên theo mã
+                // Truy vấn bằng LINQ
                 var nhanVien = await _context.NHAN_VIEN.FirstOrDefaultAsync(n => n.MaNV == id);
                 if (nhanVien == null)
                 {
@@ -80,7 +69,7 @@ namespace HotelManager.Pages.QuanLyNhanSu
 
                 Input = nhanVien;
 
-                // Nạp danh sách Dropdown (đã qua bộ lọc loại trừ Giám đốc, Quản lý)
+                // Map dữ liệu chức danh của nhân viên (giả định dùng chung bảng hoặc logic riêng, ở đây ta load dropdown)
                 await LoadDropdownChucVuAsync();
             }
             catch (Exception ex)
@@ -93,26 +82,15 @@ namespace HotelManager.Pages.QuanLyNhanSu
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // 🛡️ BẢO MẬT: Chặn POST nếu không đủ quyền
-            if (User.Identity == null || !User.Identity.IsAuthenticated) return RedirectToPage("/Auth/DangNhap");
-            var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
-            string employeeRole = roleClaim != null ? roleClaim.Value : "Nhân viên";
-            if (employeeRole != "Quản lý" && employeeRole != "Trưởng bộ phận" && !User.IsInRole("Quản lý"))
-            {
-                TempData["ThongBaoLoi"] = "Truy cập bị từ chối! Không đủ quyền thao tác.";
-                return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
-            }
-
             try
             {
-                // Dùng LINQ tìm bản ghi cũ trong cơ sở dữ liệu
                 var nhanVienDb = await _context.NHAN_VIEN.FirstOrDefaultAsync(n => n.MaNV == Input.MaNV);
                 if (nhanVienDb == null)
                 {
                     return NotFound();
                 }
 
-                // Gán lại các giá trị mới từ form
+                // Cập nhật các trường thông tin
                 nhanVienDb.HoTen = Input.HoTen;
                 nhanVienDb.SoCCCD = Input.SoCCCD;
                 nhanVienDb.GioiTinh = Input.GioiTinh;
@@ -121,7 +99,8 @@ namespace HotelManager.Pages.QuanLyNhanSu
                 nhanVienDb.Email = Input.Email;
                 nhanVienDb.NgayVaoLam = Input.NgayVaoLam;
 
-                // Đánh dấu Entity bị chỉnh sửa và lưu vào CSDL
+                // (Nếu Model của em có lưu MaChucVu trong bảng NHAN_VIEN, em sẽ gán thêm: nhanVienDb.MaChucVu = MaChucVuSelected;)
+
                 _context.Attach(nhanVienDb).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
@@ -130,10 +109,7 @@ namespace HotelManager.Pages.QuanLyNhanSu
             }
             catch (Exception ex)
             {
-                // Bắt lỗi an toàn và hiển thị thông báo
                 ThongBaoLoi = "Lỗi khi lưu cập nhật thông tin: " + ex.Message;
-
-                // Load lại Dropdown chức vụ khi trả về form
                 await LoadDropdownChucVuAsync();
                 return Page();
             }
