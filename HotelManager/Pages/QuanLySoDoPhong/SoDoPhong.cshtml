@@ -6,22 +6,32 @@
 }
 
 <div class="container-fluid py-3">
-    <!-- TIÊU ĐỀ & ĐỒNG HỒ THỜI GIAN THỰC -->
+    <!-- TIÊU ĐỀ, ĐỒNG HỒ THỜI GIAN THỰC & NÚT ĐIỀU HƯỚNG SANG TIỀN SẢNH (UC_04) -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
         <div>
             <h3 class="fw-bold text-primary mb-1">
                 <i class="bi bi-grid-3x3-gap-fill me-2"></i>SƠ ĐỒ PHÒNG TỔNG QUAN
             </h3>
-            <p class="text-muted small mb-0">Quản lý trạng thái phòng, Định danh CCCD/Hộ chiếu & Check-in/Check-out theo thời gian thực</p>
+            <p class="text-muted small mb-0">Quản lý trạng thái phòng, Định danh CCCD/Hộ chiếu, Chuyển quyền đại diện & Check-in/Check-out</p>
         </div>
 
-        <div class="d-flex align-items-center gap-3 bg-white border border-primary border-opacity-25 px-4 py-2 rounded-3 shadow-sm">
-            <i class="bi bi-clock-fill text-primary fs-3"></i>
-            <div class="text-end">
-                <span class="text-muted d-block" style="font-size: 0.75rem;">THỜI GIAN THỰC HỆ THỐNG</span>
-                <div class="fw-bold text-dark" id="live-date-display" style="font-size: 0.9rem;">--/--/----</div>
-                <div class="fw-bold text-primary font-monospace" id="live-time-display" style="font-size: 1.2rem;">--:--:--</div>
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3 bg-white border border-primary border-opacity-25 px-4 py-2 rounded-3 shadow-sm">
+                <i class="bi bi-clock-fill text-primary fs-3"></i>
+                <div class="text-end">
+                    <span class="text-muted d-block" style="font-size: 0.75rem;">THỜI GIAN THỰC HỆ THỐNG</span>
+                    <div class="fw-bold text-dark" id="live-date-display" style="font-size: 0.9rem;">--/--/----</div>
+                    <div class="fw-bold text-primary font-monospace" id="live-time-display" style="font-size: 1.2rem;">--:--:--</div>
+                </div>
             </div>
+
+            @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý"))
+            {
+                <a asp-page="/QuanLyTienSanh/Index" class="btn btn-primary fw-bold shadow-sm px-4 py-2 d-flex align-items-center gap-2 rounded-3">
+                    <i class="bi bi-display fs-5"></i>
+                    <span>Tiền sảnh</span>
+                </a>
+            }
         </div>
     </div>
 
@@ -102,45 +112,55 @@
                 <div class="col">
                     <div class="card text-white @bgClass shadow-sm h-100 position-relative"
                          style="cursor: pointer; transition: 0.2s;"
+                         data-maphong="@room.MaPhong"
                          data-occupants="@room.DanhSachKhachJson"
+                         data-giaphong="@room.GiaDangApDung"
                          onclick="showRoomDetails(
-                             this,
-                             '@room.MaPhong',
-                             '@room.SoPhong',
-                             '@room.LoaiPhong',
-                             '@room.SoGiuong',
-                             '@room.SucChuaToiDa',
-                             '@room.TrangThaiPhong',
-                             '@room.TrangThaiVeSinh',
-                             '@(room.TenKhachHang)',
-                             '@(room.SDTKhachHang)',
-                             '@(room.GhiChuKhachHang)',
-                             '@(room.NgayNhan?.ToString("dd/MM/yyyy HH:mm"))',
-                             '@(room.NgayTra?.ToString("dd/MM/yyyy HH:mm"))',
-                             @room.TongSoKhachDangKy,
-                             @room.SoKhachDaCheckInThucTe,
-                             @(room.IsCheckInValid.ToString().ToLower()),
-                             @(room.IsCheckOutValid.ToString().ToLower()),
-                             @(room.IsBookingValid.ToString().ToLower()),
-                             @(room.IsWalkInCheckInValid.ToString().ToLower())
-                         )">
+                        this,
+                        '@room.MaPhong',
+                        '@room.SoPhong',
+                        '@room.LoaiPhong',
+                        '@room.SoGiuong',
+                        '@room.SucChuaToiDa',
+                        '@room.TrangThaiPhong',
+                        '@room.TrangThaiVeSinh',
+                        '@(room.TenKhachHang)',
+                        '@(room.SDTKhachHang)',
+                        '@(room.GhiChuKhachHang)',
+                        '@(room.NgayNhan?.ToString("dd/MM/yyyy HH:mm"))',
+                        '@(room.NgayTra?.ToString("dd/MM/yyyy HH:mm"))',
+                        @room.TongSoKhachDangKy,
+                        @room.SoKhachDaCheckInThucTe,
+                        @room.SoKhachDangOThucTe,
+                        @room.SoKhachDaRoiDiTruoc,
+                        @(room.IsCheckInValid.ToString().ToLower()),
+                        @(room.IsCheckOutValid.ToString().ToLower()),
+                        @(room.IsBookingValid.ToString().ToLower()),
+                        @(room.IsWalkInCheckInValid.ToString().ToLower())
+                        )">
 
-                        <!-- ICON TRẠNG THÁI SỐ LƯỢNG KHÁCH CHECK-IN TRÊN Ô PHÒNG (Khi phòng Đang ở) -->
                         @if (ttPhong == "đang ở")
                         {
-                            <div class="position-absolute top-0 end-0 m-2">
+                            <div class="position-absolute top-0 end-0 m-2 d-flex flex-column align-items-end gap-1">
                                 @if (!room.DaCheckInDuKhach)
                                 {
                                     <span class="badge bg-warning text-dark border border-dark shadow-sm"
-                                          title="Phòng này mới Check-in @room.SoKhachDaCheckInThucTe/@room.TongSoKhachDangKy khách. Còn thiếu @(room.TongSoKhachDangKy - room.SoKhachDaCheckInThucTe) khách chưa khai báo CCCD/Hộ chiếu!">
+                                          title="Phòng mới Check-in @room.SoKhachDaCheckInThucTe/@room.TongSoKhachDangKy khách">
                                         <i class="bi bi-person-fill-exclamation me-1"></i>Chưa đủ (@room.SoKhachDaCheckInThucTe/@room.TongSoKhachDangKy)
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="badge bg-light text-success border border-success shadow-sm"
-                                          title="Đã Check-in và khai báo giấy tờ đủ @room.SoKhachDaCheckInThucTe/@room.TongSoKhachDangKy khách">
-                                        <i class="bi bi-person-check-fill me-1"></i>Đủ (@room.SoKhachDaCheckInThucTe/@room.TongSoKhachDangKy)
+                                          title="Đã khai báo đủ @room.SoKhachDaCheckInThucTe/@room.TongSoKhachDangKy khách (Hiện đang ở: @room.SoKhachDangOThucTe)">
+                                        <i class="bi bi-person-check-fill me-1"></i>Đang ở: @room.SoKhachDangOThucTe/@room.TongSoKhachDangKy
+                                    </span>
+                                }
+
+                                @if (room.SoKhachDaRoiDiTruoc > 0)
+                                {
+                                    <span class="badge bg-dark text-warning border border-warning" style="font-size: 0.68rem;">
+                                        <i class="bi bi-box-arrow-right me-1"></i>Về trước: @room.SoKhachDaRoiDiTruoc
                                     </span>
                                 }
                             </div>
@@ -149,7 +169,7 @@
                         <div class="card-body mt-2">
                             <h5 class="card-title fw-bold fs-4">@room.SoPhong</h5>
                             <p class="card-text mb-1 small">Hạng: <strong>@room.LoaiPhong</strong></p>
-                            <p class="card-text mb-1 small text-truncate">Khách: @(room.TenKhachHang ?? "Chưa có")</p>
+                            <p class="card-text mb-1 small text-truncate">Đại diện: @(room.TenKhachHang ?? "Chưa có")</p>
                         </div>
 
                         <div class="card-footer bg-white text-dark d-flex justify-content-between align-items-center rounded-bottom m-1">
@@ -165,7 +185,7 @@
 
 <!-- MODAL CHI TIẾT PHÒNG & QUẢN LÝ HÀNH KHÁCH LƯU TRÚ -->
 <div class="modal fade" id="roomDetailModal" tabindex="-1" aria-labelledby="rdTitle" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-3">
 
             <div class="modal-header bg-white border-bottom pt-4 px-4 pb-3">
@@ -177,7 +197,6 @@
             </div>
 
             <div class="modal-body p-4 text-dark">
-                <!-- THÔNG TIN CƠ BẢN CỦA PHÒNG -->
                 <div class="row g-3 mb-3 bg-light p-3 rounded-3 border">
                     <div class="col-6 col-md-3">
                         <span class="text-muted small d-block">Loại phòng</span>
@@ -197,16 +216,15 @@
                     </div>
                 </div>
 
-                <!-- KHỐI THÔNG TIN KHÁCH HÀNG & DANH SÁCH NGƯỜI Ở CÙNG -->
                 <div id="rdCustomerInfo" style="display: none;">
                     <div class="row mb-2">
                         <div class="col-md-6">
-                            <span class="text-muted small d-block">Người đặt phòng / Đại diện:</span>
+                            <span class="text-muted small d-block">Khách đại diện chịu trách nhiệm hiện tại (Primary Guest):</span>
                             <strong id="rdKhachHang" class="fs-6 text-danger"></strong>
                             <span class="text-dark small ms-2"><i class="bi bi-telephone-fill me-1"></i><span id="rdSDTKhach"></span></span>
                         </div>
                         <div class="col-md-6">
-                            <span class="text-muted small d-block">Thời gian lưu trú:</span>
+                            <span class="text-muted small d-block">Thời gian lưu trú của phòng:</span>
                             <span class="fw-bold small">
                                 <i class="bi bi-clock-history me-1"></i>Từ <span id="rdNgayNhan" class="text-primary"></span> đến <span id="rdNgayTra" class="text-primary"></span>
                             </span>
@@ -214,20 +232,19 @@
                     </div>
 
                     <div class="mb-3">
-                        <span class="text-muted small">Ghi chú đơn phòng: </span>
-                        <span id="rdGhiChu" class="small fw-semibold"></span>
+                        <span class="text-muted small">Nhật ký / Ghi chú đơn phòng: </span>
+                        <span id="rdGhiChu" class="small fw-semibold text-secondary"></span>
                     </div>
 
-                    <!-- BẢNG DANH SÁCH TOÀN BỘ KHÁCH LƯU TRÚ TRONG PHÒNG (Kèm CCCD/Hộ chiếu) -->
                     <div id="rdOccupantsSection" class="mt-3 pt-3 border-top" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
                             <h6 class="fw-bold text-primary mb-0">
-                                <i class="bi bi-person-vcard-fill me-1"></i> Danh sách khách lưu trú đã khai báo giấy tờ (<span id="rdCountOccupants">0/0</span>)
+                                <i class="bi bi-person-vcard-fill me-1"></i> Danh sách khách trong Phiếu lưu trú (<span id="rdCountOccupants">0/0</span>)
                             </h6>
                             @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý"))
                             {
-                                <button type="button" id="btnOpenAddCompanion" class="btn btn-sm btn-outline-primary fw-bold" onclick="toggleCompanionForm(true)">
-                                    <i class="bi bi-person-plus-fill me-1"></i> + Check-in thêm khách ở cùng
+                                <button type="button" id="btnOpenAddCompanion" class="btn btn-sm btn-outline-primary fw-bold" onclick="openBatchCompanionForm()">
+                                    <i class="bi bi-people-fill me-1"></i> + Check-in thêm khách ở cùng
                                 </button>
                             }
                         </div>
@@ -240,81 +257,251 @@
                                         <th>Họ và tên khách</th>
                                         <th>Loại giấy tờ</th>
                                         <th>Số CCCD / Hộ chiếu</th>
-                                        <th>Giờ Check-in</th>
-                                        <th class="text-center">Ảnh chụp giấy tờ</th>
+                                        <th>Giờ vào / Giờ rời đi</th>
+                                        <th>Trạng thái & Tạm trú Công an</th>
+                                        <th class="text-center">Ảnh giấy tờ</th>
+                                        <th class="text-center">Thao tác về trước</th>
                                     </tr>
                                 </thead>
                                 <tbody id="rdOccupantsTableBody" class="small">
-                                    <!-- Render động bằng JS -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    <!-- FORM BỔ SUNG KHÁCH Ở CÙNG & CHỤP ẢNH CCCD/HỘ CHIẾU (Mặt trước - Mặt sau) -->
+                    <!-- KHUNG NGHIỆP VỤ THAY ĐỔI PHÒNG (UC_04) -->
                     @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý"))
                     {
-                        <div id="companionFormContainer" class="mt-3 p-3 bg-light rounded-3 border border-primary" style="display: none;">
+                        <div id="roomTransferContainer" class="mt-3 p-3 rounded-3 border border-info shadow-sm" style="display: none; background-color: #f4fbff;">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold text-primary mb-0">
-                                    <i class="bi bi-camera-fill me-1"></i> Khai báo & Chụp giấy tờ Khách ở cùng (CCCD / Hộ chiếu)
-                                </h6>
-                                <button type="button" class="btn-close small" onclick="toggleCompanionForm(false)"></button>
+                                <div>
+                                    <h6 class="fw-bold text-primary mb-0">
+                                        <i class="bi bi-arrow-left-right me-1"></i> Nghiệp vụ Thay đổi phòng (Giữ nguyên Phiếu lưu trú & Hóa đơn tổng)
+                                    </h6>
+                                    <small class="text-muted">
+                                        Chuyển toàn bộ khách đang ở, tiền đặt cọc, dịch vụ và ghi chú sang phòng mới trong cùng một mã phiếu lưu trú.
+                                    </small>
+                                </div>
+                                <button type="button" class="btn-close" onclick="toggleRoomTransferForm(false)"></button>
                             </div>
 
-                            <form method="post" asp-page-handler="ThemKhachOChung" enctype="multipart/form-data">
-                                <input type="hidden" name="maPhongOChung" id="maPhongOChung" value="" />
+                            <form method="post" asp-page-handler="DoiPhongLuuTru">
+                                <input type="hidden" asp-for="MaPhongCuDoi" id="inputMaPhongCuDoi" />
 
-                                <div class="row g-2 mb-2">
-                                    <div class="col-md-5">
-                                        <label class="form-label small fw-semibold mb-1">Họ và tên khách ở cùng <span class="text-danger">*</span></label>
-                                        <input type="text" name="hoTenKhachDiCung" class="form-control form-control-sm" required placeholder="Nhập đúng theo giấy tờ..." />
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small fw-semibold mb-1">Loại giấy tờ (Quốc tịch) <span class="text-danger">*</span></label>
-                                        <select name="loaiGiayToDiCung" class="form-select form-select-sm">
-                                            <option value="CCCD (Việt Nam)">CCCD (Công dân Việt Nam)</option>
-                                            <option value="Hộ chiếu (Ngoại quốc)">Sổ Hộ chiếu / Passport (Khách ngoại quốc)</option>
+                                <div class="row g-3 mt-1">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold mb-1">1. Trường hợp thực hiện đổi phòng <span class="text-danger">*</span></label>
+                                        <select asp-for="NguyenNhanDoiPhong" id="selectNguyenNhanDoiPhong" class="form-select form-select-sm" onchange="recalculateTransferPrice()">
+                                            <option value="LoiKhachSan">Trường hợp 1: Lỗi từ khách sạn (Hỏng thiết bị, rò nước...) -> Nâng hạng & Giữ nguyên giá ban đầu</option>
+                                            <option value="MongMuonKhachHang">Trường hợp 2: Mong muốn từ khách hàng (Phòng rộng hơn, đổi view...) -> Báo giá chênh lệch</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label small fw-semibold mb-1">Số CCCD / Passport <span class="text-danger">*</span></label>
-                                        <input type="text" name="soGiayToDiCung" class="form-control form-control-sm" required maxlength="12" placeholder="Số định danh..." />
+
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold mb-1">2. Chọn Phòng mới chuyển đến (Chỉ hiện phòng đang Trống) <span class="text-danger">*</span></label>
+                                        <select asp-for="MaPhongMoiDoi" id="selectMaPhongMoiDoi" class="form-select form-select-sm" required onchange="recalculateTransferPrice()">
+                                            <option value="">-- Chọn phòng trống để chuyển khách sang --</option>
+                                            @foreach (var avail in Model.DanhSachPhongTrongDeDoi)
+                                            {
+                                                <option value="@avail.MaPhong"
+                                                        data-sophong="@avail.SoPhong"
+                                                        data-loaiphong="@avail.LoaiPhong"
+                                                        data-succhua="@avail.SucChuaToiDa"
+                                                        data-gia="@avail.GiaTheoNgay">
+                                                    Phòng @avail.SoPhong - Hạng @avail.LoaiPhong (Tối đa @avail.SucChuaToiDa người | Giá: @avail.GiaTheoNgay.ToString("N0") đ/đêm | @avail.TrangThaiVeSinh)
+                                                </option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-semibold mb-1">Giá phòng cũ đang áp dụng</label>
+                                        <input type="text" id="lblGiaPhongCuTransfer" class="form-control form-control-sm bg-light fw-bold" readonly />
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-semibold mb-1">Mức giá áp dụng cho phòng mới (VNĐ/đêm)</label>
+                                        <input type="number" asp-for="GiaApDungPhongMoi" id="inputGiaApDungPhongMoi" class="form-control form-control-sm fw-bold text-primary" oninput="onManualTransferPriceChange()" />
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-semibold mb-1">Chênh lệch giá / đêm</label>
+                                        <input type="text" id="lblChenhLechGiaTransfer" class="form-control form-control-sm bg-light fw-bold" readonly value="0 đ (Không đổi giá)" />
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <label class="form-label small fw-bold mb-1">3. Lý do đổi phòng chi tiết <span class="text-danger">*</span></label>
+                                        <input type="text" asp-for="LyDoChiTietDoiPhong" class="form-control form-control-sm" required placeholder="Nhập lý do đổi phòng (VD: Điều hòa hỏng, rò nước hoặc khách muốn đổi view...)" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold mb-1">4. Phí tiêu thụ Minibar / Tài sản tại phòng cũ (VNĐ)</label>
+                                        <input type="number" asp-for="ChiPhiMinibarPhongCu" class="form-control form-control-sm" value="0" min="0" step="1000" />
+                                        <small class="text-muted" style="font-size: 0.72rem;">Bộ phận Buồng phòng kiểm tra và báo Lễ tân nhập để cộng nối tiếp sang phòng mới.</small>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold mb-1">Thông tin kiểm tra từ Bộ phận Buồng phòng</label>
+                                        <input type="text" asp-for="GhiChuKiemTraBuongPhong" class="form-control form-control-sm" placeholder="VD: Đủ tài sản phòng, khách dùng 2 lon nước ngọt..." />
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <div class="bg-white p-3 rounded border">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" asp-for="DaThuHoiTheTuVaChuyenDo" id="chkThuHoiThePhongCu" checked required />
+                                                <label class="form-check-label small" for="chkThuHoiThePhongCu">
+                                                    <strong>Quy trình chuyển đổi:</strong> Đã chuyển đồ sang phòng mới, thu hồi thẻ phòng cũ, cấp thẻ phòng mới và nhận kết quả kiểm tra Minibar/tài sản từ Buồng phòng.
+                                                </label>
+                                            </div>
+
+                                            <div id="boxCustomerSignPriceChange" class="mt-2 pt-2 border-top border-warning" style="display: none;">
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" asp-for="KhachDaiDienKyXacNhanGia" id="chkKhachDongYGiaMoi" />
+                                                    <label class="form-check-label small fw-bold text-danger" for="chkKhachDongYGiaMoi">
+                                                        Khách hàng đã đồng ý mức giá chênh lệch sau khi trao đổi.
+                                                    </label>
+                                                </div>
+                                                <div class="row align-items-center g-2">
+                                                    <div class="col-md-5">
+                                                        <span class="small text-muted">Đại diện của phòng ký xác nhận thay đổi giá <span class="text-danger">*</span>:</span>
+                                                    </div>
+                                                    <div class="col-md-7">
+                                                        <input type="text" asp-for="ChuKyDienTuKhachDaiDien" id="inputChuKyKhachDaiDien" class="form-control form-control-sm" placeholder="Nhập họ tên đại diện phòng ký xác nhận..." />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="row g-2 mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label small fw-semibold mb-1">Số điện thoại (Nếu có)</label>
-                                        <input type="text" name="sdtKhachDiCung" class="form-control form-control-sm" placeholder="Không bắt buộc..." />
+                                <div class="d-flex justify-content-end gap-2 mt-3">
+                                    <button type="button" class="btn btn-sm btn-secondary px-3" onclick="toggleRoomTransferForm(false)">Hủy</button>
+                                    <button type="submit" class="btn btn-sm btn-primary fw-bold px-4 shadow-sm">
+                                        <i class="bi bi-check2-circle me-1"></i> Xác nhận Đổi phòng
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    }
+
+                    <!-- KHUNG XỬ LÝ KỊCH BẢN A & KỊCH BẢN B: KHÁCH VỀ TRƯỚC & ĐỔI NGƯỜI ĐẠI DIỆN -->
+                    @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý"))
+                    {
+                        <div id="earlyDepartureContainer" class="mt-3 p-3 rounded-3 border shadow-sm" style="display: none; background-color: #fffdf5; border-color: #ffc107 !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-dark mb-0" id="earlyLeaveTitle">
+                                    <i class="bi bi-person-walking text-warning me-1"></i> Xử lý Khách rời đi trước (Early Departure)
+                                </h6>
+                                <button type="button" class="btn-close" onclick="closeEarlyLeaveForm()"></button>
+                            </div>
+
+                            <form method="post" asp-page-handler="KhachRoiDiTruoc">
+                                <input type="hidden" asp-for="MaPhongRoiDi" id="inputMaPhongRoiDi" />
+                                <input type="hidden" asp-for="MaPhieuLuuTruRoiDi" id="inputMaPhieuLuuTruRoiDi" />
+                                <input type="hidden" asp-for="MaKHRoiDi" id="inputMaKHRoiDi" />
+                                <input type="hidden" asp-for="LaKhachDaiDienRoiDi" id="inputLaKhachDaiDienRoiDi" />
+
+                                <div id="scenarioBPrimaryTransferBox" class="alert alert-danger border-danger mb-3" style="display: none;">
+                                    <div class="fw-bold mb-2">
+                                        <i class="bi bi-shield-exclamation me-1"></i> KỊCH BẢN B - CẢNH BÁO TÀI CHÍNH: Khách rời đi trước là KHÁCH ĐẠI DIỆN (<span id="lblPrimaryLeavingName"></span>)!
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small fw-semibold mb-1">Ảnh Mặt trước CCCD/Hộ chiếu <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="file" name="anhMatTruocDiCung" id="fileCompFront" class="form-control" accept="image/*" capture="environment" required onchange="previewFile(this, 'prevCompFront')" />
-                                            <button type="button" class="btn btn-outline-primary" onclick="openCameraForInput('fileCompFront', 'prevCompFront')" title="Mở Camera chụp trực tiếp">
-                                                <i class="bi bi-camera"></i>
-                                            </button>
+                                    <p class="small mb-2">
+                                        Theo quy trình bắt buộc của khách sạn, Lễ tân phải chốt phương án công nợ và yêu cầu 1 trong những khách ở lại ký xác nhận làm <strong>Khách đại diện mới (Primary Guest)</strong> trước khi cho phép rời đi:
+                                    </p>
+
+                                    <div class="row g-2">
+                                        <div class="col-md-12 mb-1">
+                                            <label class="form-label small fw-bold mb-1">1. Chốt hoặc đảm bảo công nợ tại quầy <span class="text-danger">*</span></label>
+                                            <select asp-for="PhuongAnCongNo" class="form-select form-select-sm">
+                                                <option value="Người ở lại (Đại diện mới) nhận thanh toán toàn bộ tiền phòng & dịch vụ lúc Check-out cuối">
+                                                    Phương án 1: Người ở lại (Đại diện mới) ký nhận thanh toán toàn bộ lúc trả phòng cuối cùng
+                                                </option>
+                                                <option value="Khách đại diện cũ đã thanh toán tiền tính đến hiện tại; Đại diện mới chịu phí phát sinh sau">
+                                                    Phương án 2: Khách đại diện cũ đã thanh toán phần đến hiện tại; Đại diện mới chịu chi phí phát sinh thêm (Minibar, giặt ủi...)
+                                                </option>
+                                            </select>
                                         </div>
-                                        <img id="prevCompFront" class="img-thumbnail mt-1" style="max-height: 70px; display: none;" />
+
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-bold mb-1">2. Chọn Khách ở lại làm Đại diện mới <span class="text-danger">*</span></label>
+                                            <select asp-for="MaKHDaiDienMoi" id="selectNewPrimaryGuest" class="form-select form-select-sm" onchange="onNewPrimarySelected(this)">
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-bold mb-1">3. Số điện thoại Khách đại diện mới <span class="text-danger">*</span></label>
+                                            <input type="text" asp-for="SDTDaiDienMoi" id="inputSDTDaiDienMoi" class="form-control form-control-sm" pattern="^\d{10}$" placeholder="Nhập SĐT 10 số của đại diện mới..." />
+                                        </div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small fw-semibold mb-1">Ảnh Mặt sau CCCD/Hộ chiếu <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="file" name="anhMatSauDiCung" id="fileCompBack" class="form-control" accept="image/*" capture="environment" required onchange="previewFile(this, 'prevCompBack')" />
-                                            <button type="button" class="btn btn-outline-primary" onclick="openCameraForInput('fileCompBack', 'prevCompBack')" title="Mở Camera chụp trực tiếp">
-                                                <i class="bi bi-camera"></i>
-                                            </button>
-                                        </div>
-                                        <img id="prevCompBack" class="img-thumbnail mt-1" style="max-height: 70px; display: none;" />
+                                </div>
+
+                                <div class="bg-white p-3 rounded border mb-3">
+                                    <div class="fw-semibold small text-secondary mb-2">
+                                        Quy trình thu hồi & khai báo khi khách <strong id="lblGuestLeavingName" class="text-dark"></strong> rời phòng:
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="chkThuTheTu" checked required />
+                                        <label class="form-check-label small" for="chkThuTheTu">
+                                            <strong>1. Tại quầy Lễ tân:</strong> Đã thu hồi thẻ từ phụ (nếu có) và hoàn trả bản gốc CCCD/Hộ chiếu cho khách.
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" asp-for="BaoGiamTamTruCongAn" id="chkBaoGiamCongAn" checked />
+                                        <label class="form-check-label small" for="chkBaoGiamCongAn">
+                                            <strong>2. Khai báo tạm trú Công an:</strong> Tự động cập nhật báo giảm lưu trú cho khách này từ đêm nay.
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" asp-for="CatDichVuVaAnSang" id="chkCatDichVu" checked />
+                                        <label class="form-check-label small" for="chkCatDichVu">
+                                            <strong>3. Cắt dịch vụ theo đầu người:</strong> Ngừng tính phụ thu thêm người (Extra Person) và giảm 1 suất ăn sáng từ ngày mai.
+                                        </label>
                                     </div>
                                 </div>
 
                                 <div class="d-flex justify-content-end gap-2">
-                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCompanionForm(false)">Hủy</button>
-                                    <button type="submit" class="btn btn-sm btn-primary fw-bold px-3">
-                                        <i class="bi bi-check2-circle me-1"></i> Lưu thông tin & Check-in khách này
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="closeEarlyLeaveForm()">Hủy</button>
+                                    <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold px-3 shadow-sm">
+                                        <i class="bi bi-check2-circle me-1"></i> Xác nhận Rời đi & Cập nhật Phiếu lưu trú
                                     </button>
+                                </div>
+                            </form>
+                        </div>
+                    }
+
+                    <!-- FORM BỔ SUNG ĐỒNG LOẠT NHIỀU KHÁCH Ở CÙNG -->
+                    @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý"))
+                    {
+                        <div id="companionFormContainer" class="mt-3 p-3 bg-light rounded-3 border border-primary shadow-sm" style="display: none;">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                                <div>
+                                    <h6 class="fw-bold text-primary mb-0">
+                                        <i class="bi bi-people-fill me-1"></i> Khai báo đồng loạt Khách ở cùng (CCCD / Hộ chiếu)
+                                    </h6>
+                                    <small class="text-muted">Hệ thống tự động tạo sẵn số dòng theo số khách còn thiếu. Bạn có thể thêm/bớt dòng linh hoạt.</small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="addCompanionRow()">
+                                        <i class="bi bi-plus-circle me-1"></i> Thêm dòng khách
+                                    </button>
+                                    <button type="button" class="btn-close" onclick="toggleCompanionForm(false)"></button>
+                                </div>
+                            </div>
+
+                            <form method="post" asp-page-handler="ThemKhachOChung" enctype="multipart/form-data" id="batchCompanionForm">
+                                <input type="hidden" asp-for="MaPhongOChung" id="maPhongOChung" value="" />
+                                <div id="companionRowsList"></div>
+
+                                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                    <span class="small text-secondary fw-semibold">
+                                        Đang khai báo: <strong id="lblTotalCompanionRows" class="text-primary">1</strong> khách ở cùng
+                                    </span>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-secondary px-3" onclick="toggleCompanionForm(false)">Hủy</button>
+                                        <button type="submit" class="btn btn-sm btn-primary fw-bold px-4 shadow-sm">
+                                            <i class="bi bi-check2-all me-1"></i> Lưu & Check-in tất cả
+                                        </button>
+                                    </div>
                                 </div>
                             </form>
                         </div>
@@ -325,7 +512,7 @@
                     {
                         <div id="bookedCheckInFormContainer" class="mt-3 p-3 bg-warning bg-opacity-10 rounded-3 border border-warning" style="display: none;">
                             <h6 class="fw-bold text-dark mb-2">
-                                <i class="bi bi-person-Check me-1"></i> Xác minh giấy tờ người nhận phòng (Khách đại diện hoặc người ở cùng có mã đặt phòng)
+                                <i class="bi bi-person-check me-1"></i> Xác minh giấy tờ người nhận phòng (Khách đại diện)
                             </h6>
                             <form method="post" asp-page-handler="CheckIn" enctype="multipart/form-data">
                                 <input type="hidden" name="maPhongCheckIn" id="maPhongCheckIn" value="" />
@@ -346,7 +533,7 @@
                                     <div class="col-md-6">
                                         <label class="form-label small fw-semibold mb-1">Chụp/Tải Mặt trước <span class="text-danger">*</span></label>
                                         <div class="input-group input-group-sm">
-                                            <input type="file" name="anhMatTruocCheckIn" id="fileBookedFront" class="form-control" accept="image/*" capture="environment" required onchange="previewFile(this, 'prevBookedFront')" />
+                                            <input type="file" name="anhMatTruocCheckIn" id="fileBookedFront" class="form-control" accept="image/*" required onchange="previewFile(this, 'prevBookedFront')" />
                                             <button type="button" class="btn btn-outline-dark" onclick="openCameraForInput('fileBookedFront', 'prevBookedFront')">
                                                 <i class="bi bi-camera"></i>
                                             </button>
@@ -356,7 +543,7 @@
                                     <div class="col-md-6">
                                         <label class="form-label small fw-semibold mb-1">Chụp/Tải Mặt sau <span class="text-danger">*</span></label>
                                         <div class="input-group input-group-sm">
-                                            <input type="file" name="anhMatSauCheckIn" id="fileBookedBack" class="form-control" accept="image/*" capture="environment" required onchange="previewFile(this, 'prevBookedBack')" />
+                                            <input type="file" name="anhMatSauCheckIn" id="fileBookedBack" class="form-control" accept="image/*" required onchange="previewFile(this, 'prevBookedBack')" />
                                             <button type="button" class="btn btn-outline-dark" onclick="openCameraForInput('fileBookedBack', 'prevBookedBack')">
                                                 <i class="bi bi-camera"></i>
                                             </button>
@@ -379,7 +566,7 @@
                     </div>
                 </div>
 
-                <!-- KHỐI FORM CHECK-IN NHANH CHO KHÁCH VÃNG LAI (KÈM CHỤP CCCD/HỘ CHIẾU) -->
+                <!-- KHỐI FORM CHECK-IN NHANH CHO KHÁCH VÃNG LAI -->
                 @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý"))
                 {
                     <div id="walkInFormContainer" class="mt-3 pt-3 border-top" style="display: none;">
@@ -418,7 +605,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label small fw-semibold mb-1">Ảnh Mặt trước CCCD/Hộ chiếu <span class="text-danger">*</span></label>
                                     <div class="input-group input-group-sm">
-                                        <input type="file" name="anhMatTruocWalkIn" id="fileWalkInFront" class="form-control" accept="image/*" capture="environment" required onchange="previewFile(this, 'prevWalkInFront')" />
+                                        <input type="file" name="anhMatTruocWalkIn" id="fileWalkInFront" class="form-control" accept="image/*" required onchange="previewFile(this, 'prevWalkInFront')" />
                                         <button type="button" class="btn btn-outline-success" onclick="openCameraForInput('fileWalkInFront', 'prevWalkInFront')">
                                             <i class="bi bi-camera"></i>
                                         </button>
@@ -428,7 +615,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label small fw-semibold mb-1">Ảnh Mặt sau CCCD/Hộ chiếu <span class="text-danger">*</span></label>
                                     <div class="input-group input-group-sm">
-                                        <input type="file" name="anhMatSauWalkIn" id="fileWalkInBack" class="form-control" accept="image/*" capture="environment" required onchange="previewFile(this, 'prevWalkInBack')" />
+                                        <input type="file" name="anhMatSauWalkIn" id="fileWalkInBack" class="form-control" accept="image/*" required onchange="previewFile(this, 'prevWalkInBack')" />
                                         <button type="button" class="btn btn-outline-success" onclick="openCameraForInput('fileWalkInBack', 'prevWalkInBack')">
                                             <i class="bi bi-camera"></i>
                                         </button>
@@ -441,7 +628,6 @@
                                 <div class="col-6">
                                     <label class="form-label small fw-semibold mb-1">Tổng số lượng khách ở phòng này</label>
                                     <input type="number" name="soKhachWalkIn" id="soKhachWalkInInput" class="form-control form-control-sm" value="1" min="1" max="10" required />
-                                    <small class="text-muted" style="font-size: 0.72rem;">Nếu > 1 người, có thể bổ sung giấy tờ người đi cùng sau khi mở phòng.</small>
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label small fw-semibold mb-1">Số ngày ở dự kiến</label>
@@ -464,7 +650,7 @@
                     </div>
                 }
 
-                <!-- KHUNG CAMERA TRỰC TIẾP (WEBCAM / CAMERA THIẾT BỊ) ĐỂ CHỤP NHANH GIẤY TỜ -->
+                <!-- KHUNG CAMERA TRỰC TIẾP -->
                 <div id="liveCameraBox" class="mt-3 p-3 bg-dark text-white rounded-3 text-center" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="small fw-bold"><i class="bi bi-camera-video-fill text-danger me-1"></i>Đưa mặt trước/mặt sau CCCD hoặc Hộ chiếu vào khung hình</span>
@@ -505,11 +691,15 @@
                         <i class="bi bi-person-walking me-1"></i> Check-in Khách vãng lai
                     </button>
 
+                    <button type="button" id="btnShowRoomTransfer" class="btn btn-info text-dark fw-bold px-3 shadow-sm" style="display: none;" onclick="toggleRoomTransferForm(true)">
+                        <i class="bi bi-arrow-left-right me-1"></i> Thay đổi phòng
+                    </button>
+
                     <form method="post" asp-page-handler="CheckOut" id="formCheckOut" style="display: none; margin: 0;">
                         <input type="hidden" name="maPhongCheckOut" id="maPhongCheckOut" value="" />
                         <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm"
-                                onclick="return confirm('Bạn có chắc chắn muốn thực hiện Checkout cho toàn bộ khách trong phòng này không?');">
-                            <i class="bi bi-box-arrow-right me-1"></i> Checkout
+                                onclick="return confirm('Bạn có chắc chắn muốn thực hiện Checkout trả phòng cho toàn bộ những khách còn lại trong phòng này không?');">
+                            <i class="bi bi-box-arrow-right me-1"></i> Checkout trả phòng
                         </button>
                     </form>
                 }
@@ -524,7 +714,14 @@
         let activeFileInputId = null;
         let activePreviewImgId = null;
 
-        // 1. Đồng hồ thời gian thực
+        let currentRoomMaPhong = '';
+        let currentRoomGiaHienTai = 0;
+        let currentRoomKhachDaiDien = '';
+        let currentRoomMissingGuests = 1;
+        let currentRoomMaxCapacity = 4;
+        let currentRoomCheckedIn = 1;
+        let currentRoomOccupants = [];
+
         function updateLiveClock() {
             const now = new Date();
             const elDate = document.getElementById('live-date-display');
@@ -536,6 +733,23 @@
         document.addEventListener("DOMContentLoaded", function () {
             updateLiveClock();
             setInterval(updateLiveClock, 1000);
+
+            // === BỔ SUNG ĐOẠN NÀY: Tự động mở Modal Chi tiết Phòng khi chuyển từ Tiền sảnh sang ===
+            const urlParams = new URLSearchParams(window.location.search);
+            const openRoomId = urlParams.get('openRoom');
+            if (openRoomId) {
+                // Tìm đúng thẻ phòng có data-maphong khớp với mã phòng truyền sang
+                const targetCard = document.querySelector(`.card[data-maphong="${openRoomId}"]`);
+                if (targetCard) {
+                    // Cuộn mượt đến vị trí phòng và tự động kích hoạt sự kiện click để mở Modal Chi tiết Phòng
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetCard.click();
+
+                    // Xóa tham số openRoom trên thanh URL sau khi đã mở Modal để khi trang auto-reload 30s không bị bật lặp lại
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+            // ======================================================================================
 
             const filterInput = document.querySelector('input[type="datetime-local"]');
             if (!filterInput || !filterInput.value) {
@@ -558,10 +772,289 @@
         function toggleCompanionForm(show) {
             const formContainer = document.getElementById('companionFormContainer');
             if (formContainer) formContainer.style.display = show ? 'block' : 'none';
+            if (show) {
+                closeEarlyLeaveForm();
+                toggleRoomTransferForm(false);
+            }
             if (!show) stopLiveCamera();
         }
 
-        // Xem trước ảnh khi chọn file
+        function closeEarlyLeaveForm() {
+            const box = document.getElementById('earlyDepartureContainer');
+            if (box) box.style.display = 'none';
+        }
+
+        function toggleRoomTransferForm(show) {
+            const container = document.getElementById('roomTransferContainer');
+            if (!container) return;
+
+            if (show) {
+                toggleCompanionForm(false);
+                closeEarlyLeaveForm();
+                document.getElementById('inputMaPhongCuDoi').value = currentRoomMaPhong;
+                document.getElementById('lblGiaPhongCuTransfer').value = currentRoomGiaHienTai.toLocaleString('vi-VN') + ' đ/đêm';
+                document.getElementById('inputGiaApDungPhongMoi').value = currentRoomGiaHienTai;
+                document.getElementById('inputChuKyKhachDaiDien').value = currentRoomKhachDaiDien;
+                recalculateTransferPrice();
+                container.style.display = 'block';
+                container.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function recalculateTransferPrice() {
+            const reasonType = document.getElementById('selectNguyenNhanDoiPhong').value;
+            const roomSelect = document.getElementById('selectMaPhongMoiDoi');
+            const selectedOpt = roomSelect.options[roomSelect.selectedIndex];
+            const inputGiaMoi = document.getElementById('inputGiaApDungPhongMoi');
+            const lblDiff = document.getElementById('lblChenhLechGiaTransfer');
+            const signBox = document.getElementById('boxCustomerSignPriceChange');
+            const chkAgree = document.getElementById('chkKhachDongYGiaMoi');
+            const inputSign = document.getElementById('inputChuKyKhachDaiDien');
+
+            let newRoomListedPrice = currentRoomGiaHienTai;
+            if (selectedOpt && selectedOpt.value !== '') {
+                newRoomListedPrice = parseFloat(selectedOpt.getAttribute('data-gia')) || currentRoomGiaHienTai;
+            }
+
+            if (reasonType === 'LoiKhachSan') {
+                inputGiaMoi.value = currentRoomGiaHienTai;
+                inputGiaMoi.readOnly = true;
+                lblDiff.value = '0 đ (Giữ nguyên giá ban đầu do lỗi KS)';
+                lblDiff.className = 'form-control form-control-sm bg-light fw-bold text-success';
+                signBox.style.display = 'none';
+                chkAgree.required = false;
+                inputSign.required = false;
+            } else {
+                inputGiaMoi.value = newRoomListedPrice;
+                inputGiaMoi.readOnly = false;
+                updatePriceDiffDisplay(newRoomListedPrice);
+            }
+        }
+
+        function onManualTransferPriceChange() {
+            const val = parseFloat(document.getElementById('inputGiaApDungPhongMoi').value) || 0;
+            updatePriceDiffDisplay(val);
+        }
+
+        function updatePriceDiffDisplay(newPrice) {
+            const lblDiff = document.getElementById('lblChenhLechGiaTransfer');
+            const signBox = document.getElementById('boxCustomerSignPriceChange');
+            const chkAgree = document.getElementById('chkKhachDongYGiaMoi');
+            const inputSign = document.getElementById('inputChuKyKhachDaiDien');
+
+            const diff = newPrice - currentRoomGiaHienTai;
+            if (diff > 0) {
+                lblDiff.value = `+${diff.toLocaleString('vi-VN')} đ/đêm (Phụ thu chênh lệch)`;
+                lblDiff.className = 'form-control form-control-sm bg-light fw-bold text-danger';
+                signBox.style.display = 'block';
+                chkAgree.required = true;
+                inputSign.required = true;
+            } else if (diff < 0) {
+                lblDiff.value = `${diff.toLocaleString('vi-VN')} đ/đêm (Giảm giá phòng)`;
+                lblDiff.className = 'form-control form-control-sm bg-light fw-bold text-primary';
+                signBox.style.display = 'block';
+                chkAgree.required = true;
+                inputSign.required = true;
+            } else {
+                lblDiff.value = '0 đ (Cùng mức giá)';
+                lblDiff.className = 'form-control form-control-sm bg-light fw-bold text-secondary';
+                signBox.style.display = 'none';
+                chkAgree.required = false;
+                inputSign.required = false;
+            }
+        }
+
+        function openEarlyLeaveModal(index) {
+            const occ = currentRoomOccupants[index];
+            if (!occ) return;
+
+            toggleCompanionForm(false);
+            toggleRoomTransferForm(false);
+
+            const activeGuests = currentRoomOccupants.filter(x => x.TrangThaiLuuTru === 'DANG_LUU_TRU');
+            if (activeGuests.length <= 1) {
+                alert(`Khách '${occ.HoTen}' là người cuối cùng đang lưu trú trong phòng. Vui lòng nhấn nút 'Checkout trả phòng' màu đỏ ở góc dưới để trả phòng!`);
+                return;
+            }
+
+            document.getElementById('inputMaPhongRoiDi').value = currentRoomMaPhong;
+            document.getElementById('inputMaPhieuLuuTruRoiDi').value = occ.MaPhieuLuuTru || '';
+            document.getElementById('inputMaKHRoiDi').value = occ.MaKH;
+            document.getElementById('inputLaKhachDaiDienRoiDi').value = occ.LaKhachDaiDien ? 'true' : 'false';
+            document.getElementById('lblGuestLeavingName').innerText = `${occ.HoTen} (${occ.SoGiayTo})`;
+
+            const scenarioBBox = document.getElementById('scenarioBPrimaryTransferBox');
+            const selectNewPrimary = document.getElementById('selectNewPrimaryGuest');
+            const inputSDTMoi = document.getElementById('inputSDTDaiDienMoi');
+
+            if (occ.LaKhachDaiDien) {
+                scenarioBBox.style.display = 'block';
+                document.getElementById('lblPrimaryLeavingName').innerText = occ.HoTen;
+
+                selectNewPrimary.innerHTML = '';
+                const remainingGuests = activeGuests.filter(x => x.MaKH !== occ.MaKH);
+                remainingGuests.forEach(rg => {
+                    const opt = document.createElement('option');
+                    opt.value = rg.MaKH;
+                    opt.setAttribute('data-sdt', rg.SDT || '');
+                    opt.text = `${rg.HoTen} - Giấy tờ: ${rg.SoGiayTo}`;
+                    selectNewPrimary.appendChild(opt);
+                });
+
+                selectNewPrimary.required = true;
+                inputSDTMoi.required = true;
+
+                if (remainingGuests.length > 0) {
+                    const sdtSanCo = remainingGuests[0].SDT && remainingGuests[0].SDT !== '0000000000' ? remainingGuests[0].SDT : '';
+                    inputSDTMoi.value = sdtSanCo;
+                }
+            } else {
+                scenarioBBox.style.display = 'none';
+                selectNewPrimary.required = false;
+                inputSDTMoi.required = false;
+            }
+
+            const container = document.getElementById('earlyDepartureContainer');
+            container.style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function onNewPrimarySelected(selectEl) {
+            const selectedOpt = selectEl.options[selectEl.selectedIndex];
+            if (!selectedOpt) return;
+            const sdt = selectedOpt.getAttribute('data-sdt') || '';
+            const inputSDTMoi = document.getElementById('inputSDTDaiDienMoi');
+            if (inputSDTMoi) {
+                inputSDTMoi.value = (sdt && sdt !== '0000000000') ? sdt : '';
+            }
+        }
+
+        function openBatchCompanionForm() {
+            const container = document.getElementById('companionRowsList');
+            if (!container) return;
+
+            container.innerHTML = '';
+            let initialRows = currentRoomMissingGuests > 0 ? currentRoomMissingGuests : 1;
+
+            for (let i = 0; i < initialRows; i++) {
+                addCompanionRow();
+            }
+
+            toggleCompanionForm(true);
+        }
+
+        function addCompanionRow() {
+            const container = document.getElementById('companionRowsList');
+            if (!container) return;
+
+            const currentRows = container.querySelectorAll('.companion-item-card').length;
+            if (currentRoomCheckedIn + currentRows >= currentRoomMaxCapacity) {
+                alert(`Phòng này có sức chứa tối đa ${currentRoomMaxCapacity} người. Không thể thêm vượt quá sức chứa!`);
+                return;
+            }
+
+            const idx = currentRows;
+            const uniqueId = Date.now() + '_' + idx;
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'companion-item-card card border-secondary border-opacity-25 mb-3 shadow-sm';
+            rowDiv.innerHTML = `
+                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-primary small companion-row-title">
+                        <i class="bi bi-person-badge me-1"></i>Khách ở cùng #${idx + 1}
+                    </span>
+                    <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 small" onclick="removeCompanionRow(this)">
+                        <i class="bi bi-trash3 me-1"></i>Xóa dòng
+                    </button>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold mb-1">Họ và tên khách <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm input-hoten" required placeholder="Nhập họ tên theo giấy tờ..." />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold mb-1">Loại giấy tờ (Quốc tịch) <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm input-loaigiayto">
+                                <option value="CCCD (Việt Nam)">CCCD (Công dân Việt Nam)</option>
+                                <option value="Hộ chiếu (Ngoại quốc)">Hộ chiếu / Passport (Ngoại quốc)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Số CCCD / Passport <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm input-sogiayto" required maxlength="12" placeholder="Số định danh..." />
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold mb-1">Số điện thoại (Nếu có)</label>
+                            <input type="text" class="form-control form-control-sm input-sdt" placeholder="Không bắt buộc..." />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold mb-1">Ảnh Mặt trước <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <input type="file" id="fileFront_${uniqueId}" class="form-control input-anhmattruoc" accept="image/*" required onchange="previewFile(this, 'prevFront_${uniqueId}')" />
+                                <button type="button" class="btn btn-outline-primary" onclick="openCameraForInput('fileFront_${uniqueId}', 'prevFront_${uniqueId}')">
+                                    <i class="bi bi-camera"></i>
+                                </button>
+                            </div>
+                            <img id="prevFront_${uniqueId}" class="img-thumbnail mt-1" style="max-height: 65px; display: none;" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold mb-1">Ảnh Mặt sau <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <input type="file" id="fileBack_${uniqueId}" class="form-control input-anphmatsau" accept="image/*" required onchange="previewFile(this, 'prevBack_${uniqueId}')" />
+                                <button type="button" class="btn btn-outline-primary" onclick="openCameraForInput('fileBack_${uniqueId}', 'prevBack_${uniqueId}')">
+                                    <i class="bi bi-camera"></i>
+                                </button>
+                            </div>
+                            <img id="prevBack_${uniqueId}" class="img-thumbnail mt-1" style="max-height: 65px; display: none;" />
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(rowDiv);
+            reindexCompanionRows();
+        }
+
+        function removeCompanionRow(btn) {
+            const container = document.getElementById('companionRowsList');
+            const cards = container.querySelectorAll('.companion-item-card');
+            if (cards.length <= 1) {
+                toggleCompanionForm(false);
+                return;
+            }
+            const card = btn.closest('.companion-item-card');
+            if (card) card.remove();
+            reindexCompanionRows();
+        }
+
+        function reindexCompanionRows() {
+            const container = document.getElementById('companionRowsList');
+            if (!container) return;
+
+            const cards = container.querySelectorAll('.companion-item-card');
+            cards.forEach((card, index) => {
+                const titleEl = card.querySelector('.companion-row-title');
+                if (titleEl) {
+                    titleEl.innerHTML = `<i class="bi bi-person-badge me-1"></i>Khách ở cùng #${index + 1}`;
+                }
+
+                card.querySelector('.input-hoten').name = `DanhSachKhachOChung[${index}].HoTen`;
+                card.querySelector('.input-loaigiayto').name = `DanhSachKhachOChung[${index}].LoaiGiayTo`;
+                card.querySelector('.input-sogiayto').name = `DanhSachKhachOChung[${index}].SoGiayTo`;
+                card.querySelector('.input-sdt').name = `DanhSachKhachOChung[${index}].SDT`;
+                card.querySelector('.input-anhmattruoc').name = `DanhSachKhachOChung[${index}].AnhMatTruoc`;
+                card.querySelector('.input-anphmatsau').name = `DanhSachKhachOChung[${index}].AnhMatSau`;
+            });
+
+            const lblTotal = document.getElementById('lblTotalCompanionRows');
+            if (lblTotal) lblTotal.innerText = cards.length;
+        }
+
         function previewFile(inputEl, previewId) {
             const preview = document.getElementById(previewId);
             if (inputEl.files && inputEl.files[0] && preview) {
@@ -570,7 +1063,6 @@
             }
         }
 
-        // Mở Camera trực tiếp trên trình duyệt để chụp Mặt trước / Mặt sau CCCD hoặc Hộ chiếu
         async function openCameraForInput(fileInputId, previewImgId) {
             activeFileInputId = fileInputId;
             activePreviewImgId = previewImgId;
@@ -582,8 +1074,9 @@
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
                 video.srcObject = currentStream;
                 cameraBox.style.display = 'block';
+                cameraBox.scrollIntoView({ behavior: 'smooth' });
             } catch (err) {
-                alert("Không thể mở Camera trực tiếp (Trình duyệt chưa cấp quyền hoặc máy không có Webcam). Bạn vui lòng chọn file ảnh trực tiếp từ máy!");
+                alert("Không thể mở Camera trực tiếp. Vui lòng chọn file ảnh trực tiếp từ thiết bị!");
             }
         }
 
@@ -621,19 +1114,28 @@
             if (cameraBox) cameraBox.style.display = 'none';
         }
 
-        // Hiển thị chi tiết phòng và danh sách hành khách lưu trú
         function showRoomDetails(
             cardElement, maPhong, soPhong, loaiPhong, soGiuong, sucChua,
             trangThai, veSinh, khachHang, sdtKhach, ghiChu,
-            ngayNhan, ngayTra, tongSoKhach, soKhachDaCheckIn,
+            ngayNhan, ngayTra, tongSoKhach, soKhachDaCheckIn, soKhachDangO, soKhachRoiDiTruoc,
             isCheckInValid, isCheckOutValid, isBookingValid, isWalkInValid
         ) {
+            currentRoomMaPhong = maPhong;
+            currentRoomKhachDaiDien = khachHang || '';
+            currentRoomGiaHienTai = cardElement ? (parseFloat(cardElement.getAttribute('data-giaphong')) || 0) : 0;
+
             document.getElementById('rdTitle').innerText = 'Chi tiết Phòng ' + soPhong;
             document.getElementById('rdLoaiPhong').innerText = loaiPhong || 'Chưa cập nhật';
             document.getElementById('rdSoGiuong').innerText = soGiuong || '0';
             document.getElementById('rdSucChua').innerText = sucChua || '0';
             document.getElementById('rdTrangThai').innerText = trangThai || 'Không xác định';
             document.getElementById('rdVeSinh').innerText = veSinh || 'Sạch';
+
+            currentRoomMaxCapacity = parseInt(sucChua) || 4;
+            currentRoomCheckedIn = parseInt(soKhachDangO) || 1;
+            const totalReg = parseInt(tongSoKhach) || 1;
+            const totalEverCheckedIn = parseInt(soKhachDaCheckIn) || 1;
+            currentRoomMissingGuests = Math.max(0, totalReg - totalEverCheckedIn);
 
             const bpModalMaPhong = document.getElementById('bpModalMaPhong');
             if (bpModalMaPhong) bpModalMaPhong.value = maPhong;
@@ -649,12 +1151,15 @@
 
             toggleWalkInForm(false);
             toggleCompanionForm(false);
+            closeEarlyLeaveForm();
+            toggleRoomTransferForm(false);
 
             const customerDiv = document.getElementById('rdCustomerInfo');
             const occupantsSection = document.getElementById('rdOccupantsSection');
             const bookedCheckInForm = document.getElementById('bookedCheckInFormContainer');
             const lockNotice = document.getElementById('rdCheckInLockNotice');
             const progressBadge = document.getElementById('rdCheckInProgressBadge');
+            const btnOpenAddCompanion = document.getElementById('btnOpenAddCompanion');
 
             if (occupantsSection) occupantsSection.style.display = 'none';
             if (bookedCheckInForm) bookedCheckInForm.style.display = 'none';
@@ -674,18 +1179,19 @@
 
             const btnDatPhong = document.getElementById('btnDatPhong');
             const btnShowWalkIn = document.getElementById('btnShowWalkIn');
+            const btnShowRoomTransfer = document.getElementById('btnShowRoomTransfer');
             const hiddenMaPhongCheckIn = document.getElementById('maPhongCheckIn');
             const formCheckOut = document.getElementById('formCheckOut');
             const hiddenMaPhongCheckOut = document.getElementById('maPhongCheckOut');
 
             if (btnDatPhong) btnDatPhong.style.display = 'none';
             if (btnShowWalkIn) btnShowWalkIn.style.display = 'none';
+            if (btnShowRoomTransfer) btnShowRoomTransfer.style.display = 'none';
             if (formCheckOut) formCheckOut.style.display = 'none';
 
             let ttStr = (trangThai || '').trim().toLowerCase();
             const ngayDangXem = '@ngayDangXemParam';
 
-            // 1. PHÒNG TRỐNG
             if (ttStr === 'trống') {
                 if (btnDatPhong && isBookingValid === true) {
                     btnDatPhong.style.display = 'inline-block';
@@ -695,7 +1201,6 @@
                     btnShowWalkIn.style.display = 'inline-block';
                 }
             }
-            // 2. PHÒNG ĐÃ ĐẶT
             else if (ttStr === 'đã đặt') {
                 if (isCheckInValid === true) {
                     if (bookedCheckInForm && hiddenMaPhongCheckIn) {
@@ -706,63 +1211,104 @@
                     if (lockNotice) lockNotice.style.display = 'block';
                 }
             }
-            // 3. PHÒNG ĐANG Ở (Hiển thị danh sách khách ở cùng & tiến độ Check-in đủ/chưa đủ)
             else if (ttStr === 'đang ở') {
                 if (formCheckOut && hiddenMaPhongCheckOut && isCheckOutValid === true) {
                     hiddenMaPhongCheckOut.value = maPhong;
                     formCheckOut.style.display = 'inline-block';
                 }
+                if (btnShowRoomTransfer && isCheckOutValid === true) {
+                    btnShowRoomTransfer.style.display = 'inline-block';
+                }
 
                 if (occupantsSection) {
                     occupantsSection.style.display = 'block';
-                    document.getElementById('rdCountOccupants').innerText = soKhachDaCheckIn + '/' + tongSoKhach + ' khách';
+                    document.getElementById('rdCountOccupants').innerText =
+                        `Đang ở: ${soKhachDangO} | Đã về trước: ${soKhachRoiDiTruoc} / Tổng đăng ký: ${tongSoKhach}`;
                 }
 
-                // Hiển thị Badge tiến độ Check-in trên tiêu đề Modal
-                if (progressBadge) {
-                    progressBadge.style.display = 'inline-block';
-                    if (soKhachDaCheckIn < tongSoKhach) {
-                        progressBadge.className = 'badge bg-warning text-dark mt-1';
-                        progressBadge.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i>Chưa Check-in đủ số lượng (${soKhachDaCheckIn}/${tongSoKhach} khách) - Còn thiếu ${tongSoKhach - soKhachDaCheckIn} người ở cùng`;
+                if (btnOpenAddCompanion) {
+                    if (currentRoomMissingGuests > 0) {
+                        btnOpenAddCompanion.innerHTML = `<i class="bi bi-people-fill me-1"></i> + Check-in thêm khách ở cùng (${currentRoomMissingGuests} người còn thiếu)`;
                     } else {
-                        progressBadge.className = 'badge bg-success mt-1';
-                        progressBadge.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>Đã Check-in và khai báo đủ số lượng (${soKhachDaCheckIn}/${tongSoKhach} khách)`;
+                        btnOpenAddCompanion.innerHTML = `<i class="bi bi-person-plus-fill me-1"></i> + Check-in thêm khách ở cùng`;
                     }
                 }
 
-                // Đổ danh sách hành khách trong phòng ra bảng
+                if (progressBadge) {
+                    progressBadge.style.display = 'inline-block';
+                    if (totalEverCheckedIn < tongSoKhach) {
+                        progressBadge.className = 'badge bg-warning text-dark mt-1';
+                        progressBadge.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i>Chưa Check-in đủ số lượng (${totalEverCheckedIn}/${tongSoKhach} khách) - Còn thiếu ${tongSoKhach - totalEverCheckedIn} người ở cùng`;
+                    } else {
+                        progressBadge.className = 'badge bg-success mt-1';
+                        progressBadge.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>Đã khai báo đủ (${totalEverCheckedIn}/${tongSoKhach} khách) - Hiện đang lưu trú: ${soKhachDangO} người`;
+                    }
+                }
+
                 const tbody = document.getElementById('rdOccupantsTableBody');
                 if (tbody && cardElement) {
                     tbody.innerHTML = '';
-                    let occupants = [];
                     try {
-                        occupants = JSON.parse(cardElement.getAttribute('data-occupants') || '[]');
-                    } catch (e) { occupants = []; }
+                        currentRoomOccupants = JSON.parse(cardElement.getAttribute('data-occupants') || '[]');
+                    } catch (e) { currentRoomOccupants = []; }
 
-                    occupants.forEach((occ, idx) => {
-                        const badgeRole = occ.LaNguoiDaiDien
-                            ? '<span class="badge bg-primary ms-1">Đại diện</span>'
-                            : '<span class="badge bg-secondary ms-1">Ở cùng</span>';
+                    currentRoomOccupants.forEach((occ, idx) => {
+                        const isDeparted = (occ.TrangThaiLuuTru === 'DA_ROI_DI');
+
+                        let badgeRole = '';
+                        if (isDeparted) {
+                            badgeRole = '<span class="badge bg-secondary ms-1">Đã rời đi</span>';
+                        } else if (occ.LaKhachDaiDien) {
+                            badgeRole = '<span class="badge bg-danger ms-1"><i class="bi bi-star-fill me-1"></i>Khách đại diện</span>';
+                        } else {
+                            badgeRole = '<span class="badge bg-info text-dark ms-1">Khách ở cùng</span>';
+                        }
+
+                        let timeInfo = `<div><span class="text-success fw-semibold">Vào:</span> ${occ.ThoiGianCheckIn}</div>`;
+                        if (isDeparted && occ.ThoiGianCheckOut) {
+                            timeInfo += `<div><span class="text-danger fw-semibold">Rời đi:</span> ${occ.ThoiGianCheckOut}</div>`;
+                        }
+
+                        let policeStatus = isDeparted
+                            ? '<span class="badge bg-secondary bg-opacity-25 text-dark border"><i class="bi bi-shield-check me-1"></i>Đã báo giảm Công an & Cắt ăn sáng</span>'
+                            : '<span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-shield-fill-check me-1"></i>Đang đăng ký tạm trú</span>';
 
                         let imgButtons = '<span class="text-muted">Chưa có ảnh</span>';
                         if (occ.AnhMatTruoc || occ.AnhMatSau) {
                             imgButtons = '';
                             if (occ.AnhMatTruoc) {
-                                imgButtons += `<a href="${occ.AnhMatTruoc}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2 me-1"><i class="bi bi-image"></i> Mặt trước</a>`;
+                                imgButtons += `<a href="${occ.AnhMatTruoc}" target="_blank" class="btn btn-xs btn-outline-primary py-0 px-2 me-1"><i class="bi bi-image"></i> Trước</a>`;
                             }
                             if (occ.AnhMatSau) {
-                                imgButtons += `<a href="${occ.AnhMatSau}" target="_blank" class="btn btn-xs btn-outline-secondary py-0 px-2"><i class="bi bi-image"></i> Mặt sau</a>`;
+                                imgButtons += `<a href="${occ.AnhMatSau}" target="_blank" class="btn btn-xs btn-outline-secondary py-0 px-2"><i class="bi bi-image"></i> Sau</a>`;
+                            }
+                        }
+
+                        let actionBtn = '<span class="text-muted small">Đã hoàn tất</span>';
+                        if (!isDeparted && isCheckOutValid === true) {
+                            if (occ.LaKhachDaiDien) {
+                                actionBtn = `
+                                    <button type="button" class="btn btn-xs btn-outline-danger fw-bold py-1 px-2" onclick="openEarlyLeaveModal(${idx})" title="Kịch bản B: Khách đại diện về trước - Bắt buộc chuyển quyền đại diện">
+                                        <i class="bi bi-arrow-left-right me-1"></i>Về trước / Đổi đại diện
+                                    </button>`;
+                            } else {
+                                actionBtn = `
+                                    <button type="button" class="btn btn-xs btn-outline-warning text-dark fw-semibold py-1 px-2" onclick="openEarlyLeaveModal(${idx})" title="Kịch bản A: Khách ở cùng rời đi trước">
+                                        <i class="bi bi-box-arrow-right me-1"></i>Rời đi trước
+                                    </button>`;
                             }
                         }
 
                         tbody.innerHTML += `
-                            <tr>
+                            <tr class="${isDeparted ? 'table-light text-muted' : ''}">
                                 <td>${idx + 1}</td>
                                 <td class="fw-semibold">${occ.HoTen} ${badgeRole}</td>
                                 <td>${occ.LoaiGiayTo}</td>
                                 <td class="font-monospace fw-bold">${occ.SoGiayTo}</td>
-                                <td>${occ.ThoiGianCheckIn}</td>
+                                <td>${timeInfo}</td>
+                                <td>${policeStatus}</td>
                                 <td class="text-center">${imgButtons}</td>
+                                <td class="text-center">${actionBtn}</td>
                             </tr>
                         `;
                     });
