@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization; // Bắt buộc thêm thư viện này để dùng phân quyền
 using HotelManager.Data;
 using HotelManager.Models;
 using System;
@@ -10,6 +11,8 @@ using System.IO;
 
 namespace HotelManager.Pages.QuanLyNhanSu
 {
+    // Phân quyền: Chỉ tài khoản có Role là "Quản lý" mới được phép truy cập trang này
+    [Authorize(Roles = "Quản lý")]
     public class QuanLyDanhSachNhanVienModel : PageModel
     {
         private readonly ApplicationDbContext _context;

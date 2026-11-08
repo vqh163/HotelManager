@@ -28,12 +28,14 @@
                                 <div class="form-floating">
                                     <input asp-for="Input.HoTen" class="form-control rounded-3 border-0 shadow-sm" placeholder="Họ và Tên" required />
                                     <label asp-for="Input.HoTen" class="text-muted"><i class="bi bi-person me-1"></i> Họ và Tên</label>
+                                    <span asp-validation-for="Input.HoTen" class="text-danger small"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-floating">
                                     <input asp-for="Input.SoCCCD" class="form-control rounded-3 border-0 shadow-sm" placeholder="CCCD" maxlength="12" pattern="^\d{12}$" required />
                                     <label asp-for="Input.SoCCCD" class="text-muted"><i class="bi bi-card-text me-1"></i> Số CCCD (12 số)</label>
+                                    <span asp-validation-for="Input.SoCCCD" class="text-danger small"></span>
                                 </div>
                             </div>
                             
@@ -50,12 +52,14 @@
                                 <div class="form-floating">
                                     <input asp-for="Input.SDT" class="form-control rounded-3 border-0 shadow-sm" placeholder="SDT" maxlength="10" pattern="^\d{10}$" required />
                                     <label asp-for="Input.SDT" class="text-muted"><i class="bi bi-telephone me-1"></i> Số điện thoại</label>
+                                    <span asp-validation-for="Input.SDT" class="text-danger small"></span>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-floating">
                                     <input asp-for="Input.Email" type="email" class="form-control rounded-3 border-0 shadow-sm" placeholder="Email" required />
                                     <label asp-for="Input.Email" class="text-muted"><i class="bi bi-envelope me-1"></i> Email</label>
+                                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
                                 </div>
                             </div>
                             
@@ -73,6 +77,7 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="form-floating">
+                                    <!-- Dropdown giờ đã nạp đầy đủ các chức vụ cấp cao -->
                                     <select asp-for="Input.MaChucVu" class="form-select rounded-3 border-0 shadow-sm" asp-items="Model.DanhSachChucVu" required>
                                         <option value="">-- Chọn chức vụ --</option>
                                     </select>
@@ -104,10 +109,10 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             var inputLuong = document.getElementById("inputLuong");
             if (inputLuong) {
-                inputLuong.addEventListener("input", function (e) {
+                inputLuong.addEventListener("input", function(e) {
                     var target = e.target;
                     var value = target.value.replace(/\D/g, '');
                     if (value !== '') {
