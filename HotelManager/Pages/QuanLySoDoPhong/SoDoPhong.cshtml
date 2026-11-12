@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Sơ đồ Phòng Tổng quan";
     string ngayDangXemParam = Model.ThoiGianDangXem.ToString("yyyy-MM-dd");
+    bool isHousekeepingOnly = (User.IsInRole("Nhân viên Buồng phòng") || User.IsInRole("Buồng phòng"))
+                              && !User.IsInRole("Lễ tân") && !User.IsInRole("Quản lý");
 }
 
 <div class="container-fluid py-3">
@@ -25,7 +27,7 @@
                 </div>
             </div>
 
-            @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý"))
+            @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý") || User.IsInRole("Nhân viên Buồng phòng") || User.IsInRole("Buồng phòng"))
             {
                 <a asp-page="/QuanLyTienSanh/Index" class="btn btn-primary fw-bold shadow-sm px-4 py-2 d-flex align-items-center gap-2 rounded-3">
                     <i class="bi bi-display fs-5"></i>
@@ -115,7 +117,10 @@
                          data-maphong="@room.MaPhong"
                          data-occupants="@room.DanhSachKhachJson"
                          data-giaphong="@room.GiaDangApDung"
-                         onclick="showRoomDetails(
+                         data-chobpkiemtra="@room.DangChoBuongPhongKiemTra.ToString().ToLower()"
+                         data-bpdabaocao="@room.BuongPhongDaBaoCaoCheckout.ToString().ToLower()"
+                         data-noidungbaocaobp="@room.NoiDungBaoCaoBuongPhong"
+                         onclick="handleRoomCardClick(
                         this,
                         '@room.MaPhong',
                         '@room.SoPhong',
@@ -163,6 +168,19 @@
                                         <i class="bi bi-box-arrow-right me-1"></i>Về trước: @room.SoKhachDaRoiDiTruoc
                                     </span>
                                 }
+
+                                @if (room.DangChoBuongPhongKiemTra)
+                                {
+                                    <span class="badge bg-warning text-dark border border-dark" style="font-size: 0.68rem;">
+                                        <i class="bi bi-hourglass-split me-1"></i>Chờ BP kiểm tra Checkout
+                                    </span>
+                                }
+                                else if (room.BuongPhongDaBaoCaoCheckout)
+                                {
+                                    <span class="badge bg-info text-dark border border-dark" style="font-size: 0.68rem;">
+                                        <i class="bi bi-check2-all me-1"></i>BP đã báo cáo Checkout
+                                    </span>
+                                }
                             </div>
                         }
 
@@ -172,9 +190,15 @@
                             <p class="card-text mb-1 small text-truncate">Đại diện: @(room.TenKhachHang ?? "Chưa có")</p>
                         </div>
 
-                        <div class="card-footer bg-white text-dark d-flex justify-content-between align-items-center rounded-bottom m-1">
+                        <!-- CHÂN THẺ PHÒNG: HIỂN THỊ TRẠNG THÁI LƯU TRÚ & Ô TRẠNG THÁI VỆ SINH CÓ MÀU SẮC PHÂN BIỆT -->
+                        <div class="card-footer bg-white text-dark d-flex justify-content-between align-items-center rounded-bottom m-1 px-2 py-2">
                             <span class="badge bg-light text-secondary border small">@room.TrangThaiPhong</span>
-                            <i class="bi @room.IconVeSinh @room.MauIconVeSinh fs-5" title="Tình trạng: @room.TrangThaiVeSinh"></i>
+
+                            <!-- Ô hiển thị trạng thái vệ sinh của phòng có màu sắc phân biệt (Sạch / Đang dọn dẹp / Bẩn) -->
+                            <span class="badge @room.MauBadgeVeSinh border px-2 py-1 d-flex align-items-center gap-1 shadow-sm" style="font-size: 0.75rem;">
+                                <i class="bi @room.IconVeSinh"></i>
+                                <span>@room.TrangThaiVeSinh</span>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -183,7 +207,9 @@
     }
 </div>
 
-<!-- MODAL CHI TIẾT PHÒNG & QUẢN LÝ HÀNH KHÁCH LƯU TRÚ -->
+<!-- ========================================================================================= -->
+<!-- MODAL 1: CHI TIẾT PHÒNG & QUẢN LÝ HÀNH KHÁCH LƯU TRÚ (DÀNH CHO LỄ TÂN - GIỮ NGUYÊN 100%) -->
+<!-- ========================================================================================= -->
 <div class="modal fade" id="roomDetailModal" tabindex="-1" aria-labelledby="rdTitle" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-3">
@@ -214,6 +240,14 @@
                         <span class="text-muted small d-block">Trạng thái / Vệ sinh</span>
                         <strong id="rdTrangThai" class="text-uppercase text-primary"></strong> - <span id="rdVeSinh" class="fw-semibold"></span>
                     </div>
+                </div>
+
+                <!-- Khung hiển thị trạng thái báo cáo kiểm tra Minibar/Hỏng hóc từ Buồng phòng khi Lễ tân thực hiện Checkout -->
+                <div id="rdHousekeepingCheckoutReportBox" class="alert alert-info border-info shadow-sm mb-3" style="display: none;">
+                    <div class="fw-bold text-dark mb-1">
+                        <i class="bi bi-clipboard2-check-fill text-primary me-1"></i> Báo cáo kiểm tra phòng từ Bộ phận Buồng phòng:
+                    </div>
+                    <div id="rdHousekeepingCheckoutReportContent" class="small text-dark fw-semibold"></div>
                 </div>
 
                 <div id="rdCustomerInfo" style="display: none;">
@@ -669,18 +703,6 @@
             <div class="modal-footer bg-white border-top px-4 pb-4 pt-3">
                 <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" onclick="stopLiveCamera()">Đóng</button>
 
-                @if (User.IsInRole("Nhân viên Buồng phòng") || User.IsInRole("Buồng phòng"))
-                {
-                    <form method="post" asp-page-handler="DoiTrangThai" class="m-0">
-                        <input type="hidden" name="maPhong" id="bpModalMaPhong" value="" />
-                        <input type="hidden" name="loaiCapNhat" value="BuongPhong" />
-                        <input type="hidden" name="trangThaiMoi" value="Sạch" />
-                        <button type="submit" class="btn btn-success fw-bold px-4">
-                            <i class="bi bi-stars me-1"></i> Đánh dấu Sạch
-                        </button>
-                    </form>
-                }
-
                 @if (User.IsInRole("Lễ tân") || User.IsInRole("Quản lý") || User.IsInRole("Sales"))
                 {
                     <a href="#" id="btnDatPhong" class="btn btn-primary fw-bold px-3" style="display: none;">
@@ -697,8 +719,8 @@
 
                     <form method="post" asp-page-handler="CheckOut" id="formCheckOut" style="display: none; margin: 0;">
                         <input type="hidden" name="maPhongCheckOut" id="maPhongCheckOut" value="" />
-                        <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm"
-                                onclick="return confirm('Bạn có chắc chắn muốn thực hiện Checkout trả phòng cho toàn bộ những khách còn lại trong phòng này không?');">
+                        <button type="submit" id="btnSubmitCheckOut" class="btn btn-danger fw-bold px-4 shadow-sm"
+                                onclick="return confirm('Bạn có chắc chắn muốn thực hiện thao tác Checkout cho phòng này không?');">
                             <i class="bi bi-box-arrow-right me-1"></i> Checkout trả phòng
                         </button>
                     </form>
@@ -708,8 +730,174 @@
     </div>
 </div>
 
+<!-- ========================================================================================= -->
+<!-- MODAL 2: GIAO DIỆN 3 Ô CHỨC NĂNG DÀNH RIÊNG CHO NHÂN VIÊN BUỒNG PHÒNG                     -->
+<!-- ========================================================================================= -->
+<div class="modal fade" id="housekeepingModal" tabindex="-1" aria-labelledby="hkModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0" id="hkModalTitle">
+                        <i class="bi bi-stars me-2"></i>Tác Nghiệp Buồng Phòng - Phòng <span id="hkSoPhongTitle"></span>
+                    </h5>
+                    <small class="opacity-75">Quản lý vệ sinh phòng, báo cáo Minibar/Hỏng hóc khi Checkout & gửi phiếu sự cố kỹ thuật</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4 bg-light">
+                <!-- Cảnh báo nếu Lễ tân vừa bấm Checkout và đang chờ Buồng phòng kiểm tra phòng này -->
+                <div id="hkCheckoutAlertBanner" class="alert alert-warning border-warning d-flex align-items-center shadow-sm mb-4" style="display: none;">
+                    <i class="bi bi-bell-fill fs-4 text-danger me-3"></i>
+                    <div>
+                        <div class="fw-bold text-dark">Yêu cầu kiểm tra Checkout khẩn từ Lễ tân!</div>
+                        <div class="small text-secondary">Lễ tân đang làm thủ tục trả phòng cho khách tại phòng này. Vui lòng kiểm tra Minibar, tài sản hỏng hóc và gửi báo cáo ở <strong>Ô số 2</strong> để Lễ tân xác nhận Checkout!</div>
+                    </div>
+                </div>
+
+                <!-- 3 Ô CHỨC NĂNG CỦA NHÂN VIÊN BUỒNG PHÒNG -->
+                <div class="row g-4">
+                    
+                    <!-- ==================== Ô 1: TRẠNG THÁI VỆ SINH & NÚT CHUYỂN TRẠNG THÁI ==================== -->
+                    <div class="col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm rounded-4">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="fw-bold text-primary mb-0">
+                                    <i class="bi bi-1-circle-fill me-1"></i> Trạng Thái Phòng Hiện Tại
+                                </h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-between text-center p-4">
+                                <div>
+                                    <span class="text-muted small d-block mb-1">Trạng thái lưu trú: <strong id="hkTrangThaiLuuTru" class="text-dark"></strong></span>
+                                    <span class="text-muted small d-block mb-3">Trạng thái vệ sinh hiện tại:</span>
+
+                                    <!-- Hiển thị trạng thái vệ sinh to, rõ ràng có màu sắc phân biệt -->
+                                    <div id="hkCurrentCleanStatusBadge" class="py-3 px-4 rounded-4 fw-bold fs-4 mb-3 shadow-sm">
+                                        Sạch
+                                    </div>
+
+                                    <p id="hkCleanStatusInstruction" class="small text-muted mb-4">
+                                        Chỉ khi phòng ở trạng thái Bẩn hoặc Đang dọn dẹp thì nút Chuyển trạng thái mới sáng lên.
+                                    </p>
+                                </div>
+
+                                <!-- Form & Button Chuyển trạng thái (Bẩn -> Đang dọn dẹp -> Sạch) -->
+                                <form method="post" asp-page-handler="ChuyenTrangThaiBuongPhong" id="formChuyenTrangThaiBP" onsubmit="return confirmHousekeepingTransition();">
+                                    <input type="hidden" asp-for="MaPhongBuongPhong" id="hkInputMaPhong1" />
+                                    <button type="submit" id="btnChuyenTrangThaiBP" class="btn btn-lg w-100 fw-bold rounded-pill shadow-sm">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Chuyển trạng thái
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== Ô 2: TẠO PHIẾU BÁO CÁO MINIBAR / HỎNG HÓC CHO LỄ TÂN ==================== -->
+                    <div class="col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm rounded-4">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="fw-bold text-success mb-0">
+                                    <i class="bi bi-2-circle-fill me-1"></i> Báo Cáo Minibar & Hỏng Hóc (Checkout)
+                                </h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <form method="post" asp-page-handler="BaoCaoMinibarCheckout" class="d-flex flex-column h-100 justify-content-between">
+                                    <div>
+                                        <input type="hidden" asp-for="MaPhongBuongPhong" id="hkInputMaPhong2" />
+
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-secondary mb-1">Mặt hàng Minibar tiêu thụ (Nếu có)</label>
+                                            <select asp-for="MaDichVuMinibarBP" class="form-select form-select-sm">
+                                                <option value="">-- Không sử dụng Minibar --</option>
+                                                @foreach (var dv in Model.DanhSachDichVuMinibar)
+                                                {
+                                                    <option value="@dv.MaDichVu">@dv.TenDichVu (@((dv.DonGia ?? 0).ToString("N0")) đ/@dv.DonViTinh)</option>
+                                                }
+                                            </select>
+                                        </div>
+
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-5">
+                                                <label class="form-label small fw-bold text-secondary mb-1">Số lượng</label>
+                                                <input type="number" asp-for="SoLuongMinibarBP" class="form-control form-control-sm" value="0" min="0" max="50" />
+                                            </div>
+                                            <div class="col-7">
+                                                <label class="form-label small fw-bold text-secondary mb-1">Phí đền bù hỏng hóc (VNĐ)</label>
+                                                <input type="number" asp-for="ChiPhiHongHocBP" class="form-control form-control-sm" value="0" min="0" step="10000" />
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-secondary mb-1">Ghi chú kiểm tra phòng báo Lễ tân <span class="text-danger">*</span></label>
+                                            <textarea asp-for="GhiChuKiemTraCheckoutBP" class="form-control form-control-sm" rows="3" required placeholder="VD: Phòng đủ khăn & đồ dùng, khách dùng 2 nước suối, không hỏng hóc..."></textarea>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm mt-2">
+                                        <i class="bi bi-send-check-fill me-1"></i> Gửi Báo Cáo Cho Lễ Tân
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== Ô 3: TẠO PHIẾU BÁO CÁO KỸ THUẬT GỬI NHÂN VIÊN KỸ THUẬT ==================== -->
+                    <div class="col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm rounded-4">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h6 class="fw-bold text-danger mb-0">
+                                    <i class="bi bi-3-circle-fill me-1"></i> Phiếu Báo Cáo Kỹ Thuật (UC_07)
+                                </h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <form method="post" asp-page-handler="TaoPhieuKyThuat" enctype="multipart/form-data" class="d-flex flex-column h-100 justify-content-between">
+                                    <div>
+                                        <input type="hidden" asp-for="MaPhongBuongPhong" id="hkInputMaPhong3" />
+
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-secondary mb-1">Mức độ ưu tiên xử lý <span class="text-danger">*</span></label>
+                                            <select asp-for="MucDoUuTienKT" class="form-select form-select-sm">
+                                                <option value="Thấp">Thấp</option>
+                                                <option value="Trung bình" selected>Trung bình</option>
+                                                <option value="Cao">Cao</option>
+                                                <option value="Khẩn cấp">Khẩn cấp (Cần sửa ngay)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-secondary mb-1">Mô tả chi tiết sự cố kỹ thuật <span class="text-danger">*</span></label>
+                                            <textarea asp-for="MoTaSuCoKT" class="form-control form-control-sm" rows="3" required placeholder="VD: Điều hòa không lạnh, bóng đèn phòng tắm cháy, rò rỉ nước bồn rửa..."></textarea>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-secondary mb-1">Hình ảnh hiện trường đính kèm</label>
+                                            <input type="file" asp-for="AnhSuCoKT" class="form-control form-control-sm" accept="image/*" />
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-danger w-100 fw-bold rounded-pill shadow-sm mt-2">
+                                        <i class="bi bi-tools me-1"></i> Gửi Phiếu Cho Nhân Viên Kỹ Thuật
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white border-top px-4 py-3">
+                <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
+        const isHousekeepingRole = @(isHousekeepingOnly ? "true" : "false");
+
         let currentStream = null;
         let activeFileInputId = null;
         let activePreviewImgId = null;
@@ -721,6 +909,7 @@
         let currentRoomMaxCapacity = 4;
         let currentRoomCheckedIn = 1;
         let currentRoomOccupants = [];
+        let currentCleanStatusForHK = '';
 
         function updateLiveClock() {
             const now = new Date();
@@ -734,34 +923,105 @@
             updateLiveClock();
             setInterval(updateLiveClock, 1000);
 
-            // === BỔ SUNG ĐOẠN NÀY: Tự động mở Modal Chi tiết Phòng khi chuyển từ Tiền sảnh sang ===
             const urlParams = new URLSearchParams(window.location.search);
             const openRoomId = urlParams.get('openRoom');
             if (openRoomId) {
-                // Tìm đúng thẻ phòng có data-maphong khớp với mã phòng truyền sang
                 const targetCard = document.querySelector(`.card[data-maphong="${openRoomId}"]`);
                 if (targetCard) {
-                    // Cuộn mượt đến vị trí phòng và tự động kích hoạt sự kiện click để mở Modal Chi tiết Phòng
                     targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     targetCard.click();
-
-                    // Xóa tham số openRoom trên thanh URL sau khi đã mở Modal để khi trang auto-reload 30s không bị bật lặp lại
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
             }
-            // ======================================================================================
 
             const filterInput = document.querySelector('input[type="datetime-local"]');
             if (!filterInput || !filterInput.value) {
                 setInterval(function () {
-                    const modalEl = document.getElementById('roomDetailModal');
-                    const isModalOpen = modalEl && modalEl.classList.contains('show');
+                    const modalEl1 = document.getElementById('roomDetailModal');
+                    const modalEl2 = document.getElementById('housekeepingModal');
+                    const isModalOpen = (modalEl1 && modalEl1.classList.contains('show')) || (modalEl2 && modalEl2.classList.contains('show'));
                     if (!isModalOpen) {
                         window.location.reload();
                     }
                 }, 30000);
             }
         });
+
+        function handleRoomCardClick(
+            cardElement, maPhong, soPhong, loaiPhong, soGiuong, sucChua,
+            trangThai, veSinh, khachHang, sdtKhach, ghiChu,
+            ngayNhan, ngayTra, tongSoKhach, soKhachDaCheckIn, soKhachDangO, soKhachRoiDiTruoc,
+            isCheckInValid, isCheckOutValid, isBookingValid, isWalkInValid
+        ) {
+            if (isHousekeepingRole) {
+                openHousekeepingModal(cardElement, maPhong, soPhong, trangThai, veSinh);
+            } else {
+                showRoomDetails(
+                    cardElement, maPhong, soPhong, loaiPhong, soGiuong, sucChua,
+                    trangThai, veSinh, khachHang, sdtKhach, ghiChu,
+                    ngayNhan, ngayTra, tongSoKhach, soKhachDaCheckIn, soKhachDangO, soKhachRoiDiTruoc,
+                    isCheckInValid, isCheckOutValid, isBookingValid, isWalkInValid
+                );
+            }
+        }
+
+        // Mở Modal 3 ô dành riêng cho Nhân viên Buồng phòng
+        function openHousekeepingModal(cardElement, maPhong, soPhong, trangThaiLuuTru, trangThaiVeSinh) {
+            document.getElementById('hkSoPhongTitle').innerText = soPhong;
+            document.getElementById('hkTrangThaiLuuTru').innerText = trangThaiLuuTru;
+            document.getElementById('hkInputMaPhong1').value = maPhong;
+            document.getElementById('hkInputMaPhong2').value = maPhong;
+            document.getElementById('hkInputMaPhong3').value = maPhong;
+
+            const choBP = cardElement && cardElement.getAttribute('data-chobpkiemtra') === 'true';
+            let vsClean = (trangThaiVeSinh || 'Sạch').trim();
+
+            // Nếu phòng đang có yêu cầu chờ kiểm tra Checkout từ Lễ tân mà trạng thái là Sạch thì ép hiển thị là Bẩn
+            if (choBP && vsClean.toLowerCase() === 'sạch') {
+                vsClean = 'Bẩn';
+            }
+
+            currentCleanStatusForHK = vsClean;
+
+            const badgeEl = document.getElementById('hkCurrentCleanStatusBadge');
+            const btnTransition = document.getElementById('btnChuyenTrangThaiBP');
+            const instructionEl = document.getElementById('hkCleanStatusInstruction');
+
+            badgeEl.innerText = vsClean;
+
+            const vsLower = vsClean.toLowerCase();
+            if (vsLower.includes('bẩn')) {
+                badgeEl.className = 'py-3 px-4 rounded-4 fw-bold fs-4 mb-3 shadow-sm bg-danger text-white';
+                btnTransition.disabled = false;
+                btnTransition.className = 'btn btn-warning text-dark btn-lg w-100 fw-bold rounded-pill shadow-sm';
+                btnTransition.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Chuyển trạng thái (Bắt đầu dọn)';
+                instructionEl.innerText = 'Phòng đang ở trạng thái Bẩn. Nhấn nút bên dưới để chuyển sang trạng thái "Đang dọn dẹp".';
+            } else if (vsLower.includes('đang dọn')) {
+                badgeEl.className = 'py-3 px-4 rounded-4 fw-bold fs-4 mb-3 shadow-sm bg-info text-dark';
+                btnTransition.disabled = false;
+                btnTransition.className = 'btn btn-success text-white btn-lg w-100 fw-bold rounded-pill shadow-sm';
+                btnTransition.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Chuyển trạng thái (Hoàn tất -> Sạch)';
+                instructionEl.innerText = 'Phòng đang được dọn dẹp. Sau khi dọn xong, hãy ấn thêm 1 lần nữa để chuyển sang trạng thái "Sạch".';
+            } else {
+                badgeEl.className = 'py-3 px-4 rounded-4 fw-bold fs-4 mb-3 shadow-sm bg-success text-white';
+                btnTransition.disabled = true;
+                btnTransition.className = 'btn btn-secondary btn-lg w-100 fw-bold rounded-pill opacity-50';
+                btnTransition.innerHTML = '<i class="bi bi-lock-fill me-1"></i> Chuyển trạng thái (Phòng đã Sạch)';
+                instructionEl.innerText = 'Phòng hiện đang ở trạng thái Sạch nên nút Chuyển trạng thái đã được khóa.';
+            }
+
+            const alertBanner = document.getElementById('hkCheckoutAlertBanner');
+            if (alertBanner) {
+                alertBanner.style.display = choBP ? 'flex' : 'none';
+            }
+
+            const hkModal = new bootstrap.Modal(document.getElementById('housekeepingModal'));
+            hkModal.show();
+        }
+
+        function confirmHousekeepingTransition() {
+            return confirm('Bạn có muốn chuyển trạng thái phòng hay không?');
+        }
 
         function toggleWalkInForm(show) {
             const formContainer = document.getElementById('walkInFormContainer');
@@ -1137,9 +1397,6 @@
             const totalEverCheckedIn = parseInt(soKhachDaCheckIn) || 1;
             currentRoomMissingGuests = Math.max(0, totalReg - totalEverCheckedIn);
 
-            const bpModalMaPhong = document.getElementById('bpModalMaPhong');
-            if (bpModalMaPhong) bpModalMaPhong.value = maPhong;
-
             const maPhongWalkIn = document.getElementById('maPhongWalkIn');
             if (maPhongWalkIn) maPhongWalkIn.value = maPhong;
 
@@ -1160,11 +1417,15 @@
             const lockNotice = document.getElementById('rdCheckInLockNotice');
             const progressBadge = document.getElementById('rdCheckInProgressBadge');
             const btnOpenAddCompanion = document.getElementById('btnOpenAddCompanion');
+            const hkReportBox = document.getElementById('rdHousekeepingCheckoutReportBox');
+            const hkReportContent = document.getElementById('rdHousekeepingCheckoutReportContent');
+            const btnSubmitCheckOut = document.getElementById('btnSubmitCheckOut');
 
             if (occupantsSection) occupantsSection.style.display = 'none';
             if (bookedCheckInForm) bookedCheckInForm.style.display = 'none';
             if (lockNotice) lockNotice.style.display = 'none';
             if (progressBadge) progressBadge.style.display = 'none';
+            if (hkReportBox) hkReportBox.style.display = 'none';
 
             if (khachHang && khachHang.trim() !== '') {
                 document.getElementById('rdKhachHang').innerText = khachHang;
@@ -1212,9 +1473,38 @@
                 }
             }
             else if (ttStr === 'đang ở') {
+                const choBPKiemTra = cardElement && cardElement.getAttribute('data-chobpkiemtra') === 'true';
+                const bpDaBaoCao = cardElement && cardElement.getAttribute('data-bpdabaocao') === 'true';
+                const noiDungBaoCao = cardElement ? (cardElement.getAttribute('data-noidungbaocaobp') || '') : '';
+
+                if (hkReportBox && hkReportContent) {
+                    if (bpDaBaoCao) {
+                        hkReportBox.style.display = 'block';
+                        hkReportBox.className = 'alert alert-success border-success shadow-sm mb-3';
+                        hkReportContent.innerHTML = `<span class="text-success">✓ Đã kiểm tra xong:</span> ${noiDungBaoCao}. Lễ tân có thể bấm xác nhận hoàn tất Checkout!`;
+                    } else if (choBPKiemTra) {
+                        hkReportBox.style.display = 'block';
+                        hkReportBox.className = 'alert alert-warning border-warning shadow-sm mb-3';
+                        hkReportContent.innerHTML = `<span class="text-danger">⏳ Đang chờ Nhân viên Buồng phòng kiểm tra Minibar & hỏng hóc...</span>`;
+                    }
+                }
+
                 if (formCheckOut && hiddenMaPhongCheckOut && isCheckOutValid === true) {
                     hiddenMaPhongCheckOut.value = maPhong;
                     formCheckOut.style.display = 'inline-block';
+
+                    if (btnSubmitCheckOut) {
+                        if (bpDaBaoCao) {
+                            btnSubmitCheckOut.className = 'btn btn-success fw-bold px-4 shadow-sm';
+                            btnSubmitCheckOut.innerHTML = '<i class="bi bi-check2-all me-1"></i> Xác nhận Báo cáo BP & Hoàn tất Checkout';
+                        } else if (choBPKiemTra) {
+                            btnSubmitCheckOut.className = 'btn btn-warning text-dark fw-bold px-4 shadow-sm';
+                            btnSubmitCheckOut.innerHTML = '<i class="bi bi-bell-fill me-1"></i> Gửi lại thông báo nhắc Buồng phòng';
+                        } else {
+                            btnSubmitCheckOut.className = 'btn btn-danger fw-bold px-4 shadow-sm';
+                            btnSubmitCheckOut.innerHTML = '<i class="bi bi-box-arrow-right me-1"></i> Checkout trả phòng (Yêu cầu BP kiểm tra)';
+                        }
+                    }
                 }
                 if (btnShowRoomTransfer && isCheckOutValid === true) {
                     btnShowRoomTransfer.style.display = 'inline-block';
