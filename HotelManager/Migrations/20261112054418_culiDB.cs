@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class HuyDB : Migration
+    public partial class culiDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

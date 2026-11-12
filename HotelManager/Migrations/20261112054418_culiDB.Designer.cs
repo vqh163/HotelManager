@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261101044312_ChanDB")]
-    partial class ChanDB
+    [Migration("20261112054418_culiDB")]
+    partial class culiDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
