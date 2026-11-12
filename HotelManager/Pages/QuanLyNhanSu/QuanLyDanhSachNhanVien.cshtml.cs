@@ -12,7 +12,7 @@ using System.IO;
 namespace HotelManager.Pages.QuanLyNhanSu
 {
     // Phân quyền: Chỉ tài khoản có Role là "Quản lý" mới được phép truy cập trang này
-    [Authorize(Roles = "Quản lý")]
+    [Authorize(Roles = "Quản lý, Quản trị viên")]
     public class QuanLyDanhSachNhanVienModel : PageModel
     {
         private readonly ApplicationDbContext _context;
