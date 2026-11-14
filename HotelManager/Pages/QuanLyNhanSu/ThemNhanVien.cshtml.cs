@@ -14,7 +14,7 @@ using System.IO;
 namespace HotelManager.Pages.QuanLyNhanSu
 {
     // YÊU CẦU 2: Phân quyền - Chỉ tài khoản có Role "Quản lý" mới được truy cập Page này
-    [Authorize(Roles = "Quản lý")]
+    [Authorize(Roles = "Quản lý, Quản trị viên")]
     public class ThemNhanVienModel : PageModel
     {
         private readonly ApplicationDbContext _context;

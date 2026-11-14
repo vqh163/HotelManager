@@ -13,7 +13,7 @@ using System.Security.Claims;
 namespace HotelManager.Pages.QuanLyNhanSu
 {
     // 🛡️ BẢO MẬT: Chặn truy cập toàn bộ trang này nếu User không có Role là "Quản lý"
-    [Authorize(Roles = "Quản lý")]
+    [Authorize(Roles = "Quản lý, Quản trị viên")]
     public class SuaThongTinModel : PageModel
     {
         private readonly ApplicationDbContext _context;
