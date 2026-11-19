@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261101044312_ChanDB")]
-    partial class ChanDB
+    [Migration("20261119153912_CapNhatPhieuBaoCaoSuCo_UC07")]
+    partial class CapNhatPhieuBaoCaoSuCo_UC07
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -526,14 +526,41 @@ namespace HotelManager.Migrations
                     b.Property<string>("MaPhieuBaoCao")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("AnhSauSuaChua")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<decimal?>("ChiPhiPhatSinh")
+                        .HasColumnType("decimal(12, 2)");
+
+                    b.Property<bool>("CoKhoaPhong")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("DanhSachVatTuJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("DoKhachLamHong")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("GhiChuXuLy")
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("HinhAnhDinhKem")
                         .HasColumnType("varchar(255)");
 
                     b.Property<string>("KHO_VAT_TUMaVatTu")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("LyDoTuChoi")
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MaNVKyThuat")
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("MaPhong")
+                        .HasColumnType("varchar(20)");
+
                     b.Property<string>("MoTaSuCo")
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("MucDoUuTien")
                         .HasColumnType("nvarchar(50)");
@@ -541,8 +568,29 @@ namespace HotelManager.Migrations
                     b.Property<string>("NHAN_VIENMaNV")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("NguoiTaoTen")
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TenNVKyThuat")
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ThoiGianHoanThanh")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("ThoiGianTao")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ThoiGianTiepNhan")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("TongChiPhi")
+                        .HasColumnType("decimal(12, 2)");
+
+                    b.Property<string>("TrangThai")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ViTriSuCo")
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("MaPhieuBaoCao");
 

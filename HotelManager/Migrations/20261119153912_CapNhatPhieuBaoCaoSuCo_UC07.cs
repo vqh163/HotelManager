@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class HuyDB : Migration
+    public partial class CapNhatPhieuBaoCaoSuCo_UC07 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -270,10 +270,26 @@ namespace HotelManager.Migrations
                     MaPhieuBaoCao = table.Column<string>(type: "varchar(20)", nullable: false),
                     NHAN_VIENMaNV = table.Column<string>(type: "varchar(20)", nullable: true),
                     KHO_VAT_TUMaVatTu = table.Column<string>(type: "varchar(20)", nullable: true),
-                    MoTaSuCo = table.Column<string>(type: "nvarchar(255)", nullable: true),
+                    MoTaSuCo = table.Column<string>(type: "nvarchar(500)", nullable: true),
                     HinhAnhDinhKem = table.Column<string>(type: "varchar(255)", nullable: true),
                     MucDoUuTien = table.Column<string>(type: "nvarchar(50)", nullable: true),
-                    ThoiGianTao = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    ThoiGianTao = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    MaPhong = table.Column<string>(type: "varchar(20)", nullable: true),
+                    ViTriSuCo = table.Column<string>(type: "nvarchar(100)", nullable: true),
+                    TrangThai = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    NguoiTaoTen = table.Column<string>(type: "nvarchar(100)", nullable: true),
+                    MaNVKyThuat = table.Column<string>(type: "varchar(20)", nullable: true),
+                    TenNVKyThuat = table.Column<string>(type: "nvarchar(100)", nullable: true),
+                    AnhSauSuaChua = table.Column<string>(type: "varchar(255)", nullable: true),
+                    GhiChuXuLy = table.Column<string>(type: "nvarchar(500)", nullable: true),
+                    LyDoTuChoi = table.Column<string>(type: "nvarchar(500)", nullable: true),
+                    DanhSachVatTuJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ChiPhiPhatSinh = table.Column<decimal>(type: "decimal(12,2)", nullable: true),
+                    TongChiPhi = table.Column<decimal>(type: "decimal(12,2)", nullable: true),
+                    DoKhachLamHong = table.Column<bool>(type: "bit", nullable: false),
+                    CoKhoaPhong = table.Column<bool>(type: "bit", nullable: false),
+                    ThoiGianTiepNhan = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ThoiGianHoanThanh = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
