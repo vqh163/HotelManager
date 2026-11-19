@@ -1,0 +1,1132 @@
+﻿@page
+@model HotelManager.Pages.QuanLySuCo.IndexModel
+@{
+    ViewData["Title"] = "Quản Lý Sự Cố & Kỹ Thuật (UC_07)";
+}
+
+<style>
+    .kpi-card {
+        border-radius: 14px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+    }
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+    .ticket-row-urgent {
+        border-left: 5px solid #dc3545 !important;
+    }
+    .ticket-row-high {
+        border-left: 5px solid #fd7e14 !important;
+    }
+    .ticket-row-done {
+        border-left: 5px solid #198754 !important;
+        background-color: #f8fff9;
+    }
+</style>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- 1. TIÊU ĐỀ & NÚT TẠO PHIẾU SỰ CỐ -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom gap-3">
+        <div>
+            <h3 class="fw-bold text-primary mb-1 text-uppercase">
+                <i class="bi bi-wrench-adjustable-circle-fill me-2"></i>Quản Lý Sự Cố & Kỹ Thuật
+            </h3>
+            <p class="text-muted small mb-0">
+                Tiếp nhận báo hỏng phòng & khu vực chung, xuất vật tư tiêu hao trừ kho tự động, nghiệm thu & báo xanh (UC_07)
+            </p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            @if (Model.CanCreateTicket)
+            {
+                <button type="button" class="btn btn-danger fw-bold px-4 py-2 rounded-pill shadow-sm" onclick="openCreateTicketModal()">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Tạo Phiếu Sự Cố Mới
+                </button>
+            }
+            <a asp-page="/QuanLySoDoPhong/SoDoPhong" class="btn btn-outline-primary fw-bold px-3 py-2 rounded-pill">
+                <i class="bi bi-grid-3x3-gap me-1"></i> Sơ đồ phòng
+            </a>
+        </div>
+    </div>
+
+    <!-- THÔNG BÁO KẾT QUẢ THAO TÁC -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm fw-semibold" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm fw-semibold" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- 2. THẺ KPI THỐNG KÊ NHANH THEO 4 TRẠNG THÁI (CLICK ĐỂ LỌC) -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md">
+            <a asp-page="./Index" asp-route-TrangThaiLoc="TatCa" class="text-decoration-none">
+                <div class="card kpi-card border-0 shadow-sm bg-primary text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small opacity-75 fw-semibold">TỔNG PHIẾU SỰ CỐ</div>
+                            <div class="fs-3 fw-bold">@Model.TongSoPhieu</div>
+                        </div>
+                        <i class="bi bi-clipboard2-pulse fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a asp-page="./Index" asp-route-TrangThaiLoc="Chờ tiếp nhận" class="text-decoration-none">
+                <div class="card kpi-card border-0 shadow-sm bg-danger text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small opacity-75 fw-semibold">1. CHỜ TIẾP NHẬN</div>
+                            <div class="fs-3 fw-bold">@Model.SoChoTiepNhan</div>
+                        </div>
+                        <i class="bi bi-bell-fill fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a asp-page="./Index" asp-route-TrangThaiLoc="Đang sửa chữa" class="text-decoration-none">
+                <div class="card kpi-card border-0 shadow-sm bg-warning text-dark p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small opacity-75 fw-bold">2. ĐANG SỬA CHỮA</div>
+                            <div class="fs-3 fw-bold">@Model.SoDangSuaChua</div>
+                        </div>
+                        <i class="bi bi-tools fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a asp-page="./Index" asp-route-TrangThaiLoc="Chờ nghiệm thu" class="text-decoration-none">
+                <div class="card kpi-card border-0 shadow-sm bg-info text-dark p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small opacity-75 fw-bold">3. CHỜ NGHIỆM THU</div>
+                            <div class="fs-3 fw-bold">@Model.SoChoNghiemThu</div>
+                        </div>
+                        <i class="bi bi-clipboard2-check fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a asp-page="./Index" asp-route-TrangThaiLoc="Hoàn thành" class="text-decoration-none">
+                <div class="card kpi-card border-0 shadow-sm bg-success text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small opacity-75 fw-semibold">4. HOÀN THÀNH (XANH)</div>
+                            <div class="fs-3 fw-bold">@Model.SoHoanThanh</div>
+                        </div>
+                        <i class="bi bi-check-circle-fill fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 3. THANH BỘ LỌC TÌM KIẾM -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary mb-1">Trạng thái xử lý</label>
+                    <select asp-for="TrangThaiLoc" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="TatCa">-- Tất cả trạng thái --</option>
+                        <option value="Chờ tiếp nhận">1. Chờ tiếp nhận</option>
+                        <option value="Đang sửa chữa">2. Đang sửa chữa</option>
+                        <option value="Chờ nghiệm thu">3. Chờ nghiệm thu</option>
+                        <option value="Hoàn thành">4. Hoàn thành (Báo xanh)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-secondary mb-1">Mức độ ưu tiên</label>
+                    <select asp-for="UuTienLoc" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="TatCa">-- Tất cả --</option>
+                        <option value="Khẩn cấp">Khẩn cấp</option>
+                        <option value="Cao">Cao</option>
+                        <option value="Trung bình">Trung bình</option>
+                        <option value="Thấp">Thấp</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-secondary mb-1">Phạm vi vị trí</label>
+                    <select asp-for="LoaiViTriLoc" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="TatCa">-- Tất cả --</option>
+                        <option value="Phong">Phòng lưu trú</option>
+                        <option value="KhuVucChung">Khu vực chung</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold text-secondary mb-1">Tìm kiếm nhanh</label>
+                    <div class="input-group input-group-sm">
+                        <input asp-for="TuKhoa" class="form-control" placeholder="Mã phiếu, số phòng, khu vực, mô tả, nhân viên..." />
+                        <button type="submit" class="btn btn-primary fw-bold px-3"><i class="bi bi-search me-1"></i>Lọc</button>
+                        <a asp-page="./Index" class="btn btn-outline-secondary">Xóa lọc</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. DANH SÁCH PHIẾU SỰ CỐ (TICKET TABLE) -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold text-dark mb-0">
+                <i class="bi bi-list-task text-primary me-2"></i>Danh sách Phiếu Báo Cáo Sự Cố (@Model.DanhSachSuCo.Count phiếu)
+            </h6>
+            <span class="badge bg-light text-secondary border">
+                Vai trò của bạn:
+                <strong class="text-primary">
+                    @(Model.IsQuanLy ? "Quản lý (Xem & Nghiệm thu)" : Model.IsKyThuat ? "Nhân viên Kỹ thuật (Tiếp nhận & Sửa chữa)" : "Nhân viên Báo hỏng")
+                </strong>
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase text-secondary">
+                    <tr>
+                        <th class="ps-4">Mã Phiếu & Thời gian</th>
+                        <th>Vị trí sự cố</th>
+                        <th style="min-width: 240px;">Nội dung sự cố</th>
+                        <th>Ưu tiên</th>
+                        <th>Người tạo / Xử lý</th>
+                        <th>Chi phí & Vật tư</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end pe-4">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    @if (Model.DanhSachSuCo.Any())
+                    {
+                        foreach (var item in Model.DanhSachSuCo)
+                        {
+                            string rowClass = item.TrangThai == "Hoàn thành"
+                                ? "ticket-row-done"
+                                : (item.MucDoUuTien == "Khẩn cấp" ? "ticket-row-urgent" : (item.MucDoUuTien == "Cao" ? "ticket-row-high" : ""));
+
+                            string priorityBadge = item.MucDoUuTien switch
+                            {
+                                "Khẩn cấp" => "bg-danger text-white",
+                                "Cao" => "bg-warning text-dark",
+                                "Trung bình" => "bg-primary-subtle text-primary border border-primary-subtle",
+                                _ => "bg-light text-secondary border"
+                            };
+
+                            string statusBadge = item.TrangThai switch
+                            {
+                                "Chờ tiếp nhận" => "bg-danger text-white",
+                                "Đang sửa chữa" => "bg-warning text-dark",
+                                "Chờ nghiệm thu" => "bg-info text-dark",
+                                "Hoàn thành" => "bg-success text-white",
+                                _ => "bg-secondary text-white"
+                            };
+
+                            <tr class="@rowClass">
+                                <td class="ps-4">
+                                    <div class="fw-bold font-monospace text-primary">@item.MaPhieuBaoCao</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        <i class="bi bi-clock me-1"></i>@item.ThoiGianTaoStr
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="fw-bold text-dark">
+                                        <i class="bi @(item.LaKhuVucChung ? "bi-building text-info" : "bi-door-closed-fill text-primary") me-1"></i>
+                                        @item.ViTriSuCo
+                                    </div>
+                                    @if (item.CoKhoaPhong && item.TrangThai != "Hoàn thành")
+                                    {
+                                        <span class="badge bg-secondary mt-1" style="font-size: 0.68rem;">
+                                            <i class="bi bi-lock-fill me-1"></i>Đang khóa Bảo trì
+                                        </span>
+                                    }
+                                    @if (item.DoKhachLamHong)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle mt-1" style="font-size: 0.68rem;">
+                                            Khách làm hỏng
+                                        </span>
+                                    }
+                                </td>
+
+                                <td>
+                                    <div class="text-dark fw-semibold">@item.MoTaSuCo</div>
+                                    @if (!string.IsNullOrEmpty(item.LyDoTuChoi) && item.TrangThai == "Đang sửa chữa")
+                                    {
+                                        <div class="text-danger mt-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-arrow-return-left me-1"></i><strong>Quản lý trả lại:</strong> @item.LyDoTuChoi
+                                        </div>
+                                    }
+                                    <div class="mt-1 d-flex gap-1">
+                                        @if (!string.IsNullOrEmpty(item.AnhTruocSua))
+                                        {
+                                            <a href="@item.AnhTruocSua" target="_blank" class="badge bg-light text-primary border text-decoration-none">
+                                                <i class="bi bi-image me-1"></i>Ảnh trước
+                                            </a>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.AnhSauSua))
+                                        {
+                                            <a href="@item.AnhSauSua" target="_blank" class="badge bg-success-subtle text-success border text-decoration-none">
+                                                <i class="bi bi-image-fill me-1"></i>Ảnh sau sửa
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="badge @priorityBadge px-2 py-1 rounded-pill">@item.MucDoUuTien</span>
+                                </td>
+
+                                <td>
+                                    <div><span class="text-muted">Báo:</span> <strong>@item.NguoiTao</strong></div>
+                                    <div>
+                                        <span class="text-muted">Xử lý:</span>
+                                        <strong class="@(item.NguoiXuLy == "Chưa có người nhận" ? "text-danger" : "text-primary")">
+                                            @item.NguoiXuLy
+                                        </strong>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="fw-bold text-danger">@item.TongChiPhi.ToString("N0") đ</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        @(item.DanhSachVatTu.Count > 0 ? $"{item.DanhSachVatTu.Count} lượt xuất vật tư" : "Chưa xuất vật tư")
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="badge @statusBadge px-3 py-2 rounded-pill shadow-sm">
+                                        @if (item.TrangThai == "Hoàn thành")
+                                        {
+                                            <i class="bi bi-check-circle-fill me-1"></i>@:Báo xanh (Hoàn thành)
+                                        }
+                                        else
+                                        {
+                                            @item.TrangThai
+                                        }
+                                    </span>
+                                </td>
+
+                                <td class="text-end pe-4">
+                                    <div class="d-flex justify-content-end gap-1 flex-wrap">
+                                        <!-- Ai có quyền vào trang đều xem được chi tiết -->
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="openDetailModal('@item.MaPhieuBaoCao')" title="Xem chi tiết phiếu">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+
+                                        <!-- BƯỚC 2: CHỈ NHÂN VIÊN KỸ THUẬT ĐƯỢC TIẾP NHẬN (QUẢN LÝ KHÔNG CÓ NÚT NÀY) -->
+                                        @if (Model.IsKyThuat && item.TrangThai == "Chờ tiếp nhận")
+                                        {
+                                            <form method="post" asp-page-handler="TiepNhanPhieu" class="m-0">
+                                                <input type="hidden" name="MaPhieuThaoTac" value="@item.MaPhieuBaoCao" />
+                                                <button type="submit" class="btn btn-sm btn-primary fw-bold"
+                                                        onclick="return confirm('Xác nhận tiếp nhận xử lý phiếu sự cố @item.MaPhieuBaoCao?');">
+                                                    <i class="bi bi-hand-index-thumb me-1"></i>Tiếp nhận
+                                                </button>
+                                            </form>
+                                        }
+
+                                        <!-- BƯỚC 3: CHỈ NHÂN VIÊN KỸ THUẬT ĐƯỢC CẬP NHẬT SỬA CHỮA & XUẤT VẬT TƯ -->
+                                        @if (Model.IsKyThuat && item.TrangThai == "Đang sửa chữa")
+                                        {
+                                            <button type="button" class="btn btn-sm btn-warning text-dark fw-bold"
+                                                    onclick="openTechUpdateModal('@item.MaPhieuBaoCao')">
+                                                <i class="bi bi-tools me-1"></i>Xử lý & Vật tư
+                                            </button>
+                                        }
+
+                                        <!-- BƯỚC 4: CHỈ QUẢN LÝ ĐƯỢC NGHIỆM THU & BÁO XANH -->
+                                        @if (Model.IsQuanLy && item.TrangThai == "Chờ nghiệm thu")
+                                        {
+                                            <button type="button" class="btn btn-sm btn-success fw-bold shadow-sm"
+                                                    onclick="openApprovalModal('@item.MaPhieuBaoCao')">
+                                                <i class="bi bi-patch-check-fill me-1"></i>Nghiệm thu
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-clipboard2-x fs-1 d-block mb-2"></i>
+                                Không có phiếu báo cáo sự cố nào khớp với bộ lọc hiện tại.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 1: TẠO PHIẾU BÁO CÁO SỰ CỐ MỚI (PHÒNG LƯU TRÚ & KHU VỰC CHUNG)      -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="createTicketModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-danger text-white px-4 py-3">
+                <h5 class="modal-title fw-bold mb-0">
+                    <i class="bi bi-exclamation-octagon-fill me-2"></i>Tạo Phiếu Báo Cáo Sự Cố Mới
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopIncidentCamera()"></button>
+            </div>
+
+            <form method="post" asp-page-handler="TaoPhieuSuCo" enctype="multipart/form-data">
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold">Phạm vi vị trí sự cố <span class="text-danger">*</span></label>
+                            <select asp-for="LoaiViTriMoi" id="selectLoaiViTriMoi" class="form-select" onchange="toggleLocationInputs()">
+                                <option value="Phong">Phòng lưu trú (PHONG)</option>
+                                <option value="KhuVucChung">Khu vực chung khách sạn</option>
+                            </select>
+                        </div>
+
+                        <!-- Chọn Phòng lưu trú -->
+                        <div class="col-md-7" id="boxChonPhongMoi">
+                            <label class="form-label small fw-bold">Chọn Phòng <span class="text-danger">*</span></label>
+                            <select asp-for="MaPhongMoi" id="selectMaPhongMoi" class="form-select">
+                                <option value="">-- Chọn số phòng --</option>
+                                @foreach (var p in Model.DanhSachPhong)
+                                {
+                                    <option value="@p.MaPhong">Phòng @p.SoPhong (@p.LoaiPhong)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Chọn Khu vực chung -->
+                        <div class="col-md-7" id="boxChonKhuVucChungMoi" style="display: none;">
+                            <label class="form-label small fw-bold">Chọn Khu vực chung <span class="text-danger">*</span></label>
+                            <select asp-for="KhuVucChungMoi" id="selectKhuVucChungMoi" class="form-select">
+                                <option value="">-- Chọn khu vực chung --</option>
+                                <option value="Sảnh chính (Lobby)">Sảnh chính (Lobby)</option>
+                                <option value="Hành lang các tầng">Hành lang các tầng</option>
+                                <option value="Khu vực Nhà hàng">Khu vực Nhà hàng</option>
+                                <option value="Khu vực Bếp">Khu vực Bếp</option>
+                                <option value="Thang máy">Thang máy</option>
+                                <option value="Khu vực Kho vật tư">Khu vực Kho vật tư</option>
+                                <option value="Bãi đỗ xe / Sân thượng">Bãi đỗ xe / Sân thượng</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Mức độ ưu tiên <span class="text-danger">*</span></label>
+                            <select asp-for="MucDoUuTienMoi" id="selectMucDoUuTienMoi" class="form-select" onchange="onPriorityCreateChange()">
+                                <option value="Thấp">Thấp (Sửa định kỳ)</option>
+                                <option value="Trung bình" selected>Trung bình</option>
+                                <option value="Cao">Cao (Tự động khóa Bảo trì nếu là phòng)</option>
+                                <option value="Khẩn cấp">Khẩn cấp (Xử lý ngay & Khóa Bảo trì)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 d-flex flex-column justify-content-end">
+                            <div class="form-check mb-1" id="wrapCheckKhoaPhong">
+                                <input class="form-check-input" type="checkbox" asp-for="KhoaPhongDeSuaMoi" id="chkKhoaPhongDeSuaMoi" />
+                                <label class="form-check-label small fw-bold text-danger" for="chkKhoaPhongDeSuaMoi">
+                                    Khóa phòng sang "Bảo trì" trên Sơ đồ phòng
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" asp-for="DoKhachLamHongMoi" id="chkDoKhachLamHongMoi" />
+                                <label class="form-check-label small fw-semibold text-dark" for="chkDoKhachLamHongMoi">
+                                    Sự cố do Khách hàng làm hỏng (Cần theo dõi chi phí)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Mô tả chi tiết sự cố <span class="text-danger">*</span></label>
+                        <textarea asp-for="MoTaSuCoMoi" class="form-control" rows="3" required
+                                  placeholder="Mô tả rõ thiết bị hỏng, tình trạng thực tế (VD: Điều hòa chảy nước, bóng đèn nhà tắm cháy, vòi sen rò rỉ...)"></textarea>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Hình ảnh hiện trường (Trước khi sửa)</label>
+                        <div class="input-group">
+                            <input type="file" asp-for="AnhHienTruongMoi" id="fileCreateBefore" class="form-control" accept="image/*"
+                                   onchange="previewIncidentImg(this, 'prevCreateBefore')" />
+                            <button type="button" class="btn btn-outline-dark fw-semibold"
+                                    onclick="openIncidentCamera('fileCreateBefore', 'prevCreateBefore', 'cameraBoxCreate')">
+                                <i class="bi bi-camera-fill me-1"></i>Chụp Camera
+                            </button>
+                        </div>
+                        <img id="prevCreateBefore" class="img-thumbnail mt-2" style="max-height: 120px; display: none;" />
+                    </div>
+
+                    <!-- Khung Camera cho Modal Tạo phiếu -->
+                    <div id="cameraBoxCreate" class="mt-3 p-3 bg-dark text-white rounded-3 text-center" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold"><i class="bi bi-camera-video-fill text-danger me-1"></i>Camera chụp hiện trường sự cố</span>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="stopIncidentCamera()">Đóng Camera</button>
+                        </div>
+                        <video class="incident-video rounded border w-100" autoplay playsinline style="max-height: 220px; object-fit: cover;"></video>
+                        <button type="button" class="btn btn-warning fw-bold mt-2 px-4" onclick="captureIncidentPhoto()">
+                            <i class="bi bi-camera-fill me-1"></i> Chụp ảnh ngay
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-top px-4 py-3">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal" onclick="stopIncidentCamera()">Hủy</button>
+                    <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm">
+                        <i class="bi bi-send-fill me-1"></i> Tạo Phiếu & Gửi Kỹ Thuật
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 2: KỸ THUẬT CẬP NHẬT SỬA CHỮA, XUẤT NHIỀU VẬT TƯ & CHỤP ẢNH SAU SỬA -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="techUpdateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-warning text-dark px-4 py-3">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0">
+                        <i class="bi bi-tools me-2"></i>Cập Nhật Sửa Chữa & Vật Tư Tiêu Hao - <span id="techMaPhieuLbl" class="font-monospace"></span>
+                    </h5>
+                    <small id="techViTriLbl" class="fw-semibold"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopIncidentCamera()"></button>
+            </div>
+
+            <form method="post" asp-page-handler="CapNhatSuaChua" enctype="multipart/form-data">
+                <input type="hidden" asp-for="MaPhieuThaoTac" id="techInputMaPhieu" />
+                <input type="hidden" asp-for="HanhDongKyThuat" id="techInputHanhDong" value="LuuTam" />
+
+                <div class="modal-body p-4">
+                    <!-- Cảnh báo nếu phiếu này vừa bị Quản lý trả lại -->
+                    <div id="techRejectWarningBox" class="alert alert-danger border-danger mb-3" style="display: none;">
+                        <div class="fw-bold"><i class="bi bi-exclamation-octagon-fill me-1"></i>Phiếu này bị Quản lý yêu cầu sửa lại:</div>
+                        <div id="techRejectReasonText" class="small mt-1"></div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 border mb-3 small">
+                        <strong>Mô tả sự cố ban đầu:</strong> <span id="techMoTaBanDau"></span>
+                    </div>
+
+                    <!-- PHẦN A: DANH SÁCH VẬT TƯ ĐÃ XUẤT TRƯỚC ĐÓ (CHỈ ĐỌC - TRÁNH TRỪ KHO 2 LẦN) -->
+                    <div id="techUsedMaterialsBox" class="mb-3" style="display: none;">
+                        <h6 class="fw-bold text-secondary small mb-2">
+                            <i class="bi bi-box-seam me-1"></i>Vật tư đã xuất kho trước đó cho phiếu này:
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0 small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tên vật tư</th>
+                                        <th class="text-center">Số lượng</th>
+                                        <th class="text-center">Đơn vị</th>
+                                        <th class="text-end">Đơn giá</th>
+                                        <th class="text-end">Thành tiền</th>
+                                        <th>Thời gian xuất</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="techUsedMaterialsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- PHẦN B: CHỌN NHIỀU VẬT TƯ TIÊU HAO XUẤT THÊM (TỰ ĐỘNG HIỆN ĐƠN VỊ & TRỪ KHO) -->
+                    <div class="card border-primary border-opacity-50 rounded-3 mb-3">
+                        <div class="card-header bg-primary-subtle py-2 px-3 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-primary small">
+                                <i class="bi bi-boxes me-1"></i>Chọn vật tư tiêu hao xuất thêm từ Kho (Tự động trừ tồn kho KHO_VAT_TU)
+                            </span>
+                            <button type="button" class="btn btn-sm btn-primary fw-bold py-0 px-3" onclick="addMaterialRow()">
+                                <i class="bi bi-plus-lg me-1"></i>Thêm vật tư
+                            </button>
+                        </div>
+                        <div class="card-body p-3">
+                            <div id="materialRowsContainer">
+                                <div class="text-muted small text-center py-2" id="emptyMaterialHint">
+                                    Nhấn nút <strong>"+ Thêm vật tư"</strong> nếu quá trình sửa chữa cần xuất vật tư từ kho.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PHẦN C: CHI PHÍ PHÁT SINH & GHI CHÚ KỸ THUẬT -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Chi phí sửa chữa phát sinh / Đền bù (VNĐ)</label>
+                            <input type="number" asp-for="ChiPhiPhatSinhKT" id="techInputChiPhiPhatSinh" class="form-control form-control-sm fw-bold text-danger" min="0" step="10000" value="0" />
+                            <small class="text-muted" style="font-size: 0.72rem;">Nhập thêm phí nhân công/thuê ngoài/đền bù (nếu có).</small>
+                        </div>
+                        <div class="col-md-8 d-flex flex-column justify-content-center">
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" asp-for="DoKhachLamHongKT" id="techChkDoKhach" onchange="toggleChargeGuestCheckbox()" />
+                                <label class="form-check-label small fw-bold text-dark" for="techChkDoKhach">
+                                    Xác nhận sự cố này do Khách hàng làm hỏng
+                                </label>
+                            </div>
+                            <div class="form-check" id="techWrapChargeGuest" style="display: none;">
+                                <input class="form-check-input" type="checkbox" asp-for="CongPhiVaoHoaDonPhongKT" id="techChkCongHoaDon" />
+                                <label class="form-check-label small fw-bold text-danger" for="techChkCongHoaDon">
+                                    Cộng thẳng tổng chi phí sửa chữa vào hóa đơn phòng (CHI_TIET_DICH_VU) nếu khách đang ở
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Ghi chú kết quả xử lý kỹ thuật</label>
+                        <textarea asp-for="GhiChuXuLyKT" id="techInputGhiChuXuLy" class="form-control" rows="2"
+                                  placeholder="Mô tả hạng mục đã thay thế, đã kiểm tra vận hành ổn định..."></textarea>
+                    </div>
+
+                    <!-- PHẦN D: CHỤP / TẢI ẢNH SAU KHI SỬA CHỮA XONG -->
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">
+                            Hình ảnh chứng minh sau khi sửa chữa xong <span class="text-danger">(Bắt buộc khi Gửi nghiệm thu)</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="file" asp-for="AnhSauSuaChuaKT" id="fileTechAfter" class="form-control" accept="image/*"
+                                   onchange="previewIncidentImg(this, 'prevTechAfter')" />
+                            <button type="button" class="btn btn-outline-dark fw-semibold"
+                                    onclick="openIncidentCamera('fileTechAfter', 'prevTechAfter', 'cameraBoxTech')">
+                                <i class="bi bi-camera-fill me-1"></i>Chụp Camera
+                            </button>
+                        </div>
+                        <img id="prevTechAfter" class="img-thumbnail mt-2" style="max-height: 120px; display: none;" />
+                    </div>
+
+                    <!-- Khung Camera cho Modal Kỹ thuật -->
+                    <div id="cameraBoxTech" class="mt-3 p-3 bg-dark text-white rounded-3 text-center" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold"><i class="bi bi-camera-video-fill text-success me-1"></i>Camera chụp ảnh nghiệm thu sau sửa chữa</span>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="stopIncidentCamera()">Đóng Camera</button>
+                        </div>
+                        <video class="incident-video rounded border w-100" autoplay playsinline style="max-height: 220px; object-fit: cover;"></video>
+                        <button type="button" class="btn btn-warning fw-bold mt-2 px-4" onclick="captureIncidentPhoto()">
+                            <i class="bi bi-camera-fill me-1"></i> Chụp ảnh ngay
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal" onclick="stopIncidentCamera()">Đóng</button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-outline-primary fw-bold rounded-pill px-4"
+                                onclick="document.getElementById('techInputHanhDong').value='LuuTam';">
+                            <i class="bi bi-save me-1"></i> Lưu tiến độ & Xuất vật tư
+                        </button>
+                        <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm"
+                                onclick="document.getElementById('techInputHanhDong').value='GuiNghiemThu'; return confirm('Xác nhận đã sửa xong và gửi Quản lý nghiệm thu?');">
+                            <i class="bi bi-send-check-fill me-1"></i> Hoàn tất & Gửi Nghiệm Thu
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 3: QUẢN LÝ NGHIỆM THU (ĐẠT -> BÁO XANH / KHÔNG ĐẠT -> TRẢ LẠI)       -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-success text-white px-4 py-3">
+                <h5 class="modal-title fw-bold mb-0">
+                    <i class="bi bi-patch-check-fill me-2"></i>Nghiệm Thu Phiếu Sự Cố - <span id="appMaPhieuLbl" class="font-monospace"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="post" asp-page-handler="NghiemThu">
+                <input type="hidden" asp-for="MaPhieuThaoTac" id="appInputMaPhieu" />
+                <input type="hidden" asp-for="KetQuaNghiemThu" id="appInputKetQua" value="Dat" />
+
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-3 p-3 bg-light rounded-3 border small">
+                        <div class="col-md-6"><strong>Vị trí:</strong> <span id="appViTri" class="text-primary fw-bold"></span></div>
+                        <div class="col-md-6"><strong>Kỹ thuật xử lý:</strong> <span id="appNguoiXuLy" class="fw-bold"></span></div>
+                        <div class="col-md-12"><strong>Mô tả sự cố:</strong> <span id="appMoTa"></span></div>
+                        <div class="col-md-12"><strong>Ghi chú kỹ thuật:</strong> <span id="appGhiChuXuLy" class="text-success fw-semibold"></span></div>
+                        <div class="col-md-12"><strong>Tổng chi phí (Vật tư + Phát sinh):</strong> <span id="appTongChiPhi" class="text-danger fw-bold fs-6"></span></div>
+                    </div>
+
+                    <!-- Đối chiếu Hình ảnh Trước & Sau sửa chữa -->
+                    <div class="row g-3 mb-3 text-center">
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-2 bg-white">
+                                <div class="small fw-bold text-danger mb-2">Ảnh hiện trường (Trước sửa)</div>
+                                <div id="appAnhTruocBox"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded-3 p-2 bg-white">
+                                <div class="small fw-bold text-success mb-2">Ảnh kết quả (Sau khi sửa)</div>
+                                <div id="appAnhSauBox"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách vật tư đã tiêu hao -->
+                    <div class="mb-3">
+                        <h6 class="fw-bold small text-secondary mb-2">Chi tiết vật tư đã tiêu hao:</h6>
+                        <div id="appMaterialsSummary" class="small"></div>
+                    </div>
+
+                    <div id="appUnlockNotice" class="alert alert-info small mb-3" style="display: none;">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        Khi bấm <strong>Nghiệm thu Đạt (Báo xanh)</strong>, phòng đang bị khóa <strong>Bảo trì</strong> sẽ tự động mở khóa chuyển về <strong>Trống + Vệ sinh: Bẩn</strong> để Nhân viên Buồng phòng vào dọn dẹp lại.
+                    </div>
+
+                    <!-- Ô nhập lý do nếu trả lại -->
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-danger">Lý do trả lại (Bắt buộc nhập nếu chọn "Trả lại / Sửa lại")</label>
+                        <textarea asp-for="LyDoTuChoiQL" id="appInputLyDoTuChoi" class="form-control" rows="2"
+                                  placeholder="VD: Thiết bị vẫn còn kêu to, chưa vệ sinh sạch khu vực vừa sửa..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-outline-danger fw-bold rounded-pill px-4"
+                                onclick="return submitRejection();">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Trả lại / Sửa lại
+                        </button>
+                        <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm"
+                                onclick="document.getElementById('appInputKetQua').value='Dat'; return confirm('Xác nhận nghiệm thu ĐẠT và Báo xanh hoàn thành phiếu sự cố này?');">
+                            <i class="bi bi-check-circle-fill me-1"></i> Nghiệm thu Đạt (Báo xanh)
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 4: XEM CHI TIẾT TOÀN BỘ THÔNG TIN PHIẾU SỰ CỐ (ALL ROLES)            -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="detailTicketModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white px-4 py-3">
+                <h5 class="modal-title fw-bold mb-0">
+                    <i class="bi bi-info-circle-fill me-2"></i>Chi Tiết Phiếu Sự Cố - <span id="detMaPhieu" class="font-monospace"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="detailTicketBody"></div>
+            <div class="modal-footer bg-light border-top px-4 py-3">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Canvas ẩn dùng chụp ảnh từ Camera -->
+<canvas id="incidentCameraCanvas" style="display: none;"></canvas>
+
+@section Scripts {
+    <script>
+        // Nạp dữ liệu JSON từ Server vào RAM trình duyệt để tránh lỗi ký tự đặc biệt trên onclick
+        const ticketsList = @Html.Raw(Model.DanhSachSuCoJson);
+        const warehouseItems = @Html.Raw(Model.DanhSachVatTuKhoJson);
+
+        const ticketsMap = {};
+        ticketsList.forEach(t => ticketsMap[t.MaPhieuBaoCao] = t);
+
+        // =====================================================================
+        // 1. LOGIC MODAL TẠO PHIẾU MỚI
+        // =====================================================================
+        function openCreateTicketModal() {
+            toggleLocationInputs();
+            onPriorityCreateChange();
+            new bootstrap.Modal(document.getElementById('createTicketModal')).show();
+        }
+
+        function toggleLocationInputs() {
+            const type = document.getElementById('selectLoaiViTriMoi').value;
+            const boxPhong = document.getElementById('boxChonPhongMoi');
+            const boxKhuVuc = document.getElementById('boxChonKhuVucChungMoi');
+            const wrapKhoa = document.getElementById('wrapCheckKhoaPhong');
+
+            if (type === 'Phong') {
+                boxPhong.style.display = 'block';
+                boxKhuVuc.style.display = 'none';
+                wrapKhoa.style.display = 'block';
+                document.getElementById('selectMaPhongMoi').required = true;
+                document.getElementById('selectKhuVucChungMoi').required = false;
+            } else {
+                boxPhong.style.display = 'none';
+                boxKhuVuc.style.display = 'block';
+                wrapKhoa.style.display = 'none';
+                document.getElementById('chkKhoaPhongDeSuaMoi').checked = false;
+                document.getElementById('selectMaPhongMoi').required = false;
+                document.getElementById('selectKhuVucChungMoi').required = true;
+            }
+        }
+
+        function onPriorityCreateChange() {
+            const priority = document.getElementById('selectMucDoUuTienMoi').value;
+            const type = document.getElementById('selectLoaiViTriMoi').value;
+            const chkKhoa = document.getElementById('chkKhoaPhongDeSuaMoi');
+            if (type === 'Phong' && (priority === 'Khẩn cấp' || priority === 'Cao')) {
+                chkKhoa.checked = true;
+            }
+        }
+
+        // =====================================================================
+        // 2. LOGIC MODAL KỸ THUẬT CẬP NHẬT SỬA CHỮA & XUẤT NHIỀU VẬT TƯ
+        // =====================================================================
+        function openTechUpdateModal(maPhieu) {
+            const t = ticketsMap[maPhieu];
+            if (!t) return;
+
+            document.getElementById('techMaPhieuLbl').innerText = t.MaPhieuBaoCao;
+            document.getElementById('techViTriLbl').innerText = `Vị trí: ${t.ViTriSuCo} | Ưu tiên: ${t.MucDoUuTien}`;
+            document.getElementById('techInputMaPhieu').value = t.MaPhieuBaoCao;
+            document.getElementById('techMoTaBanDau').innerText = t.MoTaSuCo;
+            document.getElementById('techInputGhiChuXuLy').value = t.GhiChuXuLy || '';
+            document.getElementById('techInputChiPhiPhatSinh').value = t.ChiPhiPhatSinh || 0;
+            document.getElementById('techChkDoKhach').checked = !!t.DoKhachLamHong;
+            document.getElementById('techChkCongHoaDon').checked = false;
+            toggleChargeGuestCheckbox();
+
+            // Hiển thị lý do từ chối nếu Quản lý vừa trả lại
+            const rejBox = document.getElementById('techRejectWarningBox');
+            if (t.LyDoTuChoi) {
+                rejBox.style.display = 'block';
+                document.getElementById('techRejectReasonText').innerText = t.LyDoTuChoi;
+            } else {
+                rejBox.style.display = 'none';
+            }
+
+            // Hiển thị ảnh sau sửa đã lưu trước đó (nếu có)
+            const prevAfter = document.getElementById('prevTechAfter');
+            document.getElementById('fileTechAfter').value = '';
+            if (t.AnhSauSua) {
+                prevAfter.src = t.AnhSauSua;
+                prevAfter.style.display = 'inline-block';
+            } else {
+                prevAfter.style.display = 'none';
+            }
+
+            // Hiển thị bảng vật tư đã xuất trước đó
+            const usedBox = document.getElementById('techUsedMaterialsBox');
+            const usedBody = document.getElementById('techUsedMaterialsBody');
+            usedBody.innerHTML = '';
+            if (t.DanhSachVatTu && t.DanhSachVatTu.length > 0) {
+                usedBox.style.display = 'block';
+                t.DanhSachVatTu.forEach(vt => {
+                    usedBody.innerHTML += `
+                        <tr>
+                            <td class="fw-semibold">${vt.TenVatTu}</td>
+                            <td class="text-center fw-bold">${vt.SoLuong}</td>
+                            <td class="text-center">${vt.DonViTinh}</td>
+                            <td class="text-end">${Number(vt.DonGia).toLocaleString('vi-VN')} đ</td>
+                            <td class="text-end fw-bold text-danger">${Number(vt.ThanhTien).toLocaleString('vi-VN')} đ</td>
+                            <td class="text-muted">${vt.ThoiGianXuat}</td>
+                        </tr>`;
+                });
+            } else {
+                usedBox.style.display = 'none';
+            }
+
+            // Reset khung chọn vật tư mới
+            document.getElementById('materialRowsContainer').innerHTML = `
+                <div class="text-muted small text-center py-2" id="emptyMaterialHint">
+                    Nhấn nút <strong>"+ Thêm vật tư"</strong> nếu quá trình sửa chữa cần xuất vật tư từ kho.
+                </div>`;
+
+            new bootstrap.Modal(document.getElementById('techUpdateModal')).show();
+        }
+
+        function toggleChargeGuestCheckbox() {
+            const isChecked = document.getElementById('techChkDoKhach').checked;
+            document.getElementById('techWrapChargeGuest').style.display = isChecked ? 'block' : 'none';
+            if (!isChecked) document.getElementById('techChkCongHoaDon').checked = false;
+        }
+
+        function addMaterialRow() {
+            const container = document.getElementById('materialRowsContainer');
+            const hint = document.getElementById('emptyMaterialHint');
+            if (hint) hint.remove();
+
+            let optionsHtml = '<option value="" data-unit="--" data-stock="0" data-price="0">-- Chọn vật tư trong kho --</option>';
+            warehouseItems.forEach(v => {
+                const disabledAttr = v.SoLuongTon <= 0 ? 'disabled' : '';
+                optionsHtml += `<option value="${v.MaVatTu}" data-unit="${v.DonViTinh}" data-stock="${v.SoLuongTon}" data-price="${v.DonGiaNhap}" ${disabledAttr}>
+                    ${v.TenVatTu} (Tồn: ${v.SoLuongTon} ${v.DonViTinh} | ${Number(v.DonGiaNhap).toLocaleString('vi-VN')} đ)
+                </option>`;
+            });
+
+            const row = document.createElement('div');
+            row.className = 'material-row row g-2 align-items-center mb-2 pb-2 border-bottom';
+            row.innerHTML = `
+                <div class="col-md-6">
+                    <select class="form-select form-select-sm mat-select" required onchange="onMaterialSelected(this)">
+                        ${optionsHtml}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control mat-qty fw-bold" value="1" min="1" required oninput="updateMaterialRowSubtotal(this)" />
+                        <span class="input-group-text bg-light fw-bold mat-unit">--</span>
+                    </div>
+                </div>
+                <div class="col-md-2 text-end">
+                    <span class="small fw-bold text-danger mat-subtotal">0 đ</span>
+                </div>
+                <div class="col-md-1 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeMaterialRow(this)" title="Xóa dòng">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(row);
+            reindexMaterialRows();
+        }
+
+        function onMaterialSelected(selectEl) {
+            const row = selectEl.closest('.material-row');
+            const opt = selectEl.options[selectEl.selectedIndex];
+            const unit = opt.getAttribute('data-unit') || '--';
+            const stock = parseInt(opt.getAttribute('data-stock') || '0');
+            const qtyInput = row.querySelector('.mat-qty');
+
+            row.querySelector('.mat-unit').innerText = unit;
+            qtyInput.max = stock > 0 ? stock : 1;
+            if (parseInt(qtyInput.value) > stock && stock > 0) {
+                qtyInput.value = stock;
+            }
+            updateMaterialRowSubtotal(qtyInput);
+        }
+
+        function updateMaterialRowSubtotal(qtyInput) {
+            const row = qtyInput.closest('.material-row');
+            const selectEl = row.querySelector('.mat-select');
+            const opt = selectEl.options[selectEl.selectedIndex];
+            const price = parseFloat(opt.getAttribute('data-price') || '0');
+            const qty = parseInt(qtyInput.value || '0');
+            row.querySelector('.mat-subtotal').innerText = (price * qty).toLocaleString('vi-VN') + ' đ';
+        }
+
+        function removeMaterialRow(btn) {
+            btn.closest('.material-row').remove();
+            reindexMaterialRows();
+        }
+
+        function reindexMaterialRows() {
+            const rows = document.querySelectorAll('#materialRowsContainer .material-row');
+            rows.forEach((row, idx) => {
+                row.querySelector('.mat-select').name = `VatTuXuatThem[${idx}].MaVatTu`;
+                row.querySelector('.mat-qty').name = `VatTuXuatThem[${idx}].SoLuong`;
+            });
+        }
+
+        // =====================================================================
+        // 3. LOGIC MODAL QUẢN LÝ NGHIỆM THU (ĐẠT / TRẢ LẠI)
+        // =====================================================================
+        function openApprovalModal(maPhieu) {
+            const t = ticketsMap[maPhieu];
+            if (!t) return;
+
+            document.getElementById('appMaPhieuLbl').innerText = t.MaPhieuBaoCao;
+            document.getElementById('appInputMaPhieu').value = t.MaPhieuBaoCao;
+            document.getElementById('appViTri').innerText = t.ViTriSuCo;
+            document.getElementById('appNguoiXuLy').innerText = t.NguoiXuLy;
+            document.getElementById('appMoTa').innerText = t.MoTaSuCo;
+            document.getElementById('appGhiChuXuLy').innerText = t.GhiChuXuLy || 'Không có ghi chú thêm';
+            document.getElementById('appTongChiPhi').innerText = Number(t.TongChiPhi).toLocaleString('vi-VN') + ' đ';
+            document.getElementById('appInputLyDoTuChoi').value = '';
+
+            document.getElementById('appAnhTruocBox').innerHTML = t.AnhTruocSua
+                ? `<a href="${t.AnhTruocSua}" target="_blank"><img src="${t.AnhTruocSua}" class="img-fluid rounded" style="max-height: 180px;"></a>`
+                : '<span class="text-muted small">Không có ảnh đính kèm</span>';
+
+            document.getElementById('appAnhSauBox').innerHTML = t.AnhSauSua
+                ? `<a href="${t.AnhSauSua}" target="_blank"><img src="${t.AnhSauSua}" class="img-fluid rounded" style="max-height: 180px;"></a>`
+                : '<span class="text-muted small">Chưa có ảnh sau sửa</span>';
+
+            const matBox = document.getElementById('appMaterialsSummary');
+            if (t.DanhSachVatTu && t.DanhSachVatTu.length > 0) {
+                let html = '<ul class="list-group list-group-flush border rounded">';
+                t.DanhSachVatTu.forEach(v => {
+                    html += `<li class="list-group-item d-flex justify-content-between py-1">
+                        <span>${v.TenVatTu} (<strong>${v.SoLuong} ${v.DonViTinh}</strong>)</span>
+                        <span class="text-danger fw-bold">${Number(v.ThanhTien).toLocaleString('vi-VN')} đ</span>
+                    </li>`;
+                });
+                html += '</ul>';
+                matBox.innerHTML = html;
+            } else {
+                matBox.innerHTML = '<span class="text-muted">Không tiêu hao vật tư kho.</span>';
+            }
+
+            document.getElementById('appUnlockNotice').style.display = (!t.LaKhuVucChung && t.CoKhoaPhong) ? 'block' : 'none';
+
+            new bootstrap.Modal(document.getElementById('approvalModal')).show();
+        }
+
+        function submitRejection() {
+            const reason = document.getElementById('appInputLyDoTuChoi').value.trim();
+            if (!reason) {
+                alert('Vui lòng nhập rõ lý do không đạt trước khi trả lại phiếu cho Kỹ thuật!');
+                document.getElementById('appInputLyDoTuChoi').focus();
+                return false;
+            }
+            document.getElementById('appInputKetQua').value = 'KhongDat';
+            return confirm('Xác nhận trả lại phiếu này về trạng thái Đang sửa chữa?');
+        }
+
+        // =====================================================================
+        // 4. LOGIC MODAL XEM CHI TIẾT PHIẾU (TẤT CẢ VAI TRÒ)
+        // =====================================================================
+        function openDetailModal(maPhieu) {
+            const t = ticketsMap[maPhieu];
+            if (!t) return;
+
+            document.getElementById('detMaPhieu').innerText = t.MaPhieuBaoCao;
+
+            let vatTuHtml = '<p class="text-muted small mb-0">Không sử dụng vật tư kho.</p>';
+            if (t.DanhSachVatTu && t.DanhSachVatTu.length > 0) {
+                vatTuHtml = `<table class="table table-sm table-bordered small mb-0">
+                    <thead class="table-light"><tr><th>Vật tư</th><th class="text-center">SL</th><th class="text-end">Thành tiền</th><th>Thời gian</th></tr></thead><tbody>`;
+                t.DanhSachVatTu.forEach(v => {
+                    vatTuHtml += `<tr><td>${v.TenVatTu}</td><td class="text-center">${v.SoLuong} ${v.DonViTinh}</td><td class="text-end fw-bold">${Number(v.ThanhTien).toLocaleString('vi-VN')} đ</td><td>${v.ThoiGianXuat}</td></tr>`;
+                });
+                vatTuHtml += '</tbody></table>';
+            }
+
+            document.getElementById('detailTicketBody').innerHTML = `
+                <div class="row g-3 small mb-3">
+                    <div class="col-md-6"><strong>Vị trí:</strong> <span class="text-primary fw-bold">${t.ViTriSuCo}</span></div>
+                    <div class="col-md-6"><strong>Trạng thái:</strong> <span class="badge bg-dark">${t.TrangThai}</span> | Ưu tiên: <strong>${t.MucDoUuTien}</strong></div>
+                    <div class="col-md-6"><strong>Người tạo:</strong> ${t.NguoiTao} (${t.ThoiGianTaoStr})</div>
+                    <div class="col-md-6"><strong>Kỹ thuật xử lý:</strong> ${t.NguoiXuLy} ${t.ThoiGianTiepNhanStr ? '(' + t.ThoiGianTiepNhanStr + ')' : ''}</div>
+                    <div class="col-md-6"><strong>Hoàn thành / Báo xanh:</strong> ${t.ThoiGianHoanThanhStr || 'Chưa hoàn thành'}</div>
+                    <div class="col-md-6"><strong>Tổng chi phí:</strong> <span class="text-danger fw-bold">${Number(t.TongChiPhi).toLocaleString('vi-VN')} đ</span> (Vật tư: ${Number(t.TienVatTu).toLocaleString('vi-VN')}đ + Phát sinh: ${Number(t.ChiPhiPhatSinh).toLocaleString('vi-VN')}đ)</div>
+                </div>
+                <div class="p-3 bg-light rounded border small mb-3">
+                    <div class="mb-2"><strong>Mô tả sự cố:</strong> ${t.MoTaSuCo}</div>
+                    <div class="mb-2"><strong>Ghi chú xử lý kỹ thuật:</strong> ${t.GhiChuXuLy || 'Chưa có'}</div>
+                    ${t.LyDoTuChoi ? `<div class="text-danger"><strong>Lịch sử trả lại nghiệm thu:</strong> ${t.LyDoTuChoi}</div>` : ''}
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold small text-secondary mb-2">Vật tư đã xuất kho:</h6>
+                    ${vatTuHtml}
+                </div>
+                <div class="row g-3 text-center">
+                    <div class="col-md-6">
+                        <div class="border rounded p-2">
+                            <div class="small fw-bold text-danger mb-1">Ảnh hiện trường (Trước sửa)</div>
+                            ${t.AnhTruocSua ? `<a href="${t.AnhTruocSua}" target="_blank"><img src="${t.AnhTruocSua}" class="img-fluid rounded" style="max-height:180px;"></a>` : '<span class="text-muted small">Không có</span>'}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-2">
+                            <div class="small fw-bold text-success mb-1">Ảnh kết quả (Sau sửa)</div>
+                            ${t.AnhSauSua ? `<a href="${t.AnhSauSua}" target="_blank"><img src="${t.AnhSauSua}" class="img-fluid rounded" style="max-height:180px;"></a>` : '<span class="text-muted small">Chưa có</span>'}
+                        </div>
+                    </div>
+                </div>`;
+
+            new bootstrap.Modal(document.getElementById('detailTicketModal')).show();
+        }
+
+        // =====================================================================
+        // 5. CAMERA TRỰC TIẾP & XEM TRƯỚC HÌNH ẢNH (WEBRTC)
+        // =====================================================================
+        let incidentStream = null;
+        let currentCamInputId = null;
+        let currentCamPreviewId = null;
+        let currentCamBoxId = null;
+
+        function previewIncidentImg(inputEl, previewId) {
+            const img = document.getElementById(previewId);
+            if (inputEl.files && inputEl.files[0] && img) {
+                img.src = URL.createObjectURL(inputEl.files[0]);
+                img.style.display = 'inline-block';
+            }
+        }
+
+        async function openIncidentCamera(fileInputId, previewImgId, camBoxId) {
+            stopIncidentCamera();
+            currentCamInputId = fileInputId;
+            currentCamPreviewId = previewImgId;
+            currentCamBoxId = camBoxId;
+
+            const box = document.getElementById(camBoxId);
+            const video = box.querySelector('.incident-video');
+
+            try {
+                incidentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+                video.srcObject = incidentStream;
+                box.style.display = 'block';
+                box.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                alert("Không thể mở Camera trực tiếp. Vui lòng chọn ảnh từ thiết bị!");
+            }
+        }
+
+        function captureIncidentPhoto() {
+            if (!incidentStream || !currentCamBoxId) return;
+            const box = document.getElementById(currentCamBoxId);
+            const video = box.querySelector('.incident-video');
+            const canvas = document.getElementById('incidentCameraCanvas');
+
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(function (blob) {
+                if (!blob) return;
+                const file = new File([blob], "suco_" + Date.now() + ".jpg", { type: "image/jpeg" });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+
+                const fileInput = document.getElementById(currentCamInputId);
+                if (fileInput) {
+                    fileInput.files = dt.files;
+                    previewIncidentImg(fileInput, currentCamPreviewId);
+                }
+                stopIncidentCamera();
+            }, "image/jpeg", 0.9);
+        }
+
+        function stopIncidentCamera() {
+            if (incidentStream) {
+                incidentStream.getTracks().forEach(t => t.stop());
+                incidentStream = null;
+            }
+            if (currentCamBoxId) {
+                const box = document.getElementById(currentCamBoxId);
+                if (box) box.style.display = 'none';
+            }
+        }
+    </script>
+}

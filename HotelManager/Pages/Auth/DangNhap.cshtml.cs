@@ -169,6 +169,7 @@ namespace HotelManager.Pages.Auth
                         return RedirectToPage("/QuanLyNhaHang/QuayThuNgan");
 
                     case "Nhân viên Kỹ thuật":
+                        return RedirectToPage("/QuanLySuCo/Index");
                     case "Thủ kho":
                     case "Kế toán":
                         return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
