@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Linq; // Bổ sung thư viện LINQ để kiểm tra trùng lặp không bị lỗi CS0411
 using System.Threading.Tasks;
 
 namespace HotelManagement.Pages.NhaHang.PhucVu
@@ -21,6 +22,7 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         [BindProperty]
         public ThemBanViewModel BanInfo { get; set; } = new ThemBanViewModel();
 
+        // Tải thông tin bàn hiện tại lên form chỉnh sửa
         public async Task<IActionResult> OnGetAsync(string id)
         {
             if (string.IsNullOrEmpty(id)) return RedirectToPage("./SoDoBan");
@@ -41,16 +43,28 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
             return Page();
         }
 
+        // Xử lý lưu cập nhật thông tin bàn
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid) return Page();
 
             try
             {
+                string maBanHienTai = BanInfo.MaBan?.Trim() ?? string.Empty;
+                string tenBanMoi = BanInfo.TenBan?.Trim() ?? string.Empty;
+
+                // BỔ SUNG: Kiểm tra xem Số bàn/Tên bàn mới có bị trùng với bàn KHÁC trong hệ thống không
+                bool isDuplicate = _context.BAN_NHA_HANG.Any(b => b.MaBan != maBanHienTai && b.TenBan == tenBanMoi);
+                if (isDuplicate)
+                {
+                    ModelState.AddModelError(string.Empty, "LỖI: Tên bàn/Số bàn này đã tồn tại ở một bàn khác. Vui lòng nhập số bàn khác!");
+                    return Page();
+                }
+
                 var ban = await _context.BAN_NHA_HANG.FirstOrDefaultAsync(b => b.MaBan == BanInfo.MaBan);
                 if (ban == null) return Page();
 
-                ban.TenBan = BanInfo.TenBan;
+                ban.TenBan = tenBanMoi;
                 ban.TrangThai = BanInfo.TrangThai;
                 // ĐÃ FIX LỖI CS0029: Gán trực tiếp int?
                 ban.SucChua = BanInfo.SucChua;

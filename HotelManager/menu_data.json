@@ -1,12 +1,16 @@
 {
   "DuLieu": {
-    "PASTA-85": false,
-    "DRINK-06": false
+    "PASTA-85": true,
+    "DRINK-06": false,
+    "CGHA-03": true,
+    "SALAD-01": true
   },
   "MoTaDict": {
-    "PASTA-85": "ngon"
+    "PASTA-85": "ngon",
+    "CGHA-03": "hihi"
   },
   "DiUngDict": {
-    "PASTA-85": "c\u00F3 ch\u1EE9a t\u00F4m"
+    "PASTA-85": "c\u00F3 ch\u1EE9a t\u00F4m",
+    "CGHA-03": ""
   }
 }

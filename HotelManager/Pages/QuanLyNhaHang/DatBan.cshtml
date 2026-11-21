@@ -1,0 +1,132 @@
+﻿@page "{id}"
+@model HotelManagement.Pages.NhaHang.PhucVu.DatBanModel
+@{
+    ViewData["Title"] = "Đặt Bàn";
+}
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <!-- Header cam đồng bộ 100% với giao diện Thêm bàn mới -->
+                <div class="card-header text-center py-3 border-0" style="background-color: #f39c12; color: #fff;">
+                    <h4 class="mb-0 fw-bold text-uppercase">ĐẶT BÀN (@Model.DatBanInfo.TenBan)</h4>
+                </div>
+
+                <div class="card-body p-4 bg-light">
+                    <!-- Hiển thị thông báo lỗi Validation nếu có -->
+                    <div asp-validation-summary="All" class="alert alert-danger mb-3 fw-bold shadow-sm" style="display: @(ModelState.IsValid ? "none" : "block")"></div>
+
+                    <form method="post">
+                        <!-- Giữ mã bàn và tên bàn ẩn để gửi về Server -->
+                        <input type="hidden" asp-for="DatBanInfo.MaBan" />
+                        <input type="hidden" asp-for="DatBanInfo.TenBan" />
+
+                        <!-- 1. Họ tên khách đặt -->
+                        <div class="mb-3">
+                            <label asp-for="DatBanInfo.HoTen" class="form-label fw-bold">Họ tên <span class="text-danger">*</span></label>
+                            <input asp-for="DatBanInfo.HoTen" class="form-control shadow-sm" placeholder="" required />
+                        </div>
+
+                        <!-- 2. Số điện thoại -->
+                        <div class="mb-3">
+                            <label asp-for="DatBanInfo.SoDienThoai" class="form-label fw-bold">Số điện thoại <span class="text-danger">*</span></label>
+                            <input asp-for="DatBanInfo.SoDienThoai" type="tel" class="form-control shadow-sm" placeholder="" required />
+                        </div>
+
+                        <!-- 3. Số người -->
+                        <div class="mb-3">
+                            <label asp-for="DatBanInfo.SoNguoi" class="form-label fw-bold">Số người <span class="text-danger">*</span></label>
+                            <input asp-for="DatBanInfo.SoNguoi" type="number" min="1" class="form-control shadow-sm" placeholder="" required />
+                        </div>
+
+                        <!-- 4. Tách đôi Ngày đặt và Thời gian (Danh sách chọn 30 phút/lần từ 07:00 đến 22:00) -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="DatBanInfo.NgayDat" class="form-label fw-bold">Ngày đặt <span class="text-danger">*</span></label>
+                                <input asp-for="DatBanInfo.NgayDat" type="date" class="form-control shadow-sm" required />
+                            </div>
+                            <div class="col-md-6 mt-3 mt-md-0">
+                                <label asp-for="DatBanInfo.ThoiGian" class="form-label fw-bold">Thời gian <span class="text-danger">*</span></label>
+                                <!-- Danh sách chọn khung giờ cố định tròn phút (cách nhau 30 phút) từ 07:00 đến 22:00 -->
+                                <select asp-for="DatBanInfo.ThoiGian" class="form-select shadow-sm" required>
+                                    @for (int hour = 7; hour <= 22; hour++)
+                                    {
+                                        string slot00 = $"{hour:D2}:00";
+                                        <option value="@slot00">@slot00</option>
+
+                                        if (hour < 22)
+                                        {
+                                            string slot30 = $"{hour:D2}:30";
+                                            <option value="@slot30">@slot30</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 5. Phân loại khách để quyết định ẩn/hiện ô Số phòng -->
+                        <div class="mb-3">
+                            <label asp-for="DatBanInfo.LaKhachLuuTru" class="form-label fw-bold">Loại khách hàng</label>
+                            <select asp-for="DatBanInfo.LaKhachLuuTru" class="form-select shadow-sm" id="loaiKhachSelect" onchange="toggleSoPhongField()">
+                                <option value="false">Khách vãng lai</option>
+                                <option value="true">Khách đang lưu trú tại khách sạn</option>
+                            </select>
+                        </div>
+
+                        <!-- Ô nhập Số phòng: Chỉ hiển thị nếu chọn là Khách lưu trú -->
+                        <div id="soPhongContainer" style="display: none; background-color: #fff; padding: 15px; border-radius: 8px; border: 1px dashed #0d6efd; margin-bottom: 20px;">
+                            <div class="mb-0">
+                                <label asp-for="DatBanInfo.SoPhong" class="form-label fw-bold text-primary">Số phòng (Khách lưu trú) <span class="text-danger">*</span></label>
+                                <input asp-for="DatBanInfo.SoPhong" class="form-control shadow-sm border-primary border-opacity-25" id="soPhongInput" placeholder="VD: 101, 202..." />
+                            </div>
+                        </div>
+
+                        <!-- 6. Yêu cầu đặc biệt (Không bắt buộc nhập) -->
+                        <div class="mb-3">
+                            <label asp-for="DatBanInfo.YeuCauDacBiet" class="form-label fw-bold">Yêu cầu đặc biệt</label>
+                            <textarea asp-for="DatBanInfo.YeuCauDacBiet" class="form-control shadow-sm" rows="2" placeholder=""></textarea>
+                        </div>
+
+                        <!-- 3 Nút bấm dưới cùng theo đúng thứ tự: Lưu thông tin, Hủy đặt bàn, Quay lại -->
+                        <div class="d-flex justify-content-end gap-2 pt-4 border-top mt-2">
+                            <button type="submit" asp-page-handler="Luu" class="btn btn-success px-4 py-2 shadow-sm fw-bold">
+                                Lưu thông tin
+                            </button>
+                            <button type="submit" asp-page-handler="HuyDatBan" class="btn btn-danger px-4 py-2 shadow-sm fw-bold" formnovalidate onclick="return confirm('Bạn có chắc chắn muốn HỦY ĐẶT BÀN này và trả bàn về trạng thái Trống?');">
+                                Hủy đặt bàn
+                            </button>
+                            <a asp-page="./SoDoBan" class="btn btn-light border px-4 py-2 text-muted shadow-sm fw-bold">
+                                Quay lại
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Hàm ẩn/hiện ô Số phòng tùy theo khách lưu trú hay khách vãng lai
+        function toggleSoPhongField() {
+            var isLuuTru = document.getElementById("loaiKhachSelect").value === "true";
+            var soPhongContainer = document.getElementById("soPhongContainer");
+            var soPhongInput = document.getElementById("soPhongInput");
+
+            if (isLuuTru) {
+                soPhongContainer.style.display = "block";
+                soPhongInput.setAttribute("required", "required");
+            } else {
+                soPhongContainer.style.display = "none";
+                soPhongInput.removeAttribute("required");
+                soPhongInput.value = "";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            toggleSoPhongField();
+        });
+    </script>
+}

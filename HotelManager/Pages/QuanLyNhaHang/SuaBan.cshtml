@@ -3,7 +3,6 @@
 @{
     ViewData["Title"] = "Chỉnh Sửa Bàn";
 }
-
 <div class="container mt-5 mb-5">
     <div class="row justify-content-center">
         <div class="col-lg-6 col-md-8">
@@ -13,6 +12,7 @@
                 </div>
 
                 <div class="card-body p-4 bg-light">
+                    <!-- Hiển thị thông báo lỗi khi chỉnh sửa trùng Số bàn -->
                     <div asp-validation-summary="All" class="alert alert-danger mb-3 fw-bold shadow-sm" style="display: @(ModelState.IsValid ? "none" : "block")"></div>
 
                     <form method="post">
@@ -34,27 +34,6 @@
                             <input asp-for="BanInfo.SucChua" type="number" min="1" class="form-control shadow-sm" required />
                         </div>
 
-                        <div class="mb-4">
-                            <label asp-for="BanInfo.TrangThai" class="form-label fw-bold">Trạng thái hiện tại</label>
-                            <select asp-for="BanInfo.TrangThai" class="form-select shadow-sm" id="trangThaiSelect" onchange="toggleDatTruocFields()">
-                                <option value="Trống">Trống</option>
-                                <option value="Đang có khách">Đang có khách</option>
-                                <option value="Đang dọn dẹp">Đang dọn dẹp</option>
-                                <option value="Đã đặt trước">Đã đặt trước</option>
-                            </select>
-                        </div>
-
-                        <div id="datTruocFields" style="display: none; background-color: #fff; padding: 15px; border-radius: 8px; border: 1px dashed #0d6efd; margin-bottom: 20px;">
-                            <div class="mb-3">
-                                <label asp-for="BanInfo.TenKhachDat" class="form-label fw-bold text-primary">Họ và tên khách đặt <span class="text-danger">*</span></label>
-                                <input asp-for="BanInfo.TenKhachDat" class="form-control shadow-sm border-primary border-opacity-25" id="tenKhachInput" placeholder="Nhập họ tên khách hàng..." />
-                            </div>
-                            <div class="mb-2">
-                                <label asp-for="BanInfo.SoPhongDat" class="form-label fw-bold text-primary">Số phòng (Nếu khách đang lưu trú)</label>
-                                <input asp-for="BanInfo.SoPhongDat" class="form-control shadow-sm border-primary border-opacity-25" id="soPhongInput" />
-                            </div>
-                        </div>
-
                         <div class="d-flex justify-content-end gap-3 pt-4 border-top mt-2">
                             <a asp-page="./SoDoBan" class="btn btn-light border px-4 py-2 text-muted shadow-sm fw-bold">Quay lại</a>
                             <button type="submit" class="btn btn-success px-4 py-2 shadow-sm fw-bold">Lưu thông tin</button>
@@ -69,7 +48,10 @@
 @section Scripts {
     <script>
         function toggleDatTruocFields() {
-            var status = document.getElementById("trangThaiSelect").value;
+            var trangThaiElem = document.getElementById("trangThaiSelect");
+            if (!trangThaiElem) return; // Bảo vệ script không bị lỗi khi ẩn select trạng thái
+
+            var status = trangThaiElem.value;
             var datTruocFields = document.getElementById("datTruocFields");
             var tenKhachInput = document.getElementById("tenKhachInput");
 

@@ -2,8 +2,10 @@ using HotelManager.Data;
 using HotelManager.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Linq; // BẮT BUỘC CÓ ĐỂ DÙNG LINQ KHÔNG BỊ LỖI CS0411
 using System.Threading.Tasks;
 
 namespace HotelManagement.Pages.NhaHang.PhucVu
@@ -19,6 +21,7 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         [Required(ErrorMessage = "Vui lòng nhập sức chứa.")]
         public int? SucChua { get; set; }
 
+        // Mặc định khi thêm bàn mới sẽ là Trống
         public string TrangThai { get; set; } = "Trống";
 
         public string? TenKhachDat { get; set; }
@@ -45,10 +48,22 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
 
             try
             {
+                string maBanMoi = BanInfo.MaBan?.Trim() ?? string.Empty;
+                string tenBanMoi = BanInfo.TenBan?.Trim() ?? string.Empty;
+
+                // SỬA TRIỆT ĐỂ LỖI CS0411: Dùng .Any() của System.Linq để kiểm tra trùng Mã bàn hoặc Số bàn
+                bool isDuplicate = _context.BAN_NHA_HANG.Any(b => b.MaBan == maBanMoi || b.TenBan == tenBanMoi);
+
+                if (isDuplicate)
+                {
+                    ModelState.AddModelError(string.Empty, "LỖI: Mã bàn hoặc Tên bàn/Số bàn này đã tồn tại trong hệ thống. Vui lòng nhập thông tin khác!");
+                    return Page();
+                }
+
                 var ban = new BAN_NHA_HANG
                 {
-                    MaBan = BanInfo.MaBan?.Trim(), // FIX 3: Xóa khoảng trắng thừa để tránh lỗi map khóa ngoại
-                    TenBan = BanInfo.TenBan?.Trim(),
+                    MaBan = maBanMoi, // Xóa khoảng trắng thừa để tránh lỗi map khóa ngoại
+                    TenBan = tenBanMoi,
                     SucChua = BanInfo.SucChua,
                     TrangThai = BanInfo.TrangThai
                 };
@@ -59,7 +74,7 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
                     ban.GetType().GetProperty("TenKhachDat")?.SetValue(ban, BanInfo.TrangThai == "Đã đặt trước" ? BanInfo.TenKhachDat : null);
                 }
 
-                // BỔ SUNG: Bạn đang quên lưu SoPhongDat lấy từ form
+                // Lưu SoPhongDat lấy từ form
                 if (ban.GetType().GetProperty("SoPhongDat") != null)
                 {
                     ban.GetType().GetProperty("SoPhongDat")?.SetValue(ban, BanInfo.TrangThai == "Đã đặt trước" ? BanInfo.SoPhongDat : null);
@@ -82,14 +97,13 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
                         HinhThucThanhToan = "Đang phục vụ"
                     };
 
-                    // FIX 1: Gán trạng thái cho hóa đơn (Rất quan trọng để Sơ đồ bàn nhận diện hóa đơn đang Active)
+                    // Gán trạng thái cho hóa đơn
                     if (hoaDonMoi.GetType().GetProperty("TrangThai") != null)
                     {
-                        // Tùy theo thiết kế DB của bạn, có thể là chuỗi "Chưa thanh toán", "Đang phục vụ" hoặc số 0, 1
                         hoaDonMoi.GetType().GetProperty("TrangThai")?.SetValue(hoaDonMoi, "Chưa thanh toán");
                     }
 
-                    // FIX 2: Gán ngược Mã Hóa Đơn cho Bàn (Nếu bảng Bàn có lưu cột này để hiển thị UI nhanh)
+                    // Gán ngược Mã Hóa Đơn cho Bàn
                     if (ban.GetType().GetProperty("MaHoaDonHienTai") != null)
                     {
                         ban.GetType().GetProperty("MaHoaDonHienTai")?.SetValue(ban, uniqueInvoiceId);
@@ -100,7 +114,7 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
                     {
                         if (prop.Name == "MaBan" || prop.Name.EndsWith("MaBan"))
                         {
-                            prop.SetValue(hoaDonMoi, ban.MaBan); // Sử dụng ban.MaBan đã được Trim() ở trên
+                            prop.SetValue(hoaDonMoi, ban.MaBan);
                             break;
                         }
                     }
