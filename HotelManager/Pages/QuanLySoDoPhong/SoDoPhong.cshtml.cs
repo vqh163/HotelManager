@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HotelManager.Data;
 using HotelManager.Models;
@@ -80,6 +81,9 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             public string? TrangThaiPhong { get; set; }
             public string? TrangThaiVeSinh { get; set; }
 
+            // Ngày dọn phòng gần nhất để hiển thị trong Lựa chọn 1 của Buồng phòng
+            public string NgayDonGanNhat { get; set; } = "Chưa cập nhật";
+
             // Màu sắc phân biệt cho ô trạng thái vệ sinh trên lưới phòng
             public string MauBadgeVeSinh { get; set; } = "bg-success text-white";
 
@@ -109,7 +113,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
             public decimal GiaDangApDung { get; set; } = 0;
 
-            // Cờ theo dõi quy trình phối hợp Checkout giữa Lễ tân và Buồng phòng
+            // Cờ theo dõi quy trình phối hợp Báo cáo tiêu thụ Minibar giữa Buồng phòng và Lễ tân
             public bool DangChoBuongPhongKiemTra { get; set; } = false;
             public bool BuongPhongDaBaoCaoCheckout { get; set; } = false;
             public string NoiDungBaoCaoBuongPhong { get; set; } = string.Empty;
@@ -189,6 +193,19 @@ namespace HotelManager.Pages.QuanLySoDoPhong
         [BindProperty]
         public string MaPhongBuongPhong { get; set; } = string.Empty;
 
+        // 4 mặt hàng tiêu thụ Minibar cố định: CocaCola (30,000), Nước lọc (15,000), 7Up (30,000), Bia (40,000)
+        [BindProperty]
+        public int SoLuongCocaColaBP { get; set; } = 0;
+
+        [BindProperty]
+        public int SoLuongNuocLocBP { get; set; } = 0;
+
+        [BindProperty]
+        public int SoLuongSevenUpBP { get; set; } = 0;
+
+        [BindProperty]
+        public int SoLuongBiaBP { get; set; } = 0;
+
         [BindProperty]
         public string? MaDichVuMinibarBP { get; set; }
 
@@ -220,7 +237,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
         // =========================================================================
         // HÀM HỖ TRỢ QUAN TRỌNG: Đảm bảo mỗi phòng có 1 bản ghi TRANG_THAI_PHONG riêng
-        // Khắc phục triệt để lỗi bấm Checkout nhưng không lưu được trạng thái "Bẩn"
         // =========================================================================
         private async Task<TRANG_THAI_PHONG> EnsureRoomStatusRecordAsync(PHONG phong)
         {
@@ -230,7 +246,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             var ttRieng = await _context.TRANG_THAI_PHONG.FirstOrDefaultAsync(t => t.MaTrangThai == maTTRieng);
             if (ttRieng == null)
             {
-                // Nếu phòng đang trỏ vào một bản ghi trạng thái chung cũ thì lấy thông tin sang
                 TRANG_THAI_PHONG? ttCu = null;
                 if (!string.IsNullOrWhiteSpace(phong.MaTrangThai))
                 {
@@ -257,6 +272,26 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             return ttRieng;
         }
 
+        // Hàm hỗ trợ khởi tạo hoặc lấy mã dịch vụ chuẩn cho 4 món Minibar (CocaCola, Nước lọc, 7Up, Bia)
+        private async Task<DICH_VU> EnsureMinibarServiceItemAsync(string maDV, string tenDV, decimal donGia)
+        {
+            var dv = await _context.DICH_VU.FirstOrDefaultAsync(d => d.MaDichVu == maDV || d.TenDichVu == tenDV);
+            if (dv == null)
+            {
+                dv = new DICH_VU
+                {
+                    MaDichVu = maDV,
+                    TenDichVu = tenDV,
+                    LoaiDichVu = "Minibar",
+                    DonGia = donGia,
+                    DonViTinh = "Lon/Chai"
+                };
+                _context.DICH_VU.Add(dv);
+                await _context.SaveChangesAsync();
+            }
+            return dv;
+        }
+
         public async Task<IActionResult> OnGetAsync()
         {
             try
@@ -270,12 +305,10 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 IsViewingToday = (targetDate == today);
                 IsViewingPast = (targetDate < today);
 
-                // Tải danh sách dịch vụ để Buồng phòng chọn khi báo cáo Minibar ở Ô số 2
                 DanhSachDichVuMinibar = await _context.DICH_VU.AsNoTracking()
                     .OrderBy(d => d.TenDichVu)
                     .ToListAsync();
 
-                // Đảm bảo mọi phòng đều có bản ghi TRANG_THAI_PHONG riêng biệt trước khi hiển thị
                 var danhSachPhongDb = await _context.PHONG.ToListAsync();
                 var danhSachTrangThaiDb = await _context.TRANG_THAI_PHONG.ToListAsync();
                 bool coKhoiTaoTrangThai = false;
@@ -415,7 +448,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                         tongKhachDangKy = (bookingTaiThoiDiem.SoLuongKhach.HasValue && bookingTaiThoiDiem.SoLuongKhach.Value > 0)
                                           ? bookingTaiThoiDiem.SoLuongKhach.Value : 1;
 
-                        // Kiểm tra cờ phối hợp Checkout giữa Lễ tân và Buồng phòng trong GhiChu
+                        // Kiểm tra cờ phối hợp Báo cáo tiêu thụ Minibar giữa Buồng phòng và Lễ tân trong GhiChu
                         if (!string.IsNullOrEmpty(ghiChu))
                         {
                             if (ghiChu.Contains("[CHO_BP_KIEM_TRA]")) dangChoBPKiemTra = true;
@@ -435,8 +468,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                             }
                         }
 
-                        // ĐẢM BẢO: Nếu phòng đang chờ Buồng phòng kiểm tra Checkout ([CHO_BP_KIEM_TRA])
-                        // mà trạng thái vệ sinh trong DB vẫn đang là "Sạch" (do dữ liệu cũ trước khi sửa) -> Chuyển ngay sang "Bẩn"!
                         if (dangChoBPKiemTra && tt != null)
                         {
                             string vsCheck = (tt.TrangThaiVeSinh ?? "Sạch").Trim();
@@ -468,6 +499,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                             foreach (var s in staysInRoom)
                             {
                                 ParseKycInfo(s.GhiChuDacBiet, out string loaiGiayTo, out string anhTruoc, out string anhSau);
+
                                 bool dangO = (s.TrangThaiLuuTru == "DANG_LUU_TRU");
 
                                 danhSachKhachTrongPhong.Add(new OccupantInfoDto
@@ -539,10 +571,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                             if (!IsViewingPast) hopLeDatPhong = true;
                             if (IsViewingToday) hopLeWalkIn = true;
 
-                            // =========================================================================
-                            // QUY TẮC: KHI PHÒNG ĐANG Ở TRẠNG THÁI "SẠCH" VÀ "TRỐNG" (KHÔNG CÓ KHÁCH Ở),
-                            // SAU 1 NGÀY MỚI TỰ ĐỘNG CHUYỂN SANG "BẨN" VÀ GỬI THÔNG BÁO CHO BUỒNG PHÒNG
-                            // =========================================================================
                             if (IsViewingToday && tt != null)
                             {
                                 string vsHienTai = tt.TrangThaiVeSinh?.Trim() ?? "Sạch";
@@ -594,6 +622,9 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                         SucChuaToiDa = p.SucChuaToiDa,
                         TrangThaiPhong = trangThaiTinhToan,
                         TrangThaiVeSinh = tt?.TrangThaiVeSinh?.Trim() ?? "Sạch",
+                        NgayDonGanNhat = (tt != null && tt.ThoiGianDonVeSinh.HasValue)
+                            ? tt.ThoiGianDonVeSinh.Value.ToString("dd/MM/yyyy HH:mm")
+                            : "Chưa ghi nhận",
                         MaDatPhongHienTai = maDatPhong,
                         TenKhachHang = tenKhach,
                         SDTKhachHang = sdtKhach,
@@ -624,7 +655,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                         vm.SoNgayChuaDon = 0;
                     }
 
-                    // Phân loại hiển thị trạng thái vệ sinh chuẩn xác theo trạng thái thực trong DB (Không tự ý đè trạng thái khi khách đang ở)
+                    // Phân loại hiển thị trạng thái vệ sinh (Sạch, Bẩn nhẹ, Bẩn, Đang dọn dẹp)
                     string vsLower = vm.TrangThaiVeSinh.ToLower();
                     if (vsLower == "đang dọn dẹp" || vsLower == "đang dọn")
                     {
@@ -632,6 +663,13 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                         vm.IconVeSinh = "bi-hourglass-split";
                         vm.MauIconVeSinh = "text-info";
                         vm.MauBadgeVeSinh = "bg-info text-dark border-info";
+                    }
+                    else if (vsLower == "bẩn nhẹ")
+                    {
+                        vm.TrangThaiVeSinh = "Bẩn nhẹ";
+                        vm.IconVeSinh = "bi-droplet-half";
+                        vm.MauIconVeSinh = "text-warning";
+                        vm.MauBadgeVeSinh = "bg-warning text-dark border-warning";
                     }
                     else if (vsLower.Contains("bẩn"))
                     {
@@ -685,6 +723,33 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             }
         }
 
+        private bool KiemTraHopLeGiayTo(string? loaiGiayTo, string? soGiayTo, out string soGiayToChuan, out string thongBaoLoi)
+        {
+            soGiayToChuan = (soGiayTo ?? string.Empty).Trim().ToUpperInvariant();
+            thongBaoLoi = string.Empty;
+
+            bool laCCCD = string.IsNullOrWhiteSpace(loaiGiayTo) || loaiGiayTo.Contains("CCCD", StringComparison.OrdinalIgnoreCase);
+
+            if (laCCCD)
+            {
+                if (!Regex.IsMatch(soGiayToChuan, @"^\d{12}$"))
+                {
+                    thongBaoLoi = $"Số CCCD '{soGiayTo}' không hợp lệ! Khách trong nước bắt buộc nhập đúng chính xác 12 chữ số.";
+                    return false;
+                }
+            }
+            else
+            {
+                if (!Regex.IsMatch(soGiayToChuan, @"^[A-Z0-9]{9}$"))
+                {
+                    thongBaoLoi = $"Số Passport '{soGiayTo}' không hợp lệ! Bắt buộc phải đủ chính xác 9 ký tự (chỉ gồm chữ cái IN HOA hoặc chữ số, không có khoảng trắng hay ký tự đặc biệt).";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private async Task<string> SaveIdentityImageAsync(IFormFile? file, string prefix)
         {
             if (file == null || file.Length == 0) return "";
@@ -710,10 +775,10 @@ namespace HotelManager.Pages.QuanLySoDoPhong
         }
 
         // =========================================================================
-        // CÁC HANDLER DÀNH CHO NHÂN VIÊN BUỒNG PHÒNG (3 Ô TRONG MODAL BUỒNG PHÒNG)
+        // CÁC HANDLER DÀNH CHO NHÂN VIÊN BUỒNG PHÒNG (3 LỰA CHỌN TRONG MODAL BUỒNG PHÒNG)
         // =========================================================================
 
-        // Ô 1: Chuyển trạng thái vệ sinh phòng theo chu trình: Bẩn -> Đang dọn dẹp -> Sạch
+        // LỰA CHỌN 1: Chuyển trạng thái vệ sinh phòng theo chu trình hiện tại (Bẩn / Bẩn nhẹ -> Đang dọn dẹp -> Sạch)
         public async Task<IActionResult> OnPostChuyenTrangThaiBuongPhongAsync()
         {
             try
@@ -725,11 +790,9 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                     return RedirectToPage();
                 }
 
-                // Đảm bảo lấy đúng bản ghi TRANG_THAI_PHONG riêng của phòng này
                 var trangThai = await EnsureRoomStatusRecordAsync(phong);
                 string vsHienTai = (trangThai.TrangThaiVeSinh ?? "Bẩn").Trim();
 
-                // Nếu đang ở trạng thái Bẩn -> Chuyển sang "Đang dọn dẹp"
                 if (vsHienTai.Contains("Bẩn", StringComparison.OrdinalIgnoreCase))
                 {
                     trangThai.TrangThaiVeSinh = "Đang dọn dẹp";
@@ -738,7 +801,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
                     TempData["SuccessMessage"] = $"Phòng {phong.SoPhong} đã chuyển sang trạng thái 'Đang dọn dẹp'. Sau khi dọn xong, hãy ấn thêm 1 lần nữa để chuyển sang 'Sạch'!";
                 }
-                // Nếu đang ở trạng thái "Đang dọn dẹp" -> Chuyển sang "Sạch" và đặt lại mốc thời gian dọn vệ sinh = Hiện tại
                 else if (vsHienTai.Equals("Đang dọn dẹp", StringComparison.OrdinalIgnoreCase) || vsHienTai.Equals("Đang dọn", StringComparison.OrdinalIgnoreCase))
                 {
                     trangThai.TrangThaiVeSinh = "Sạch";
@@ -750,7 +812,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = $"Phòng {phong.SoPhong} hiện đang ở trạng thái Sạch, không cần chuyển trạng thái.";
+                    TempData["ErrorMessage"] = $"Phòng {phong.SoPhong} hiện đang ở trạng thái Sạch, không cần thực hiện hành động nào thêm.";
                 }
             }
             catch (Exception ex)
@@ -761,11 +823,19 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             return RedirectToPage();
         }
 
-        // Ô 2: Tạo phiếu báo cáo Minibar hoặc hỏng hóc trong phòng gửi cho Lễ tân khi Checkout
+        // LỰA CHỌN 2: Báo cáo cho Lễ tân (Gửi bản tiêu thụ: CocaCola 30k, Nước lọc 15k, 7Up 30k, Bia 40k)
+        // ĐÃ CẬP NHẬT RÀNG BUỘC CHẶN SỐ LƯỢNG ÂM Ở TẦNG BACKEND
         public async Task<IActionResult> OnPostBaoCaoMinibarCheckoutAsync()
         {
             try
             {
+                // RÀNG BUỘC DỮ LIỆU TẦNG SERVER: Không cho phép nhận số lượng tiêu thụ âm
+                if (SoLuongCocaColaBP < 0 || SoLuongNuocLocBP < 0 || SoLuongSevenUpBP < 0 || SoLuongBiaBP < 0)
+                {
+                    TempData["ErrorMessage"] = "Dữ liệu không hợp lệ! Số lượng đồ uống tiêu thụ Minibar không được phép là số âm.";
+                    return RedirectToPage();
+                }
+
                 var phong = await _context.PHONG.AsNoTracking().FirstOrDefaultAsync(p => p.MaPhong == MaPhongBuongPhong);
                 if (phong == null)
                 {
@@ -781,87 +851,95 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
                 DateTime now = DateTime.Now;
                 string suffix = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
-                string chiTietMinibarText = "Không dùng Minibar";
 
-                // 1. Nếu có chọn mặt hàng Minibar tiêu thụ -> Lưu vào CHI_TIET_DICH_VU
-                if (!string.IsNullOrWhiteSpace(MaDichVuMinibarBP) && SoLuongMinibarBP > 0)
+                // Danh sách 4 mặt hàng tiêu chuẩn theo yêu cầu
+                var danhSachMon = new List<(string MaDV, string TenDV, decimal DonGia, int SoLuong)>
                 {
-                    var dichVu = await _context.DICH_VU.AsNoTracking().FirstOrDefaultAsync(d => d.MaDichVu == MaDichVuMinibarBP);
-                    if (dichVu != null)
+                    ("MB_COCA", "CocaCola", 30000m, SoLuongCocaColaBP),
+                    ("MB_NUOCLOC", "Nước lọc", 15000m, SoLuongNuocLocBP),
+                    ("MB_7UP", "7Up", 30000m, SoLuongSevenUpBP),
+                    ("MB_BIA", "Bia", 40000m, SoLuongBiaBP)
+                };
+
+                var cacMonDaDung = new List<string>();
+                decimal tongTienTieuThu = 0m;
+                int indexItem = 0;
+
+                foreach (var mon in danhSachMon)
+                {
+                    if (mon.SoLuong > 0)
                     {
-                        decimal thanhTienMB = (dichVu.DonGia ?? 0) * SoLuongMinibarBP;
+                        indexItem++;
+                        var dvEntity = await EnsureMinibarServiceItemAsync(mon.MaDV, mon.TenDV, mon.DonGia);
+                        decimal thanhTienMon = mon.DonGia * mon.SoLuong;
+                        tongTienTieuThu += thanhTienMon;
+
                         var ctDichVu = new CHI_TIET_DICH_VU
                         {
-                            MaChiTietDichVu = $"DV{now:yyMMddHHmmss}{suffix}",
-                            DICH_VUMaDichVu = dichVu.MaDichVu,
+                            MaChiTietDichVu = $"DV{now:yyMMddHHmmss}{indexItem}{suffix.Substring(0, 2)}",
+                            DICH_VUMaDichVu = dvEntity.MaDichVu,
                             PHONGMaPhong = phong.MaPhong,
                             KHACH_HANGMaKH = datPhong?.KHACH_HANGMaKH,
-                            SoLuong = SoLuongMinibarBP,
-                            DonGia = dichVu.DonGia,
-                            ThanhTien = thanhTienMB,
+                            SoLuong = mon.SoLuong,
+                            DonGia = mon.DonGia,
+                            ThanhTien = thanhTienMon,
                             ThoiGianSuDung = now
                         };
                         _context.CHI_TIET_DICH_VU.Add(ctDichVu);
-                        chiTietMinibarText = $"Minibar: {SoLuongMinibarBP}x {dichVu.TenDichVu} ({thanhTienMB:N0}đ)";
+                        cacMonDaDung.Add($"{mon.TenDV} x{mon.SoLuong} ({thanhTienMon:N0}đ)");
                     }
                 }
 
-                // 2. Nếu có phí đền bù hỏng hóc trong phòng -> Lưu vào CHI_TIET_DICH_VU
-                string chiTietHongHocText = "Không hỏng hóc";
-                if (ChiPhiHongHocBP > 0)
-                {
-                    var dvMacDinh = await _context.DICH_VU.AsNoTracking().FirstOrDefaultAsync();
-                    if (dvMacDinh != null)
-                    {
-                        var ctDenBu = new CHI_TIET_DICH_VU
-                        {
-                            MaChiTietDichVu = $"HH{now:yyMMddHHmmss}{suffix}",
-                            DICH_VUMaDichVu = dvMacDinh.MaDichVu,
-                            PHONGMaPhong = phong.MaPhong,
-                            KHACH_HANGMaKH = datPhong?.KHACH_HANGMaKH,
-                            SoLuong = 1,
-                            DonGia = ChiPhiHongHocBP,
-                            ThanhTien = ChiPhiHongHocBP,
-                            ThoiGianSuDung = now
-                        };
-                        _context.CHI_TIET_DICH_VU.Add(ctDenBu);
-                    }
-                    chiTietHongHocText = $"Phí hỏng hóc: {ChiPhiHongHocBP:N0}đ";
-                }
+                string chiTietMinibarText = cacMonDaDung.Any()
+                    ? $"{string.Join(", ", cacMonDaDung)} => Tổng: {tongTienTieuThu:N0}đ"
+                    : "Không tiêu thụ đồ uống (0đ)";
 
-                string ghiChuThem = string.IsNullOrWhiteSpace(GhiChuKiemTraCheckoutBP) ? "Đủ đồ dùng" : GhiChuKiemTraCheckoutBP.Trim();
-                string tomTatBaoCao = $"{chiTietMinibarText} | {chiTietHongHocText} | Ghi chú: {ghiChuThem}";
+                string ghiChuThem = !string.IsNullOrWhiteSpace(GhiChuKiemTraCheckoutBP)
+                    ? $" | Ghi chú: {GhiChuKiemTraCheckoutBP.Trim()}"
+                    : "";
 
-                // 3. Đánh dấu vào đơn đặt phòng là Buồng phòng đã kiểm tra xong để Lễ tân xác nhận Checkout
+                string tomTatBaoCao = $"{chiTietMinibarText}{ghiChuThem}";
+
+                // Ghi nhận vào đơn đặt phòng để hiện Chấm đỏ trên sơ đồ phòng của Lễ tân & hiển thị lúc Checkout
                 if (datPhong != null)
                 {
                     string ghiChuCu = (datPhong.GhiChu ?? "").Replace("[CHO_BP_KIEM_TRA]", "");
-                    string ghiChuMoi = $"{ghiChuCu} [BP_DA_BAO_CAO: {tomTatBaoCao}]";
+                    int oldIdx = ghiChuCu.IndexOf("[BP_DA_BAO_CAO:");
+                    if (oldIdx >= 0)
+                    {
+                        int oldEnd = ghiChuCu.IndexOf("]", oldIdx);
+                        if (oldEnd > oldIdx)
+                        {
+                            ghiChuCu = ghiChuCu.Remove(oldIdx, oldEnd - oldIdx + 1).Trim();
+                        }
+                    }
+
+                    string ghiChuMoi = $"{ghiChuCu} [BP_DA_BAO_CAO: {tomTatBaoCao}]".Trim();
                     datPhong.GhiChu = ghiChuMoi.Length > 255 ? ghiChuMoi.Substring(ghiChuMoi.Length - 255) : ghiChuMoi;
                     _context.DAT_PHONG.Update(datPhong);
                 }
 
-                // 4. Gửi thông báo đến Lễ tân qua NHAT_KY_HE_THONG
+                // Lưu vào NHAT_KY_HE_THONG để thông báo cho Lễ tân
                 _context.NHAT_KY_HE_THONG.Add(new NHAT_KY_HE_THONG
                 {
                     MaNhatKy = $"LG{now:yyMMddHHmmss}{suffix}",
                     TenDangNhap = User.Identity?.Name ?? "Buồng phòng",
-                    HanhDong = "Thông báo Lễ tân",
-                    ChiTiet = $"[Lễ tân] Buồng phòng đã kiểm tra Phòng {phong.SoPhong} để Checkout: {tomTatBaoCao}. Lễ tân vui lòng xác nhận!"
+                    HanhDong = "Báo cáo Tiêu thụ Minibar",
+                    ChiTiet = $"[Lễ tân] Bản tiêu thụ Phòng {phong.SoPhong}: {tomTatBaoCao}"
                 });
 
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Đã gửi phiếu báo cáo kiểm tra Minibar & Hỏng hóc của Phòng {phong.SoPhong} cho Lễ tân xác nhận Checkout!";
+                TempData["SuccessMessage"] = $"Đã gửi bản tiêu thụ của Phòng {phong.SoPhong} ({chiTietMinibarText}) đến giao diện Lễ tân!";
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Lỗi khi gửi báo cáo Minibar/Hỏng hóc: {ex.Message}";
+                TempData["ErrorMessage"] = $"Lỗi khi gửi bản tiêu thụ: {ex.Message}";
             }
 
             return RedirectToPage();
         }
 
-        // Ô 3: Tạo phiếu báo cáo kỹ thuật gửi cho Nhân viên Kỹ thuật (UC_07 - PHIEU_BAO_CAO_SU_CO)
+        // LỰA CHỌN 3: Báo cáo sự cố kỹ thuật (Giữ nguyên 100% logic hiện tại)
         public async Task<IActionResult> OnPostTaoPhieuKyThuatAsync()
         {
             try
@@ -914,7 +992,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
         }
 
         // =========================================================================
-        // CÁC HANDLER HIỆN TẠI CỦA LỄ TÂN (GIỮ NGUYÊN TOÀN BỘ NGHIỆP VỤ)
+        // CÁC HANDLER HIỆN TẠI CỦA LỄ TÂN (GIỮ NGUYÊN 100%)
         // =========================================================================
 
         public async Task<IActionResult> OnPostDoiTrangThaiAsync(string maPhong, string trangThaiMoi, string loaiCapNhat)
@@ -955,6 +1033,12 @@ namespace HotelManager.Pages.QuanLySoDoPhong
         {
             try
             {
+                if (!KiemTraHopLeGiayTo(loaiGiayToCheckIn, soGiayToCheckIn, out string soGiayToChuanCheckIn, out string loiGiayTo))
+                {
+                    TempData["ErrorMessage"] = loiGiayTo;
+                    return RedirectToPage();
+                }
+
                 DateTime now = DateTime.Now;
                 DateTime today = now.Date;
 
@@ -975,12 +1059,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 var khachDaiDien = await _context.KHACH_HANG.FirstOrDefaultAsync(k => k.MaKH == datPhongCanCheckIn.KHACH_HANGMaKH);
                 if (khachDaiDien != null)
                 {
-                    if (!string.IsNullOrWhiteSpace(soGiayToCheckIn))
-                    {
-                        khachDaiDien.SoCCCD = soGiayToCheckIn.Trim().Length > 12
-                            ? soGiayToCheckIn.Trim().Substring(0, 12)
-                            : soGiayToCheckIn.Trim();
-                    }
+                    khachDaiDien.SoCCCD = soGiayToChuanCheckIn;
 
                     string urlTruoc = await SaveIdentityImageAsync(anhMatTruocCheckIn, $"CI1_F_{khachDaiDien.MaKH}");
                     string urlSau = await SaveIdentityImageAsync(anhMatSauCheckIn, $"CI1_B_{khachDaiDien.MaKH}");
@@ -1042,6 +1121,12 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                     return RedirectToPage();
                 }
 
+                if (!KiemTraHopLeGiayTo(loaiGiayToWalkIn, cccdWalkIn, out string soGiayToChuan, out string loiGiayTo))
+                {
+                    TempData["ErrorMessage"] = loiGiayTo;
+                    return RedirectToPage();
+                }
+
                 var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == maPhongWalkIn);
                 if (phong == null) return RedirectToPage();
 
@@ -1056,8 +1141,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 string urlSau = await SaveIdentityImageAsync(anhMatSauWalkIn, "WI_B");
                 string loaiGT = string.IsNullOrWhiteSpace(loaiGiayToWalkIn) ? "CCCD (Việt Nam)" : loaiGiayToWalkIn;
                 string kycMetadata = $"KYC|{loaiGT}|{urlTruoc}|{urlSau}";
-
-                string soGiayToChuan = cccdWalkIn.Trim().Length > 12 ? cccdWalkIn.Trim().Substring(0, 12) : cccdWalkIn.Trim();
 
                 var khachHang = await _context.KHACH_HANG.FirstOrDefaultAsync(k => k.SDT == sdtWalkIn.Trim());
                 if (khachHang == null)
@@ -1154,6 +1237,13 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
                 for (int i = 0; i < danhSachHopLe.Count; i++)
                 {
+                    if (!KiemTraHopLeGiayTo(danhSachHopLe[i].LoaiGiayTo, danhSachHopLe[i].SoGiayTo, out string soGiayToChuanItem, out string loiGiayToItem))
+                    {
+                        TempData["ErrorMessage"] = $"Khách ở cùng thứ {i + 1} ({danhSachHopLe[i].HoTen}): {loiGiayToItem}";
+                        return RedirectToPage();
+                    }
+                    danhSachHopLe[i].SoGiayTo = soGiayToChuanItem;
+
                     if (danhSachHopLe[i].AnhMatTruoc == null || danhSachHopLe[i].AnhMatSau == null)
                     {
                         TempData["ErrorMessage"] = $"Khách ở cùng thứ {i + 1} ({danhSachHopLe[i].HoTen}) chưa có đủ 2 ảnh Mặt trước & Mặt sau của CCCD/Hộ chiếu!";
@@ -1176,15 +1266,11 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                     string loaiGT = string.IsNullOrWhiteSpace(item.LoaiGiayTo) ? "CCCD (Việt Nam)" : item.LoaiGiayTo;
                     string kycMetadata = $"KYC|{loaiGT}|{urlTruoc}|{urlSau}";
 
-                    string soGiayToChuan = item.SoGiayTo.Trim().Length > 12
-                        ? item.SoGiayTo.Trim().Substring(0, 12)
-                        : item.SoGiayTo.Trim();
-
                     var khachDiCung = new KHACH_HANG
                     {
                         MaKH = "KH" + suffix,
                         HoTen = item.HoTen.Trim(),
-                        SoCCCD = soGiayToChuan,
+                        SoCCCD = item.SoGiayTo,
                         SDT = string.IsNullOrWhiteSpace(item.SDT) ? "0000000000" : item.SDT.Trim(),
                         HangThanhVien = "Thường",
                         DiemThuong = 0,
@@ -1520,9 +1606,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             return RedirectToPage();
         }
 
-        // Quy trình Checkout phối hợp 2 bước:
-        // - Bước 1: Khi Lễ tân ấn Checkout -> Lập tức chuyển trạng thái vệ sinh của phòng sang "Bẩn" (nhờ EnsureRoomStatusRecordAsync không bao giờ bị null) và gửi thông báo cho Buồng phòng kiểm tra Minibar/Hỏng hóc.
-        // - Bước 2: Sau khi Buồng phòng đã gửi báo cáo ([BP_DA_BAO_CAO:...]), Lễ tân ấn xác nhận thì khách mới chính thức được Checkout.
         public async Task<IActionResult> OnPostCheckOutAsync(string maPhongCheckOut)
         {
             try
@@ -1541,10 +1624,9 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                     string soPhongText = phong?.SoPhong ?? maPhongCheckOut;
                     string ghiChuHienTai = datPhongCanCheckOut.GhiChu ?? "";
 
-                    // KIỂM TRA: Nếu Buồng phòng CHƯA gửi phiếu báo cáo Minibar / Hỏng hóc
+                    // KIỂM TRA: Nếu Buồng phòng CHƯA gửi bản báo cáo tiêu thụ Minibar
                     if (!ghiChuHienTai.Contains("[BP_DA_BAO_CAO:"))
                     {
-                        // 1. Chuyển ngay trạng thái vệ sinh của phòng sang "Bẩn" (Đảm bảo có bản ghi TRANG_THAI_PHONG riêng)
                         if (phong != null)
                         {
                             var trangThai = await EnsureRoomStatusRecordAsync(phong);
@@ -1553,7 +1635,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                             _context.TRANG_THAI_PHONG.Update(trangThai);
                         }
 
-                        // 2. Đánh dấu đang chờ Buồng phòng kiểm tra và gửi thông báo cho Nhân viên Buồng phòng
                         if (!ghiChuHienTai.Contains("[CHO_BP_KIEM_TRA]"))
                         {
                             string ghiChuYeuCau = ghiChuHienTai + " [CHO_BP_KIEM_TRA]";
@@ -1567,16 +1648,16 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                             MaNhatKy = $"LG{now:yyMMddHHmmss}{suffix}",
                             TenDangNhap = User.Identity?.Name ?? "Lễ tân",
                             HanhDong = "Yêu cầu Hỗ trợ Checkout",
-                            ChiTiet = $"[Nhân viên Buồng phòng] Lễ tân yêu cầu kiểm tra Minibar & hỏng hóc cho Phòng {soPhongText} (Đã chuyển sang trạng thái Bẩn) để làm thủ tục Checkout!"
+                            ChiTiet = $"[Nhân viên Buồng phòng] Lễ tân yêu cầu kiểm tra Minibar & gửi bản tiêu thụ cho Phòng {soPhongText} để làm thủ tục Checkout!"
                         });
 
                         await _context.SaveChangesAsync();
 
-                        TempData["SuccessMessage"] = $"Đã chuyển Phòng {soPhongText} sang trạng thái 'Bẩn' và gửi thông báo đến Nhân viên Buồng phòng! Khi Buồng phòng gửi báo cáo kiểm tra Minibar/hỏng hóc, Lễ tân xác nhận lại một lần nữa để hoàn tất Checkout cho khách.";
+                        TempData["SuccessMessage"] = $"Đã chuyển Phòng {soPhongText} sang trạng thái 'Bẩn' và gửi thông báo đến Nhân viên Buồng phòng! Khi Buồng phòng gửi Bản tiêu thụ (hiện chấm đỏ trên phòng), Lễ tân xác nhận để hoàn tất Checkout.";
                         return RedirectToPage();
                     }
 
-                    // NẾU BUỒNG PHÒNG ĐÃ GỬI BÁO CÁO -> LỄ TÂN XÁC NHẬN HOÀN TẤT CHECKOUT CHO KHÁCH
+                    // NẾU BUỒNG PHÒNG ĐÃ GỬI BẢN TIÊU THỤ -> LỄ TÂN XÁC NHẬN HOÀN TẤT CHECKOUT CHO KHÁCH
                     datPhongCanCheckOut.TrangThaiDatPhong = "Đã check-out";
                     datPhongCanCheckOut.NgayTra = now;
                     _context.DAT_PHONG.Update(datPhongCanCheckOut);
@@ -1600,7 +1681,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                         var trangThai = await EnsureRoomStatusRecordAsync(phong);
                         trangThai.TrangThaiPhong = "Trống";
 
-                        // Nếu trong lúc kiểm tra Checkout mà Buồng phòng chưa dọn xong thành Sạch thì giữ trạng thái Bẩn để Buồng phòng dọn
                         if (!string.Equals(trangThai.TrangThaiVeSinh?.Trim(), "Đang dọn dẹp", StringComparison.OrdinalIgnoreCase) &&
                             !string.Equals(trangThai.TrangThaiVeSinh?.Trim(), "Sạch", StringComparison.OrdinalIgnoreCase))
                         {
@@ -1611,7 +1691,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                     }
 
                     await _context.SaveChangesAsync();
-                    TempData["SuccessMessage"] = $"Lễ tân đã xác nhận báo cáo của Buồng phòng và hoàn tất Checkout cho Phòng {soPhongText}! Đã cập nhật số liệu sang Tổng quan Tiền sảnh.";
+                    TempData["SuccessMessage"] = $"Lễ tân đã đối chiếu Bản tiêu thụ của Buồng phòng và hoàn tất Checkout cho Phòng {soPhongText}!";
                 }
                 else
                 {
