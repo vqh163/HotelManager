@@ -1,0 +1,331 @@
+﻿@page
+@model HotelManager.Pages.QuanLyKho.QuanLyDonDatHangModel
+@{
+    ViewData["Title"] = "Đề xuất Mua hàng & Đơn đặt hàng (PO)";
+}
+
+<style>
+    /* Ẩn thanh menu mặc định của Layout theo yêu cầu */
+    header, footer {
+        display: none !important;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-11">
+
+            <!-- Khu vực hiển thị thông báo kết quả xử lý -->
+            @if (!string.IsNullOrEmpty(Model.ThongBao))
+            {
+                <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBao
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+            {
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- Khối 1: Sinh phiếu đề xuất mua hàng tự động & Lên đơn đặt hàng (PO) -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-gradient bg-danger text-white p-4 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h4 class="mb-0 fw-bold">
+                            <i class="bi bi-cart-plus-fill me-2"></i> Đề Xuất Mua Hàng Tự Động & Lên Đơn Đặt Hàng - PO (UC_09)
+                        </h4>
+                        <p class="mb-0 text-white opacity-75 small mt-1">
+                            Hệ thống tự động quét các vật tư chạm hoặc dưới mức tồn tối thiểu để đề xuất số lượng cần nhập bù
+                        </p>
+                    </div>
+
+                    <!-- Bộ lọc xem mặt hàng cần đặt mua -->
+                    <form method="get" class="d-flex align-items-center gap-2">
+                        <select asp-for="CheDoHienThi" class="form-select form-select-sm rounded-pill border-0 shadow-sm fw-bold px-3" onchange="this.form.submit()">
+                            <option value="CAN_NHAP">Chỉ hiện vật tư chạm đáy tồn tối thiểu (@Model.SoMatHangCanNhap)</option>
+                            <option value="ALL">Hiện toàn bộ danh mục kho để đặt thêm</option>
+                        </select>
+                    </form>
+                </div>
+
+                <form method="post" asp-page-handler="TaoDonPO">
+                    <input type="hidden" asp-for="CheDoHienThi" />
+
+                    <!-- Thông tin chung của Đơn đặt hàng (PO) -->
+                    <div class="bg-light p-4 border-bottom">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label asp-for="NhaCungCapPO" class="form-label fw-bold small text-secondary">
+                                    Nhà cung cấp / Đối tác cung ứng <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="NhaCungCapPO" class="form-control rounded-3 border-0 shadow-sm" placeholder="VD: Công ty Cung ứng Khách sạn Đà Nẵng..." required />
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="NguoiLapPO" class="form-label fw-bold small text-secondary">
+                                    Người lập đề xuất (PO) <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="NguoiLapPO" class="form-control rounded-3 border-0 shadow-sm" required />
+                            </div>
+                            <div class="col-md-5">
+                                <label asp-for="GhiChuPO" class="form-label fw-bold small text-secondary">
+                                    Ghi chú đơn đặt hàng (PO)
+                                </label>
+                                <input asp-for="GhiChuPO" class="form-control rounded-3 border-0 shadow-sm" placeholder="VD: Giao hàng trước 8h sáng thứ Hai, xuất hóa đơn VAT..." />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bảng danh sách vật tư đề xuất mua hàng tự động -->
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 text-center">
+                                <thead class="table-light text-secondary small">
+                                    <tr>
+                                        <th class="ps-4" style="width: 50px;">Chọn</th>
+                                        <th class="text-start">Mã VT</th>
+                                        <th class="text-start">Tên Hàng Hóa / Vật Tư</th>
+                                        <th>Phân Loại Kho</th>
+                                        <th>Tồn Hiện Tại</th>
+                                        <th>Tồn Tối Thiểu</th>
+                                        <th style="width: 140px;">SL Đề Xuất Mua</th>
+                                        <th style="width: 150px;">Đơn Giá Dự Kiến</th>
+                                        <th class="pe-4 text-end">Thành Tiền Dự Toán</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.DanhSachDeXuat != null && Model.DanhSachDeXuat.Count > 0)
+                                    {
+                                        @for (int i = 0; i < Model.DanhSachDeXuat.Count; i++)
+                                        {
+                                            bool isLow = Model.DanhSachDeXuat[i].TonHienTai <= Model.DanhSachDeXuat[i].TonToiThieu;
+                                            decimal thanhTienDong = Model.DanhSachDeXuat[i].SoLuongDeXuat * Model.DanhSachDeXuat[i].DonGiaDuKien;
+
+                                            <tr class="border-bottom @(isLow ? "bg-danger bg-opacity-10" : "")">
+                                                <td class="ps-4">
+                                                    <input asp-for="DanhSachDeXuat[i].DuocChon"
+                                                           type="checkbox"
+                                                           data-index="@i"
+                                                           class="form-check-input border-danger shadow-sm chk-chon-po"
+                                                           onchange="tinhTongDuToanPO()" />
+                                                    <!-- Các trường ẩn để Bind dữ liệu về Server -->
+                                                    <input type="hidden" asp-for="DanhSachDeXuat[i].MaVatTu" />
+                                                    <input type="hidden" asp-for="DanhSachDeXuat[i].TenVatTu" />
+                                                    <input type="hidden" asp-for="DanhSachDeXuat[i].LoaiVatTu" />
+                                                    <input type="hidden" asp-for="DanhSachDeXuat[i].DonViTinh" />
+                                                    <input type="hidden" asp-for="DanhSachDeXuat[i].TonHienTai" />
+                                                    <input type="hidden" asp-for="DanhSachDeXuat[i].TonToiThieu" />
+                                                </td>
+                                                <td class="text-start">
+                                                    <span class="badge bg-light text-dark border">@Model.DanhSachDeXuat[i].MaVatTu</span>
+                                                </td>
+                                                <td class="fw-bold text-dark text-start">
+                                                    @Model.DanhSachDeXuat[i].TenVatTu
+                                                    @if (isLow)
+                                                    {
+                                                        <span class="badge bg-danger ms-1">Cần nhập gấp</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-3">
+                                                        @Model.DanhSachDeXuat[i].LoaiVatTu
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="fw-bold @(isLow ? "text-danger fs-5" : "text-primary")">
+                                                        @Model.DanhSachDeXuat[i].TonHienTai @Model.DanhSachDeXuat[i].DonViTinh
+                                                    </span>
+                                                </td>
+                                                <td class="text-muted">@Model.DanhSachDeXuat[i].TonToiThieu @Model.DanhSachDeXuat[i].DonViTinh</td>
+                                                <td>
+                                                    <input asp-for="DanhSachDeXuat[i].SoLuongDeXuat"
+                                                           id="inpSL_@i"
+                                                           type="number"
+                                                           min="1"
+                                                           class="form-control form-control-sm text-center fw-bold text-danger border-danger rounded-3 shadow-sm"
+                                                           oninput="tinhTongDuToanPO()"
+                                                           required />
+                                                </td>
+                                                <td>
+                                                    <input asp-for="DanhSachDeXuat[i].DonGiaDuKien"
+                                                           id="inpGia_@i"
+                                                           type="number"
+                                                           step="0.01"
+                                                           min="0"
+                                                           class="form-control form-control-sm text-end rounded-3 shadow-sm"
+                                                           oninput="tinhTongDuToanPO()"
+                                                           required />
+                                                </td>
+                                                <td class="pe-4 text-end fw-bold text-dark" id="lblThanhTien_@i">
+                                                    @thanhTienDong.ToString("N0") ₫
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted py-5">
+                                                <i class="bi bi-check2-circle text-success fs-1 d-block mb-2"></i>
+                                                Tuyệt vời! Hiện tại tất cả vật tư trong kho đều đảm bảo trên định mức tối thiểu.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if (Model.DanhSachDeXuat != null && Model.DanhSachDeXuat.Count > 0)
+                    {
+                        <div class="card-footer bg-white p-4 border-top d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                <span class="text-muted small">Tổng dự toán kinh phí đơn đặt hàng (PO):</span>
+                                <span class="fs-4 fw-bold text-danger ms-2" id="lblTongDuToanPO">0 ₫</span>
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-lg rounded-pill px-5 fw-bold shadow">
+                                <i class="bi bi-send-check-fill me-1"></i> Phát Hành Đơn Đặt Hàng (PO)
+                            </button>
+                        </div>
+                    }
+                </form>
+            </div>
+
+            <!-- Khối 2: Danh sách Đơn Đặt Hàng (PO) đã phát hành & Nghiệm thu nhập kho tự động -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="bi bi-file-earmark-spreadsheet text-danger me-2"></i> Danh Sách Đơn Đặt Hàng (PO) Đã Lập
+                    </h5>
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger rounded-pill px-3 py-2">
+                        Tổng: @(Model.DanhSachDonPO?.Count ?? 0) đơn PO
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-center">
+                            <thead class="table-light text-secondary small">
+                                <tr>
+                                    <th class="ps-4 text-start">Mã Đơn PO</th>
+                                    <th class="text-start">Nhà Cung Cấp & Người Lập</th>
+                                    <th class="text-start">Chi Tiết Mặt Hàng Đặt Mua</th>
+                                    <th>Tổng Dự Toán</th>
+                                    <th>Trạng Thái PO</th>
+                                    <th class="pe-4">Thao Tác Nghiệm Thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.DanhSachDonPO != null && Model.DanhSachDonPO.Any())
+                                {
+                                    @foreach (var po in Model.DanhSachDonPO)
+                                    {
+                                        bool daNhanHang = po.TrangThai == "Đã nhận hàng & Nhập kho";
+                                        <tr class="border-bottom">
+                                            <td class="ps-4 text-start">
+                                                <span class="badge bg-dark">@po.MaPO</span>
+                                                <div class="small text-muted mt-1">@po.NgayLap.ToString("dd/MM/yyyy HH:mm")</div>
+                                            </td>
+                                            <td class="text-start">
+                                                <div class="fw-bold text-primary"><i class="bi bi-building me-1"></i>@po.NhaCungCap</div>
+                                                <small class="text-muted">Người lập: @po.NguoiLap</small>
+                                            </td>
+                                            <td class="text-start">
+                                                <div class="small fw-semibold text-dark">@po.TomTatMatHang</div>
+                                                @if (!string.IsNullOrEmpty(po.GhiChu))
+                                                {
+                                                    <small class="text-muted fst-italic">Ghi chú: @po.GhiChu</small>
+                                                }
+                                            </td>
+                                            <td class="fw-bold text-danger">@po.TongTienDuToan.ToString("N0") ₫</td>
+                                            <td>
+                                                @if (daNhanHang)
+                                                {
+                                                    <span class="badge bg-success rounded-pill px-3">
+                                                        <i class="bi bi-check-circle me-1"></i> Đã nhập kho
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning text-dark rounded-pill px-3">
+                                                        <i class="bi bi-truck me-1"></i> Chờ giao hàng
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td class="pe-4">
+                                                @if (!daNhanHang)
+                                                {
+                                                    <form method="post" asp-page-handler="NghiemThuPO" asp-route-maPO="@po.MaPO" class="d-inline" onsubmit="return confirm('Xác nhận hàng đã giao đủ theo đơn @po.MaPO và tự động cộng vào Tồn kho?');">
+                                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm">
+                                                            <i class="bi bi-box-arrow-in-down me-1"></i> Nghiệm thu & Nhập kho
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small"><i class="bi bi-check2-all"></i> Hoàn tất</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            Chưa có Đơn đặt hàng (PO) nào được phát hành.
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // @@ts-nocheck
+        // Tính tổng tiền dự toán của các mặt hàng được tích chọn trong bảng đề xuất PO
+        function tinhTongDuToanPO() {
+            var checkboxes = document.querySelectorAll('.chk-chon-po');
+            var tongCong = 0;
+
+            for (var i = 0; i < checkboxes.length; i++) {
+                var chk = checkboxes[i];
+                var idx = chk.getAttribute('data-index');
+
+                var inpSL = document.getElementById('inpSL_' + idx);
+                var inpGia = document.getElementById('inpGia_' + idx);
+                var lblDong = document.getElementById('lblThanhTien_' + idx);
+
+                var sl = inpSL ? parseFloat(inpSL['value'] || '0') : 0;
+                var gia = inpGia ? parseFloat(inpGia['value'] || '0') : 0;
+                var thanhTien = sl * gia;
+
+                if (lblDong) {
+                    lblDong.innerText = thanhTien.toLocaleString('vi-VN') + ' ₫';
+                }
+
+                if (chk['checked']) {
+                    tongCong += thanhTien;
+                }
+            }
+
+            var lblTong = document.getElementById('lblTongDuToanPO');
+            if (lblTong) {
+                lblTong.innerText = tongCong.toLocaleString('vi-VN') + ' ₫';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            tinhTongDuToanPO();
+        });
+    </script>
+}

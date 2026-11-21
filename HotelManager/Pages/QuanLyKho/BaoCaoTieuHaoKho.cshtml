@@ -1,0 +1,223 @@
+﻿@page
+@model HotelManager.Pages.QuanLyKho.BaoCaoTieuHaoKhoModel
+@{
+    ViewData["Title"] = "Báo cáo Tiêu hao & Chi phí Kho";
+}
+
+<style>
+    /* Ẩn thanh menu mặc định của Layout */
+    header, footer {
+        display: none !important;
+    }
+
+    /* Tối ưu giao diện khi Thủ kho bấm Xuất / In báo cáo PDF */
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #dee2e6 !important;
+        }
+    }
+</style>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-11">
+
+            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+            {
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm no-print" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- Tiêu đề Báo cáo & Bộ lọc kỳ thống kê -->
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-gradient bg-dark text-white p-4 border-0 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h4 class="mb-0 fw-bold">
+                            <i class="bi bi-bar-chart-line-fill text-warning me-2"></i> Báo Cáo Tiêu Hao Và Chi Phí Vật Tư Kho (UC_09 & UC_12)
+                        </h4>
+                        <p class="mb-0 text-white-50 small mt-1">
+                            Phân tích giá trị vốn tồn kho, chi phí nhập hàng và tỷ trọng tiêu hao theo từng bộ phận
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-warning text-dark fw-bold rounded-pill px-4 shadow-sm no-print" onclick="window.print()">
+                        <i class="bi bi-printer-fill me-1"></i> Xuất / In Báo Cáo (PDF)
+                    </button>
+                </div>
+
+                <!-- Bộ lọc khoảng thời gian và loại kho -->
+                <div class="bg-light p-3 border-bottom no-print">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label asp-for="TuNgay" class="form-label small fw-bold text-secondary mb-1">Từ ngày</label>
+                            <input asp-for="TuNgay" type="date" class="form-control form-control-sm rounded-3 border-0 shadow-sm" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="DenNgay" class="form-label small fw-bold text-secondary mb-1">Đến ngày</label>
+                            <input asp-for="DenNgay" type="date" class="form-control form-control-sm rounded-3 border-0 shadow-sm" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="LoaiKhoFilter" class="form-label small fw-bold text-secondary mb-1">Phân loại kho</label>
+                            <select asp-for="LoaiKhoFilter" class="form-select form-select-sm rounded-3 border-0 shadow-sm fw-bold">
+                                <option value="ALL">Tất cả danh mục kho</option>
+                                <option value="Kho vật dụng">Kho vật dụng</option>
+                                <option value="Kho nhà hàng">Kho nhà hàng</option>
+                                <option value="Kho đồ tiêu hao">Kho đồ tiêu hao</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill fw-bold py-2 shadow-sm">
+                                <i class="bi bi-funnel-fill me-1"></i> Lọc dữ liệu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 4 Thẻ KPI Tổng hợp Chi phí & Tồn kho -->
+                <div class="card-body p-4 bg-white">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="p-3 rounded-4 bg-primary bg-opacity-10 border border-primary h-100">
+                                <small class="text-primary fw-bold d-block">TỔNG GIÁ TRỊ TỒN KHO HIỆN TẠI</small>
+                                <h4 class="fw-bold text-primary mt-2 mb-1">@Model.TongGiaTriTonKho.ToString("N0") ₫</h4>
+                                <small class="text-muted">Tổng: @Model.TongSoMatHang mặt hàng (@Model.SoMatHangSapHet sắp hết)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded-4 bg-success bg-opacity-10 border border-success h-100">
+                                <small class="text-success fw-bold d-block">CHI PHÍ NHẬP KHO TRONG KỲ</small>
+                                <h4 class="fw-bold text-success mt-2 mb-1">@Model.TongChiPhiNhapTrongKy.ToString("N0") ₫</h4>
+                                <small class="text-muted">Tổng lượng nhập: @Model.TongSoLuongNhap đơn vị</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded-4 bg-danger bg-opacity-10 border border-danger h-100">
+                                <small class="text-danger fw-bold d-block">GIÁ TRỊ TIÊU HAO (XUẤT KHO)</small>
+                                <h4 class="fw-bold text-danger mt-2 mb-1">@Model.TongGiaTriTieuHaoTrongKy.ToString("N0") ₫</h4>
+                                <small class="text-muted">Tổng lượng xuất: @Model.TongSoLuongXuat đơn vị</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded-4 bg-warning bg-opacity-10 border border-warning h-100">
+                                <small class="text-dark fw-bold d-block">CÂN ĐỐI NHẬP - XUẤT KỲ NÀY</small>
+                                <h4 class="fw-bold text-dark mt-2 mb-1">
+                                    @((Model.TongChiPhiNhapTrongKy - Model.TongGiaTriTieuHaoTrongKy).ToString("N0")) ₫
+                                </h4>
+                                <small class="text-muted">Kỳ: @Model.TuNgay.ToString("dd/MM") - @Model.DenNgay.ToString("dd/MM/yyyy")</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <!-- Cột Trái: Cơ cấu chi phí tiêu hao theo Bộ phận nhận -->
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
+                        <div class="card-header bg-white p-4 border-bottom">
+                            <h5 class="mb-0 fw-bold text-dark">
+                                <i class="bi bi-pie-chart-fill text-danger me-2"></i> Chi Phí Tiêu Hao Theo Bộ Phận
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            @if (Model.ThongKeTheoBoPhan != null && Model.ThongKeTheoBoPhan.Any())
+                            {
+                                @foreach (var bp in Model.ThongKeTheoBoPhan)
+                                {
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between small fw-bold mb-1">
+                                            <span class="text-dark">@bp.TenBoPhan (@bp.SoLuotXuat phiếu)</span>
+                                            <span class="text-danger">@bp.TongChiPhiTieuHao.ToString("N0") ₫ (@bp.TyLePhanTram.ToString("0.0")%)</span>
+                                        </div>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar bg-danger rounded-pill" role="progressbar" style="width: @bp.TyLePhanTram.ToString("0", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center text-muted py-4">
+                                    <i class="bi bi-clipboard-data fs-2 d-block mb-2"></i>
+                                    Chưa phát sinh dữ liệu tiêu hao theo bộ phận trong kỳ này.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột Phải: Bảng tổng hợp Nhập - Xuất - Tồn & Giá trị tiêu hao chi tiết từng vật tư -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
+                        <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold text-dark">
+                                <i class="bi bi-table text-primary me-2"></i> Bảng Tổng Hợp Tiêu Hao & Chi Phí Theo Vật Tư
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 text-center">
+                                    <thead class="table-light text-secondary small">
+                                        <tr>
+                                            <th class="ps-3 text-start">Vật Tư</th>
+                                            <th>SL Nhập</th>
+                                            <th>Chi Phí Nhập</th>
+                                            <th>SL Tiêu Hao</th>
+                                            <th>Chi Phí Tiêu Hao</th>
+                                            <th class="pe-3">Tồn Cuối & Giá Trị</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.DanhSachBaoCaoVatTu != null && Model.DanhSachBaoCaoVatTu.Any())
+                                        {
+                                            @foreach (var item in Model.DanhSachBaoCaoVatTu)
+                                            {
+                                                <tr class="border-bottom">
+                                                    <td class="ps-3 text-start">
+                                                        <div class="fw-bold text-dark">@item.TenVatTu</div>
+                                                        <small class="text-muted">[@item.MaVatTu] @item.LoaiVatTu (@item.DonViTinh)</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-2">
+                                                            +@item.SoLuongNhapKyNay
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-success small fw-semibold">@item.ChiPhiNhapKyNay.ToString("N0") ₫</td>
+                                                    <td>
+                                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger rounded-pill px-2">
+                                                            -@item.SoLuongXuatKyNay
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-danger fw-bold">@item.ChiPhiTieuHaoKyNay.ToString("N0") ₫</td>
+                                                    <td class="pe-3">
+                                                        <div class="fw-bold text-primary">@item.TonHienTai @item.DonViTinh</div>
+                                                        <small class="text-muted">@item.GiaTriTonHienTai.ToString("N0") ₫</small>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-5">
+                                                    Không có dữ liệu vật tư thỏa mãn điều kiện lọc.
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
