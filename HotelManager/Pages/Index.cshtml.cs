@@ -29,7 +29,18 @@ namespace HotelManager.Pages
                     {
                         return RedirectToPage("/QuanLyTienSanh/Index");
                     }
-                    // Nếu là "Khách hàng" thì bỏ qua if này và tiếp tục load trang chủ
+                    else if (User.IsInRole("Phục vụ Nhà hàng"))
+                    {
+                        return RedirectToPage("/QuanLyNhaHang/SoDoBan");
+                    }
+                    else if (User.IsInRole("Đầu bếp"))
+                    {
+                        return RedirectToPage("/QuanLyNhaHang/QuanLyOrder");
+                    }
+                    else if (User.IsInRole("Thu ngân Nhà hàng"))
+                    {
+                        return RedirectToPage("/QuanLyNhaHang/QuayThuNgan");
+                    }
                 }
 
                 return Page();

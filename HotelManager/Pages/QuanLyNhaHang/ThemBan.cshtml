@@ -18,38 +18,17 @@
                     <form method="post">
                         <div class="mb-3">
                             <label asp-for="BanInfo.MaBan" class="form-label fw-bold">Mã bàn <span class="text-danger">*</span></label>
-                            <input asp-for="BanInfo.MaBan" class="form-control shadow-sm border-primary" placeholder="Nhập mã bàn. VD: BAN_01..." required />
+                            <input asp-for="BanInfo.MaBan" class="form-control shadow-sm" placeholder="VD: B01" required />
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="BanInfo.TenBan" class="form-label fw-bold">Số bàn <span class="text-danger">*</span></label>
-                            <input asp-for="BanInfo.TenBan" class="form-control shadow-sm" placeholder="VD: Bàn 1 - Tầng trệt" required />
+                            <input asp-for="BanInfo.TenBan" class="form-control shadow-sm" placeholder="VD: 01" required />
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="BanInfo.SucChua" class="form-label fw-bold">Sức chứa (Số người) <span class="text-danger">*</span></label>
-                            <input asp-for="BanInfo.SucChua" type="number" min="1" class="form-control shadow-sm" placeholder="VD: 4, 10..." required />
-                        </div>
-
-                        <div class="mb-4">
-                            <label asp-for="BanInfo.TrangThai" class="form-label fw-bold">Trạng thái hiện tại</label>
-                            <select asp-for="BanInfo.TrangThai" class="form-select shadow-sm" id="trangThaiSelect" onchange="toggleDatTruocFields()">
-                                <option value="Trống">Trống</option>
-                                <option value="Đang có khách">Đang có khách</option>
-                                <option value="Đang dọn dẹp">Đang dọn dẹp</option>
-                                <option value="Đã đặt trước">Đã đặt trước</option>
-                            </select>
-                        </div>
-
-                        <div id="datTruocFields" style="display: none; background-color: #fff; padding: 15px; border-radius: 8px; border: 1px dashed #0d6efd; margin-bottom: 20px;">
-                            <div class="mb-3">
-                                <label asp-for="BanInfo.TenKhachDat" class="form-label fw-bold text-primary">Họ và tên khách đặt <span class="text-danger">*</span></label>
-                                <input asp-for="BanInfo.TenKhachDat" class="form-control shadow-sm border-primary border-opacity-25" id="tenKhachInput" placeholder="Nhập họ tên khách hàng..." />
-                            </div>
-                            <div class="mb-2">
-                                <label asp-for="BanInfo.SoPhongDat" class="form-label fw-bold text-primary">Số phòng (Nếu khách đang lưu trú)</label>
-                                <input asp-for="BanInfo.SoPhongDat" class="form-control shadow-sm border-primary border-opacity-25" id="soPhongInput" placeholder="VD: 101, 202..." />
-                            </div>
+                            <input asp-for="BanInfo.SucChua" type="number" min="1" class="form-control shadow-sm" placeholder="" required />
                         </div>
 
                         <div class="d-flex justify-content-end gap-3 pt-4 border-top mt-2">

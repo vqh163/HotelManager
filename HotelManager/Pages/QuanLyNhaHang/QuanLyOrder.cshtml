@@ -1,0 +1,600 @@
+﻿@page
+@model HotelManagement.Pages.NhaHang.NhaBep.QuanLyOrderModel
+@{
+    ViewData["Title"] = "Quản Lý Order - Nhà Bếp";
+    string currentTab = string.IsNullOrEmpty(Model.TrangThaiLoc) ? "Tất cả" : Model.TrangThaiLoc;
+    string urlQuanLyThucDon = Model.TimDuongDanTrang("QuanLyThucDon", "/QuanLyNhaHang/QuanLyThucDon");
+    string urlSoDoBan = Model.TimDuongDanTrang("SoDoBan", "/NhaHang/PhucVu/SoDoBan");
+    string urlDangNhap = Model.TimDuongDanTrang("DangNhap", "/TaiKhoan/DangNhap");
+}
+
+<style>
+    .kds-wrapper {
+        background-color: #f4f6f9;
+        min-height: 88vh;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .kds-topbar {
+        background-color: #ffffff;
+        border-bottom: 1px solid #e5e9f0;
+        padding: 10px 24px;
+    }
+
+    .kds-brand-icon {
+        width: 38px;
+        height: 38px;
+        background-color: #3b82f6;
+        color: #fff;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .kds-nav-tab {
+        padding: 8px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #64748b;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .kds-nav-tab:hover {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .kds-nav-tab.active {
+            background-color: #e0f2fe;
+            color: #0284c7;
+        }
+
+    .kds-stat-box {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 8px 20px;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+
+    .kds-stat-item {
+        text-align: center;
+        min-width: 58px;
+    }
+
+    .kds-stat-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .kds-stat-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kds-filter-bar {
+        background-color: #ffffff;
+        border-radius: 14px;
+        padding: 10px 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+
+    .kds-pill-btn {
+        border-radius: 10px;
+        padding: 7px 18px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #475569;
+        text-decoration: none;
+        border: none;
+        background: transparent;
+        transition: 0.2s;
+    }
+
+        .kds-pill-btn:hover {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .kds-pill-btn.active {
+            background-color: #3898ec;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(56, 152, 236, 0.3);
+        }
+
+    .kds-order-card {
+        background-color: #ffffff;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        min-height: 360px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        transition: transform 0.2s;
+    }
+
+        .kds-order-card:hover {
+            transform: translateY(-3px);
+        }
+
+    .kds-card-moi {
+        border-color: #f26b3a;
+    }
+
+        .kds-card-moi .kds-card-header {
+            background-color: #f26b3a;
+            color: #ffffff;
+        }
+
+    .kds-card-dangnau {
+        border-color: #f59e0b;
+    }
+
+        .kds-card-dangnau .kds-card-header {
+            background-color: #f59e0b;
+            color: #ffffff;
+        }
+
+    .kds-card-hoantat {
+        border-color: #10b981;
+    }
+
+        .kds-card-hoantat .kds-card-header {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+
+    .kds-card-header {
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+    }
+
+    .kds-timer-badge {
+        background-color: rgba(0, 0, 0, 0.18);
+        color: #ffffff;
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kds-qty-circle {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: #f1f5f9;
+        color: #334155;
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .kds-note-box {
+        background-color: #f8fafc;
+        border-left: 3px solid #94a3b8;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 0.82rem;
+        color: #475569;
+        font-style: italic;
+        margin-top: 6px;
+    }
+
+    .kds-allergy-box {
+        background-color: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-kds-moi {
+        background-color: #f26b3a;
+        color: #ffffff;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 11px;
+        border: none;
+        width: 100%;
+        transition: 0.2s;
+    }
+
+        .btn-kds-moi:hover {
+            background-color: #e05624;
+            color: #ffffff;
+        }
+
+    .btn-kds-dangnau {
+        background-color: #f59e0b;
+        color: #ffffff;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 11px;
+        border: none;
+        width: 100%;
+        transition: 0.2s;
+    }
+
+        .btn-kds-dangnau:hover {
+            background-color: #d97706;
+            color: #ffffff;
+        }
+
+    .btn-kds-hoantat {
+        background-color: #10b981;
+        color: #ffffff;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 11px;
+        border: none;
+        width: 100%;
+    }
+
+    .btn-kds-locked {
+        background-color: #e2e8f0;
+        color: #64748b;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 11px;
+        border: 1px dashed #cbd5e1;
+        width: 100%;
+        cursor: not-allowed;
+    }
+
+    .kds-footer-bar {
+        background-color: #ffffff;
+        border-top: 1px solid #e2e8f0;
+        padding: 10px 24px;
+        font-size: 0.78rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+</style>
+
+<div class="kds-wrapper">
+    <div>
+        <!-- 2. NỘI DUNG CHÍNH: TIÊU ĐỀ & THỐNG KÊ KDS (ĐÃ BỎ NÚT PHÓNG TO MÀN HÌNH) -->
+        <div class="container-fluid px-4 pt-4 pb-4">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show fw-bold shadow-sm mb-3">
+                    <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show fw-bold shadow-sm mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <div>
+                    <h2 class="fw-bold text-dark mb-1">Quản lý Order</h2>
+                    <div class="text-muted small fw-semibold">
+                        <i class="bi bi-award text-primary me-1"></i> Khu vực: Bếp chính • Nhân viên: <strong class="text-dark">@Model.TenNhanVienHienThi (@Model.VaiTroHienThi)</strong>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="kds-stat-box">
+                        <div class="kds-stat-item">
+                            <div class="kds-stat-label">MỚI</div>
+                            <div class="kds-stat-value text-danger">@Model.SoLuongMoi</div>
+                        </div>
+                        <div class="border-start" style="height: 28px;"></div>
+                        <div class="kds-stat-item">
+                            <div class="kds-stat-label">ĐANG NẤU</div>
+                            <div class="kds-stat-value text-warning">@Model.SoLuongDangNau</div>
+                        </div>
+                        <div class="border-start" style="height: 28px;"></div>
+                        <div class="kds-stat-item">
+                            <div class="kds-stat-label">HOÀN TẤT</div>
+                            <div class="kds-stat-value text-success">@Model.SoLuongHoanTat</div>
+                        </div>
+                        <div class="border-start" style="height: 28px;"></div>
+                        <div class="kds-stat-item" style="min-width: 85px;">
+                            <div class="kds-stat-label">THỜI GIAN</div>
+                            <!-- Hiển thị thời gian thực nhảy liên tục từng giây -->
+                            <div class="kds-stat-value text-primary" id="kdsRealtimeAvgClock">@DateTime.Now.ToString("HH:mm:ss")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. THANH LỌC TRẠNG THÁI & TÌM KIẾM BÀN / SỐ ĐƠN (ĐÃ LOẠI BỎ NÚT LỌC HÌNH CÁI PHỄU) -->
+            <div class="kds-filter-bar d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <div class="d-flex align-items-center gap-2">
+                    <a href="?TrangThaiLoc=Tất cả&TuKhoaTimKiem=@Model.TuKhoaTimKiem"
+                       class="kds-pill-btn @(currentTab == "Tất cả" ? "active" : "")">
+                        <i class="bi bi-grid me-1"></i> Tất cả
+                    </a>
+                    <a href="?TrangThaiLoc=Mới&TuKhoaTimKiem=@Model.TuKhoaTimKiem"
+                       class="kds-pill-btn @(currentTab == "Mới" ? "active" : "")">
+                        Mới (@Model.SoLuongMoi)
+                    </a>
+                    <a href="?TrangThaiLoc=Đang nấu&TuKhoaTimKiem=@Model.TuKhoaTimKiem"
+                       class="kds-pill-btn @(currentTab == "Đang nấu" ? "active" : "")">
+                        Đang nấu (@Model.SoLuongDangNau)
+                    </a>
+                    <a href="?TrangThaiLoc=Hoàn tất&TuKhoaTimKiem=@Model.TuKhoaTimKiem"
+                       class="kds-pill-btn @(currentTab == "Hoàn tất" || currentTab == "Xong" ? "active" : "")">
+                        Xong (@Model.SoLuongHoanTat)
+                    </a>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <form method="get" id="kdsSearchForm" class="m-0">
+                        <input type="hidden" name="TrangThaiLoc" value="@Model.TrangThaiLoc" />
+                        <div class="input-group bg-light rounded-3 border" style="width: 300px;">
+                            <span class="input-group-text bg-transparent border-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" asp-for="TuKhoaTimKiem" class="form-control bg-transparent border-0 shadow-none small" placeholder="Tìm bàn hoặc mã hóa đơn..." />
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 4. LƯỚI THẺ ORDER (KDS CARDS) -->
+            <div class="row g-4">
+                @if (Model.DanhSachOrder.Any())
+                {
+                    @foreach (var order in Model.DanhSachOrder)
+                    {
+                        string cardThemeClass = order.TrangThaiBep switch
+                        {
+                            "Đang nấu" => "kds-card-dangnau",
+                            "Hoàn tất" => "kds-card-hoantat",
+                            _ => "kds-card-moi"
+                        };
+
+                        string trangThaiText = order.TrangThaiBep switch
+                        {
+                            "Đang nấu" => "ĐANG NẤU",
+                            "Hoàn tất" => "HOÀN TẤT",
+                            _ => "MỚI"
+                        };
+
+                        <div class="col-xl-4 col-lg-6 col-md-6">
+                            <div class="kds-order-card @cardThemeClass">
+                                <div>
+                                    <!-- Header Thẻ Order: Hiển thị ĐẦY ĐỦ Mã Hóa Đơn trùng khớp Sơ đồ bàn & Quầy Thu Ngân + Đồng hồ nhảy từng giây -->
+                                    <div class="kds-card-header">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <span class="fs-6 fw-bold">#@order.MaHoaDonNhaHang</span>
+                                            <span class="opacity-50">|</span>
+                                            <span class="fs-6 text-uppercase">BÀN: @order.TenBan</span>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="kds-timer-badge"
+                                                  data-created-unix="@order.ThoiGianTaoUnixSeconds"
+                                                  data-status="@order.TrangThaiBep">
+                                                <i class="bi bi-clock"></i>
+                                                <span class="kds-live-wait-timer">@order.ThoiGianCho</span>
+                                            </span>
+
+                                            <!-- Quyền Quản trị của Quản lý: Cho phép xóa đơn lỗi ngay trên thẻ -->
+                                            @if (Model.LaQuanLy)
+                                            {
+                                                <form method="post" asp-page-handler="XoaOrderQuanLy" class="m-0" onsubmit="return confirm('Quyền Quản lý: Bạn có chắc chắn muốn XÓA đơn #@order.MaHoaDonNhaHang và giải phóng Bàn @order.TenBan?');">
+                                                    <input type="hidden" name="maHoaDon" value="@order.MaHoaDonNhaHang" />
+                                                    <button type="submit" class="btn btn-sm btn-light text-danger rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" title="Xóa đơn (Quyền Quản lý)">
+                                                        <i class="bi bi-trash3-fill" style="font-size: 0.75rem;"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Danh sách món ăn kèm Ghi chú và Cảnh báo dị ứng -->
+                                    <div class="p-3">
+                                        @foreach (var mon in order.DanhSachMon)
+                                        {
+                                            <div class="d-flex align-items-start gap-3 mb-3">
+                                                <span class="kds-qty-circle">@mon.SoLuong</span>
+                                                <div class="flex-grow-1">
+                                                    <!-- [THÊM MỚI]: Hiển thị nhãn GỌI THÊM ngay cạnh tên món để Đầu bếp nhận biết rõ -->
+                                                    <div class="fw-bold text-dark d-flex align-items-center flex-wrap gap-2" style="font-size: 0.98rem;">
+                                                        <span>@mon.TenMon</span>
+                                                        @if (mon.LaMonGoiThem)
+                                                        {
+                                                            <span class="badge bg-warning text-dark rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                                                                <i class="bi bi-plus-circle-fill me-1"></i>GỌI THÊM
+                                                            </span>
+                                                        }
+                                                    </div>
+
+                                                    @if (!string.IsNullOrEmpty(mon.GhiChu))
+                                                    {
+                                                        <div class="kds-note-box">
+                                                            Ghi chú: @mon.GhiChu
+                                                        </div>
+                                                    }
+
+                                                    @if (!string.IsNullOrEmpty(mon.CanhBaoDiUng))
+                                                    {
+                                                        <div class="kds-allergy-box">
+                                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                                            <span>CẢNH BÁO DỊ ỨNG: @mon.CanhBaoDiUng</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Chân Thẻ Order: Chỉ Đầu bếp mới được bấm nút chế biến; Quản lý bị khóa nút chế biến -->
+                                <div class="p-3 pt-2 border-top bg-white">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 small fw-bold text-muted" style="font-size: 0.74rem;">
+                                        <span>ƯU TIÊN: @order.MucDoUuTien</span>
+                                        <span>TRẠNG THÁI: @trangThaiText</span>
+                                    </div>
+
+                                    @if (Model.LaDauBep && !Model.LaQuanLy)
+                                    {
+                                        <!-- ĐẦU BẾP: Độc quyền thao tác các nút xử lý chế biến -->
+                                        <form method="post" asp-page-handler="ChuyenTrangThaiOrder" class="m-0">
+                                            <input type="hidden" name="maHoaDon" value="@order.MaHoaDonNhaHang" />
+                                            <input type="hidden" name="TrangThaiLoc" value="@Model.TrangThaiLoc" />
+                                            <input type="hidden" name="TuKhoaTimKiem" value="@Model.TuKhoaTimKiem" />
+
+                                            @if (order.TrangThaiBep == "Mới")
+                                            {
+                                                <input type="hidden" name="trangThaiMoi" value="Đang nấu" />
+                                                <button type="submit" class="btn-kds-moi shadow-sm">
+                                                    <i class="bi bi-play-fill me-1"></i> Bắt đầu chế biến
+                                                </button>
+                                            }
+                                            else if (order.TrangThaiBep == "Đang nấu")
+                                            {
+                                                <input type="hidden" name="trangThaiMoi" value="Hoàn tất" />
+                                                <button type="submit" class="btn-kds-dangnau shadow-sm">
+                                                    <i class="bi bi-stopwatch me-1"></i> Đang chế biến (Bấm để hoàn tất)
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <input type="hidden" name="trangThaiMoi" value="Hoàn tất" />
+                                                <button type="button" class="btn-kds-hoantat shadow-sm" disabled>
+                                                    <i class="bi bi-check-lg me-1"></i> Đã hoàn thành
+                                                </button>
+                                            }
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <!-- QUẢN LÝ: Chỉ giám sát trạng thái chế biến, tuyệt đối không được bấm nút chế biến của Đầu bếp -->
+                                        <button type="button" class="btn-kds-locked" disabled title="Quyền xử lý chế biến chỉ dành riêng cho Đầu bếp">
+                                            @if (order.TrangThaiBep == "Mới")
+                                            {
+                                                <span><i class="bi bi-lock-fill me-1"></i> Chờ Đầu bếp bắt đầu chế biến</span>
+                                            }
+                                            else if (order.TrangThaiBep == "Đang nấu")
+                                            {
+                                                <span><i class="bi bi-stopwatch me-1"></i> Đầu bếp đang chế biến...</span>
+                                            }
+                                            else
+                                            {
+                                                <span><i class="bi bi-check-circle-fill text-success me-1"></i> Đầu bếp đã hoàn thành</span>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="col-12">
+                        <div class="bg-white rounded-4 border p-5 text-center text-muted shadow-sm">
+                            <i class="bi bi-inbox fs-1"></i>
+                            <p class="mt-2 mb-0 fw-semibold">Hiện chưa có đơn hàng nào khớp với bộ lọc trên màn hình Bếp.</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+@section Scripts {
+    <script>
+        // HÀM CẬP NHẬT THỜI GIAN THỰC TỰ ĐỘNG NHẢY SỐ LIÊN TỤC THEO TỪNG GIÂY
+        function padZero(num) {
+            return num < 10 ? '0' + num : '' + num;
+        }
+
+        function formatDurationSeconds(totalSec) {
+            if (totalSec < 0) totalSec = 0;
+            const hours = Math.floor(totalSec / 3600);
+            const minutes = Math.floor((totalSec % 3600) / 60);
+            const seconds = Math.floor(totalSec % 60);
+
+            if (hours > 0) {
+                return `${padZero(hours)}:${padZero(minutes)}:${padZero(seconds)}`;
+            }
+            return `${padZero(minutes)}:${padZero(seconds)}`;
+        }
+
+        function updateAllKdsRealtimeClocks() {
+            const now = new Date();
+            const nowUnixSec = Math.floor(now.getTime() / 1000);
+            const currentClockStr = `${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}`;
+
+            // 1. Cập nhật đồng hồ thời gian thực ở Footer và ô T.GIAN TB
+            const footerClock = document.getElementById('kdsFooterRealtimeClock');
+            if (footerClock) footerClock.innerText = currentClockStr;
+
+            // 2. Cập nhật liên tục từng giây cho tất cả các mốc thời gian chờ trên từng thẻ Order
+            const timerBadges = document.querySelectorAll('.kds-timer-badge[data-created-unix]');
+            let totalElapsedSec = 0;
+            let activeCount = 0;
+
+            timerBadges.forEach(badge => {
+                const createdUnix = parseInt(badge.getAttribute('data-created-unix'), 10);
+                if (!isNaN(createdUnix) && createdUnix > 0) {
+                    const elapsedSec = Math.max(0, nowUnixSec - createdUnix);
+                    const timerSpan = badge.querySelector('.kds-live-wait-timer');
+                    if (timerSpan) {
+                        timerSpan.innerText = formatDurationSeconds(elapsedSec);
+                    }
+                    totalElapsedSec += elapsedSec;
+                    activeCount++;
+                }
+            });
+
+            // 3. Ô "T.GIAN TB" nhảy số liên tục từng giây (hiển thị thời gian thực HH:mm:ss)
+            const avgClock = document.getElementById('kdsRealtimeAvgClock');
+            if (avgClock) {
+                avgClock.innerText = currentClockStr;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateAllKdsRealtimeClocks();
+            setInterval(updateAllKdsRealtimeClocks, 1000);
+        });
+    </script>
+}

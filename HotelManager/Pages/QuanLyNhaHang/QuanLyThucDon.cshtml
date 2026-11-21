@@ -157,9 +157,13 @@
                 </div>
             </div>
 
-            <a asp-page="./ThemMon" class="btn btn-brand-yellow rounded-pill px-4 py-2 shadow-sm text-nowrap">
-                <i class="bi bi-plus-lg me-1"></i> Thêm món mới
-            </a>
+            <!-- PHÂN QUYỀN: Chỉ tài khoản cấp Quản lý mới độc quyền nhìn thấy nút Thêm món mới -->
+            @if (Model.LaQuanLy)
+            {
+                <a asp-page="./ThemMon" class="btn btn-brand-yellow rounded-pill px-4 py-2 shadow-sm text-nowrap">
+                    <i class="bi bi-plus-lg me-1"></i> Thêm món mới
+                </a>
+            }
         </div>
     </div>
 
@@ -220,7 +224,7 @@
 
                     <div class="px-4 text-center border-start border-light" style="min-width: 160px;">
                         <div class="price-label mb-1">GIÁ BÁN</div>
-                        <div class="price-text">@mon.DonGia.ToString("N0") VND</div>
+                        <div class="price-text">@mon.DonGia.ToString("N0", new System.Globalization.CultureInfo("vi-VN")) VND</div>
                     </div>
 
                     <div class="px-4 text-center border-start border-light" style="min-width: 200px;">
@@ -228,7 +232,7 @@
                         <div class="d-flex align-items-center justify-content-center gap-2">
                             <span class="status-text fw-bold text-success" id="lbl-con-@mon.MaDichVu" style="display: @(mon.ConMon ? "inline" : "none");">Còn món</span>
 
-                            <!-- Công tắc gạt trạng thái -->
+                            <!-- Công tắc gạt trạng thái (Dành cho cả Đầu bếp và Quản lý) -->
                             <div class="form-check form-switch m-0 p-0 d-flex align-items-center">
                                 <input class="form-check-input ms-0 mt-0 shadow-none" type="checkbox" role="switch" @(mon.ConMon ? "checked" : "") onchange="toggleStatus('@mon.MaDichVu', this.checked)">
                             </div>
@@ -237,17 +241,21 @@
                         </div>
                     </div>
 
-                    <div class="ps-3 pe-2 border-start border-light d-flex gap-2">
-                        <a asp-page="./SuaMon" asp-route-id="@mon.MaDichVu" class="btn btn-light rounded-circle text-muted border shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Chỉnh sửa thông tin món">
-                            <i class="bi bi-pencil"></i>
-                        </a>
+                    <!-- PHÂN QUYỀN: Chỉ tài khoản cấp Quản lý mới nhìn thấy và thao tác nút Sửa món & Xóa món -->
+                    @if (Model.LaQuanLy)
+                    {
+                        <div class="ps-3 pe-2 border-start border-light d-flex gap-2">
+                            <a asp-page="./SuaMon" asp-route-id="@mon.MaDichVu" class="btn btn-light rounded-circle text-muted border shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Chỉnh sửa thông tin món">
+                                <i class="bi bi-pencil"></i>
+                            </a>
 
-                        <form method="post" asp-page-handler="Delete" asp-route-id="@mon.MaDichVu" class="m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn XÓA món này khỏi thực đơn không?');">
-                            <button type="submit" class="btn btn-light rounded-circle text-danger border shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Xóa món">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </form>
-                    </div>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@mon.MaDichVu" class="m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn XÓA món này khỏi thực đơn không?');">
+                                <button type="submit" class="btn btn-light rounded-circle text-danger border shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" title="Xóa món">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    }
                 </div>
             }
         }

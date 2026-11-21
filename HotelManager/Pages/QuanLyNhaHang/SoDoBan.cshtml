@@ -6,11 +6,15 @@
 }
 
 <style>
+    /* YÊU CẦU: Tất cả các thẻ bàn (Card) có chiều cao cố định bằng nhau ở mọi trạng thái bàn */
     .table-card {
         border-radius: 12px;
-        transition: transform 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
         border: none;
-        min-height: 150px;
+        height: 175px !important;
+        min-height: 175px !important;
+        max-height: 175px !important;
+        overflow: visible;
     }
 
         .table-card:hover {
@@ -18,10 +22,15 @@
             box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
         }
 
+    .table-card-clickable {
+        cursor: pointer;
+    }
+
     .bg-trong {
         background-color: #d1e7dd;
     }
 
+    /* Giữ nguyên màu đỏ khi bàn đang có khách */
     .bg-co-khach {
         background-color: #f8d7da;
     }
@@ -45,11 +54,56 @@
             background-color: #e67e22;
             color: #fff;
         }
+
+    .btn-menu-dots {
+        width: 32px;
+        height: 32px;
+        background-color: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        transition: background-color 0.15s;
+    }
+
+        .btn-menu-dots:hover {
+            background-color: #ffffff;
+        }
+
+    .mini-table-box {
+        border-radius: 10px;
+        padding: 12px 8px;
+        text-align: center;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+        user-select: none;
+    }
+
+    .mini-table-available {
+        background-color: #d1e7dd;
+        color: #0f5132;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+        .mini-table-available:hover {
+            transform: translateY(-2px);
+            border-color: #198754;
+        }
+
+    .mini-table-selected {
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25) !important;
+        font-weight: bold;
+    }
+
+    .mini-table-disabled {
+        background-color: #e9ecef;
+        color: #6c757d;
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
 </style>
 
 <div class="container-fluid mt-4 mb-5">
 
-    <!-- HIỂN THỊ THÔNG BÁO THÀNH CÔNG -->
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show fw-bold shadow-sm mb-4" role="alert">
@@ -58,7 +112,6 @@
         </div>
     }
 
-    <!-- HIỂN THỊ THÔNG BÁO LỖI (Quan trọng để Debug) -->
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show fw-bold shadow-sm mb-4" role="alert">
@@ -102,9 +155,13 @@
                 </ul>
             </div>
 
-            <a asp-page="./ThemBan" class="btn btn-brand-yellow rounded-pill px-4 py-2 shadow-sm d-flex align-items-center">
-                <i class="bi bi-plus-circle me-2"></i> Thêm bàn mới
-            </a>
+            <!-- PHÂN QUYỀN: Chỉ Quản lý mới thấy nút Thêm bàn mới (Ẩn hoàn toàn đối với Phục vụ nhà hàng) -->
+            @if (Model.LaQuanLy)
+            {
+                <a asp-page="./ThemBan" class="btn btn-brand-yellow rounded-pill px-4 py-2 shadow-sm d-flex align-items-center">
+                    <i class="bi bi-plus-circle me-2"></i> Thêm bàn mới
+                </a>
+            }
         </div>
     </div>
 
@@ -124,40 +181,121 @@
                     _ => "bg-light"
                 };
 
+                string soBanHienThi = ban.TenBan.Replace("Bàn ", "").Replace(" - Tầng trệt", "");
+
+                // [VỊ TRÍ 2 - ĐÃ CẬP NHẬT]: Cho phép click trực tiếp vào thẻ bàn Trống, Đang có khách (gọi thêm món) và Đang dọn dẹp (chuyển về Trống)
+                bool isBanTrong = ban.TrangThai == "Trống";
+                bool isBanCoKhach = ban.TrangThai == "Đang có khách";
+                bool isBanDonDep = ban.TrangThai == "Đang dọn dẹp";
+                bool isCardClickable = isBanTrong || isBanCoKhach || isBanDonDep;
+
+                string goiMonUrl = Url.Page("./GoiMon", new { id = ban.MaBan }) ?? $"./GoiMon/{ban.MaBan}";
+                string suaBanUrl = Url.Page("./SuaBan", new { id = ban.MaBan }) ?? $"./SuaBan/{ban.MaBan}";
+
+                string cardOnClickAction = "";
+                if (isBanTrong || isBanCoKhach)
+                {
+                    cardOnClickAction = $"window.location.href='{goiMonUrl}'";
+                }
+                else if (isBanDonDep)
+                {
+                    cardOnClickAction = $"document.getElementById('form-xac-nhan-sach-{ban.MaBan}').submit();";
+                }
+
                 <div class="col-xl-3 col-lg-4 col-md-6">
-                    <div class="card table-card @bgClass shadow-sm p-3 d-flex flex-column justify-content-between">
+                    <!-- Quick Action: Click trực tiếp vào thẻ bàn Trống / Đang có khách / Đang dọn dẹp -->
+                    <div class="card table-card @bgClass @(isCardClickable ? "table-card-clickable" : "") shadow-sm p-3 d-flex flex-column justify-content-between"
+                         onclick="@cardOnClickAction">
 
                         <div class="d-flex justify-content-between align-items-start">
-                            <h2 class="fw-bold text-dark mb-0" style="font-size: 1.8rem;">@ban.TenBan.Replace("Bàn ", "").Replace(" - Tầng trệt", "")</h2>
-                            <div class="d-flex align-items-center fw-bold text-dark fs-5">
-                                <i class="bi bi-people-fill me-2"></i> @ban.SucChua
+                            <h2 class="fw-bold text-dark mb-0" style="font-size: 1.8rem;">@soBanHienThi</h2>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="d-flex align-items-center fw-bold text-dark fs-5">
+                                    <i class="bi bi-people-fill me-2"></i> @ban.SucChua
+                                </div>
+
+                                <!-- Menu 3 chấm góc thẻ bàn -->
+                                <div class="dropdown" onclick="event.stopPropagation();">
+                                    <button class="btn rounded-circle shadow-sm p-0 d-flex justify-content-center align-items-center btn-menu-dots"
+                                            type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Tùy chọn thao tác bàn">
+                                        <i class="bi bi-three-dots-vertical text-dark"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 py-2" style="min-width: 190px;">
+                                        <!-- 1. Đặt bàn -->
+                                        <li>
+                                            <a class="dropdown-item py-2 fw-semibold" asp-page="./DatBan" asp-route-id="@ban.MaBan">
+                                                <i class="bi bi-calendar-plus text-primary me-2"></i> Đặt bàn
+                                            </a>
+                                        </li>
+
+                                        <!-- 2. Chuyển bàn -->
+                                        @if (ban.TrangThai == "Đang có khách")
+                                        {
+                                            <li>
+                                                <button type="button" class="dropdown-item py-2 fw-semibold"
+                                                        onclick="openChuyenBanModal('@ban.MaBan', '@soBanHienThi', '@ban.MaHoaDonNhaHang')">
+                                                    <i class="bi bi-arrow-left-right text-success me-2"></i> Chuyển bàn
+                                                </button>
+                                            </li>
+                                        }
+                                        else
+                                        {
+                                            <li>
+                                                <span class="dropdown-item py-2 text-muted opacity-50" style="cursor: not-allowed;" title="Chỉ áp dụng cho bàn đang có khách">
+                                                    <i class="bi bi-arrow-left-right me-2"></i> Chuyển bàn
+                                                </span>
+                                            </li>
+                                        }
+
+                                        <!-- 3. PHÂN QUYỀN: Chỉ Quản lý mới thấy và thao tác Chỉnh sửa bàn & Xóa bàn (Ẩn hoàn toàn đối với Phục vụ nhà hàng) -->
+                                        @if (Model.LaQuanLy && ban.TrangThai == "Trống")
+                                        {
+                                            <li><hr class="dropdown-divider my-1" /></li>
+                                            <li>
+                                                <button type="button" class="dropdown-item py-2 text-danger fw-bold"
+                                                        onclick="openConfirmSuaModal('@ban.MaBan', '@soBanHienThi', '@suaBanUrl')">
+                                                    <i class="bi bi-pencil-square me-2"></i> Chỉnh sửa bàn
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item py-2 text-danger fw-bold"
+                                                        onclick="openConfirmXoaModal('@ban.MaBan', '@soBanHienThi')">
+                                                    <i class="bi bi-trash3-fill me-2"></i> Xóa bàn
+                                                </button>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="mt-3 flex-grow-1">
+                        <!-- Phần nội dung giữa thẻ bàn (Cố định chiều cao đồng nhất cho cả 4 trạng thái) -->
+                        <div class="d-flex flex-column justify-content-center" style="min-height: 48px;">
                             @if (ban.TrangThai == "Đang có khách")
                             {
-                                <p class="small fw-bold text-dark mb-1">Mã đơn: <span class="fw-normal">@ban.MaHoaDonNhaHang</span></p>
+                                <p class="small fw-bold text-dark mb-1 text-truncate">Mã đơn: <span class="fw-normal">@ban.MaHoaDonNhaHang</span></p>
+                                <p class="small fw-bold text-dark mb-0 text-truncate">Tạm tính: <span class="text-danger fw-bold">@ban.TongTienTamTinh.ToString("N0") VND</span></p>
                             }
                             else if (ban.TrangThai == "Đang dọn dẹp")
                             {
-                                <p class="small text-dark mb-1">Đang trong quá trình vệ sinh</p>
+                                <p class="small text-dark mb-0">Đang trong quá trình vệ sinh</p>
                             }
                             else if (ban.TrangThai == "Trống")
                             {
-                                <p class="small text-dark mb-1">Sẵn sàng phục vụ</p>
+                                <p class="small text-dark mb-0">Sẵn sàng phục vụ</p>
                             }
                             else if (ban.TrangThai == "Đã đặt trước")
                             {
-                                <p class="small fw-bold text-dark mb-1">Khách hàng: <span class="fw-normal">@ban.TenKhachDat</span></p>
+                                <p class="small fw-bold text-dark mb-0 text-truncate">Khách hàng: <span class="fw-normal">@ban.TenKhachDat</span></p>
                             }
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-end mt-3">
+                        <!-- Phần chân thẻ bàn (Quick Action điều hướng mượt mà) -->
+                        <div class="d-flex justify-content-between align-items-end" onclick="event.stopPropagation();">
                             <div class="action-link">
                                 @if (ban.TrangThai == "Đang có khách")
                                 {
-                                    <!-- FORM YÊU CẦU THANH TOÁN KẾT NỐI VỚI BÀN -->
                                     <form method="post" asp-page-handler="YeuCauThanhToan" class="m-0">
                                         <input type="hidden" name="maBan" value="@ban.MaBan" />
                                         <input type="hidden" name="maHoaDon" value="@ban.MaHoaDonNhaHang" />
@@ -168,7 +306,8 @@
                                 }
                                 else if (ban.TrangThai == "Đang dọn dẹp")
                                 {
-                                    <form method="post" asp-page-handler="XacNhanSach" asp-route-maBan="@ban.MaBan" class="m-0">
+                                    <!-- [VỊ TRÍ 3 - ĐÃ CẬP NHẬT]: Thêm id cho form để click trực tiếp vào thẻ bàn Đang dọn dẹp sẽ submit form này -->
+                                    <form method="post" id="form-xac-nhan-sach-@ban.MaBan" asp-page-handler="XacNhanSach" asp-route-maBan="@ban.MaBan" class="m-0">
                                         <button type="submit" class="btn btn-link text-warning fw-bold text-decoration-none small p-0 m-0 border-0">
                                             Xác nhận sạch <i class="bi bi-chevron-right"></i>
                                         </button>
@@ -180,19 +319,8 @@
                                 }
                                 else if (ban.TrangThai == "Đã đặt trước")
                                 {
-                                    <a href="#" class="text-info fw-bold text-decoration-none small">Nhận bàn <i class="bi bi-chevron-right"></i></a>
+                                    <a asp-page="./GoiMon" asp-route-id="@ban.MaBan" class="text-info fw-bold text-decoration-none small">Nhận bàn <i class="bi bi-chevron-right"></i></a>
                                 }
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <a asp-page="./SuaBan" asp-route-id="@ban.MaBan" class="btn bg-white rounded-circle shadow-sm text-muted p-0 d-flex justify-content-center align-items-center border" style="width: 32px; height: 32px;" title="Chỉnh sửa bàn">
-                                    <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
-                                </a>
-                                <form method="post" asp-page-handler="Delete" asp-route-id="@ban.MaBan" class="m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn XÓA bàn này?');">
-                                    <button type="submit" class="btn bg-white rounded-circle shadow-sm text-danger p-0 d-flex justify-content-center align-items-center border" style="width: 32px; height: 32px;" title="Xóa bàn">
-                                        <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
-                                    </button>
-                                </form>
                             </div>
                         </div>
                     </div>
@@ -208,3 +336,149 @@
         }
     </div>
 </div>
+
+<!-- PHÂN QUYỀN: Chỉ render 2 Modal Chỉnh sửa bàn & Xóa bàn trên HTML khi tài khoản là Quản lý (Ẩn hoàn toàn với Phục vụ nhà hàng) -->
+@if (Model.LaQuanLy)
+{
+    <!-- MODAL 1: XÁC NHẬN CHỈNH SỬA BÀN (Dành riêng cho Quản lý) -->
+    <div class="modal fade" id="confirmSuaBanModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i> Xác nhận chỉnh sửa bàn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-0">Bạn đang thực hiện quyền <strong>Quản lý</strong> để chỉnh sửa thông tin <strong>Bàn <span id="lblSuaTenBan" class="text-danger"></span></strong>. Bạn có chắc chắn muốn tiếp tục?</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light border px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <a id="btnConfirmSuaLink" href="#" class="btn btn-danger px-4 fw-bold">Xác nhận sửa</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: XÁC NHẬN XÓA BÀN (Dành riêng cho Quản lý) -->
+    <div class="modal fade" id="confirmXoaBanModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-trash3-fill me-2"></i> Cảnh báo xóa bàn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-0">Bạn có chắc chắn muốn <strong>XÓA VĨNH VIỄN Bàn <span id="lblXoaTenBan" class="text-danger"></span></strong> khỏi hệ thống? Thao tác này không thể hoàn tác!</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <form method="post" asp-page-handler="Delete" class="m-0">
+                        <input type="hidden" name="id" id="inputXoaMaBan" />
+                        <button type="button" class="btn btn-light border px-4 fw-bold me-2" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-danger px-4 fw-bold">Xác nhận xóa</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL 3: CHUYỂN BÀN -->
+<div class="modal fade" id="chuyenBanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0" style="background-color: #f39c12; color: #fff;">
+                <h5 class="modal-title fw-bold text-uppercase">
+                    <i class="bi bi-arrow-left-right me-2"></i> Chuyển bàn (Từ bàn <span id="lblChuyenTuBan"></span> - Đơn: <span id="lblChuyenMaHD"></span>)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="ChuyenBan" onsubmit="return validateChuyenBan();">
+                <div class="modal-body p-4 bg-light">
+                    <input type="hidden" name="maBanCu" id="inputChuyenMaBanCu" />
+                    <input type="hidden" name="maBanMoi" id="inputChuyenMaBanMoi" />
+
+                    <p class="small text-muted fw-bold mb-3">
+                        <i class="bi bi-info-circle me-1"></i> Sơ đồ bàn thu nhỏ: Chọn một <strong>Bàn trống (sáng màu)</strong> bên dưới làm bàn đích. Các bàn đang có khách hoặc bận sẽ bị làm mờ.
+                    </p>
+
+                    <div class="row g-3">
+                        @foreach (var b in Model.TatCaBan)
+                        {
+                            string soBanMini = b.TenBan.Replace("Bàn ", "").Replace(" - Tầng trệt", "");
+                            bool isTrong = b.TrangThai == "Trống";
+
+                            <div class="col-md-3 col-4">
+                                <div class="mini-table-box @(isTrong ? "mini-table-available" : "mini-table-disabled") chuyen-table-item"
+                                     data-maban="@b.MaBan"
+                                     data-trong="@isTrong.ToString().ToLower()"
+                                     onclick="selectBanChuyen(this, '@b.MaBan')">
+                                    <div class="fs-5 fw-bold">Bàn @soBanMini</div>
+                                    <div class="small"><i class="bi bi-people-fill"></i> @b.SucChua chỗ</div>
+                                    <div class="badge bg-white text-dark mt-1 border">@b.TrangThai</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-white">
+                    <button type="button" class="btn btn-light border px-4 fw-bold" data-bs-dismiss="modal">Quay lại</button>
+                    <button type="submit" class="btn btn-success px-4 fw-bold">Xác nhận chuyển bàn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        @if (Model.LaQuanLy)
+            {
+                <text>
+                    function openConfirmSuaModal(maBan, tenBan, suaUrl) {
+                        document.getElementById('lblSuaTenBan').innerText = tenBan;
+                        document.getElementById('btnConfirmSuaLink').href = suaUrl;
+                        new bootstrap.Modal(document.getElementById('confirmSuaBanModal')).show();
+                    }
+
+                function openConfirmXoaModal(maBan, tenBan) {
+                    document.getElementById('lblXoaTenBan').innerText = tenBan;
+                    document.getElementById('inputXoaMaBan').value = maBan;
+                    new bootstrap.Modal(document.getElementById('confirmXoaBanModal')).show();
+                }
+            </text>
+        }
+
+            function openChuyenBanModal(maBanCu, tenBanCu, maHD) {
+                document.getElementById('lblChuyenTuBan').innerText = tenBanCu;
+                document.getElementById('lblChuyenMaHD').innerText = maHD || '--';
+                document.getElementById('inputChuyenMaBanCu').value = maBanCu;
+                document.getElementById('inputChuyenMaBanMoi').value = '';
+
+                document.querySelectorAll('.chuyen-table-item').forEach(item => {
+                    item.classList.remove('mini-table-selected');
+                });
+
+                new bootstrap.Modal(document.getElementById('chuyenBanModal')).show();
+            }
+
+        function selectBanChuyen(element, maBanDich) {
+            if (element.getAttribute('data-trong') !== 'true') {
+                return;
+            }
+            document.querySelectorAll('.chuyen-table-item').forEach(item => {
+                item.classList.remove('mini-table-selected');
+            });
+            element.classList.add('mini-table-selected');
+            document.getElementById('inputChuyenMaBanMoi').value = maBanDich;
+        }
+
+        function validateChuyenBan() {
+            var maBanMoi = document.getElementById('inputChuyenMaBanMoi').value;
+            if (!maBanMoi) {
+                alert('Vui lòng click chọn một Bàn trống trên sơ đồ thu nhỏ để chuyển đến!');
+                return false;
+            }
+            return true;
+        }
+    </script>
+}

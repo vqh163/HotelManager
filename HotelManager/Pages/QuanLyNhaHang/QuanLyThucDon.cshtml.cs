@@ -1,11 +1,14 @@
 using HotelManager.Data;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -70,15 +73,20 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
     public class QuanLyThucDonModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly IActionDescriptorCollectionProvider _actionProvider;
 
-        public QuanLyThucDonModel(ApplicationDbContext context)
+        public QuanLyThucDonModel(ApplicationDbContext context, IActionDescriptorCollectionProvider actionProvider)
         {
             _context = context;
+            _actionProvider = actionProvider;
         }
 
         [BindProperty(SupportsGet = true)] public string? TuKhoaTimKiem { get; set; }
         [BindProperty(SupportsGet = true)] public string? DanhMucLoc { get; set; }
         [BindProperty(SupportsGet = true)] public string? TrangThaiLoc { get; set; }
+
+        // Thuộc tính xác định người dùng hiện tại có phải cấp Quản lý hay không
+        public bool LaQuanLy { get; set; } = false;
 
         public List<ThucDonViewModel> DanhSachThucDon { get; set; } = new List<ThucDonViewModel>();
 
@@ -86,8 +94,120 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         public int DangBan { get; set; }
         public int TamNgung { get; set; }
 
+        // Hàm tự động dò tìm đúng đường dẫn Razor Page thực tế trong project để điều hướng chính xác
+        private string TimDuongDanTrang(string tenTrang, string duongDanMacDinh)
+        {
+            var page = _actionProvider.ActionDescriptors.Items
+                .OfType<PageActionDescriptor>()
+                .FirstOrDefault(p => p.ViewEnginePath.EndsWith("/" + tenTrang, StringComparison.OrdinalIgnoreCase)
+                                  || p.ViewEnginePath.Equals("/" + tenTrang, StringComparison.OrdinalIgnoreCase));
+            return page != null ? page.ViewEnginePath : duongDanMacDinh;
+        }
+
+        // Truy vấn trực tiếp VaiTro thực tế từ bảng TAI_KHOAN trong SQL Server bằng LINQ
+        private async Task<string> LayVaiTroThucTeAsync()
+        {
+            string tenDangNhap = User?.Identity?.Name
+                              ?? User?.FindFirst(ClaimTypes.Name)?.Value
+                              ?? User?.FindFirst("TenDangNhap")?.Value
+                              ?? User?.FindFirst("Username")?.Value
+                              ?? string.Empty;
+
+            string maTaiKhoan = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                             ?? User?.FindFirst("MaTaiKhoan")?.Value
+                             ?? string.Empty;
+
+            if (string.IsNullOrEmpty(tenDangNhap))
+            {
+                try
+                {
+                    tenDangNhap = HttpContext.Session.GetString("TenDangNhap")
+                               ?? HttpContext.Session.GetString("Username")
+                               ?? HttpContext.Session.GetString("User")
+                               ?? string.Empty;
+                }
+                catch { }
+            }
+
+            if (string.IsNullOrEmpty(maTaiKhoan))
+            {
+                try { maTaiKhoan = HttpContext.Session.GetString("MaTaiKhoan") ?? string.Empty; } catch { }
+            }
+
+            // 1. Ưu tiên đối chiếu trực tiếp trong bảng TAI_KHOAN của SQL Server
+            if (!string.IsNullOrEmpty(tenDangNhap) || !string.IsNullOrEmpty(maTaiKhoan))
+            {
+                var tkDb = await _context.TAI_KHOAN
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap || t.MaTaiKhoan == maTaiKhoan);
+
+                if (tkDb != null && !string.IsNullOrEmpty(tkDb.VaiTro))
+                {
+                    return tkDb.VaiTro.Trim();
+                }
+            }
+
+            // 2. Dự phòng đọc từ Claim hoặc Session của trang Đăng nhập
+            string vaiTro = User?.FindFirst(ClaimTypes.Role)?.Value
+                         ?? User?.FindFirst("VaiTro")?.Value
+                         ?? User?.FindFirst("Role")?.Value
+                         ?? string.Empty;
+
+            if (string.IsNullOrEmpty(vaiTro))
+            {
+                try
+                {
+                    vaiTro = HttpContext.Session.GetString("VaiTro")
+                          ?? HttpContext.Session.GetString("Role")
+                          ?? string.Empty;
+                }
+                catch { }
+            }
+
+            return vaiTro.Trim();
+        }
+
+        private bool LaVaiTroQuanLy(string vaiTro)
+        {
+            if (string.IsNullOrEmpty(vaiTro)) return false;
+
+            return vaiTro.Contains("Quản lý", StringComparison.OrdinalIgnoreCase) ||
+                   vaiTro.Contains("QuanLy", StringComparison.OrdinalIgnoreCase) ||
+                   vaiTro.Contains("Admin", StringComparison.OrdinalIgnoreCase) ||
+                   vaiTro.Contains("Giám đốc", StringComparison.OrdinalIgnoreCase) ||
+                   vaiTro.Contains("Quản trị", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool CoQuyenBepHoacQuanLy(string vaiTro)
+        {
+            if (string.IsNullOrEmpty(vaiTro)) return false;
+
+            return LaVaiTroQuanLy(vaiTro) ||
+                   vaiTro.Contains("Đầu bếp", StringComparison.OrdinalIgnoreCase) ||
+                   vaiTro.Contains("DauBep", StringComparison.OrdinalIgnoreCase) ||
+                   vaiTro.Contains("Bếp", StringComparison.OrdinalIgnoreCase) ||
+                   vaiTro.Contains("Bep", StringComparison.OrdinalIgnoreCase);
+        }
+
         public async Task<IActionResult> OnGetAsync()
         {
+            string vaiTro = await LayVaiTroThucTeAsync();
+
+            // 1. Nếu chưa đăng nhập -> Tự động chuyển về trang Đăng nhập
+            if (string.IsNullOrEmpty(vaiTro))
+            {
+                return Redirect(TimDuongDanTrang("DangNhap", "/TaiKhoan/DangNhap"));
+            }
+
+            // - Nếu không phải Đầu bếp hoặc Quản lý -> Chuyển về trang Đăng nhập
+            if (!CoQuyenBepHoacQuanLy(vaiTro))
+            {
+                return Redirect(TimDuongDanTrang("DangNhap", "/TaiKhoan/DangNhap"));
+            }
+
+            // Xác định quyền Quản lý (Quản lý = true để hiện nút Thêm/Sửa/Xóa món; Đầu bếp = false chỉ được bật/tắt Còn/Hết món)
+            LaQuanLy = LaVaiTroQuanLy(vaiTro);
+
             try
             {
                 // Kích hoạt nạp dữ liệu từ File JSON khi load trang
@@ -152,6 +272,19 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 
         public async Task<IActionResult> OnPostDeleteAsync(string id)
         {
+            string vaiTro = await LayVaiTroThucTeAsync();
+            if (string.IsNullOrEmpty(vaiTro))
+            {
+                return Redirect(TimDuongDanTrang("DangNhap", "/TaiKhoan/DangNhap"));
+            }
+
+            // Chặn chặt chẽ ở tầng Backend: Chỉ Quản lý mới có quyền xóa món ăn khỏi thực đơn
+            if (!LaVaiTroQuanLy(vaiTro))
+            {
+                ModelState.AddModelError(string.Empty, "Truy cập bị từ chối: Chỉ tài khoản cấp Quản lý mới được phép xóa món ăn!");
+                return await OnGetAsync();
+            }
+
             try
             {
                 var mon = await _context.DICH_VU.FirstOrDefaultAsync(m => m.MaDichVu == id);
@@ -178,8 +311,17 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 
         public async Task<IActionResult> OnPostToggleStatusAsync(string id)
         {
+            // Kiểm tra quyền: Chỉ Đầu bếp hoặc Quản lý mới được phép bật/tắt trạng thái Còn món / Hết món
+            string vaiTro = await LayVaiTroThucTeAsync();
+            if (!CoQuyenBepHoacQuanLy(vaiTro))
+            {
+                return new JsonResult(new { success = false });
+            }
+
             try
             {
+                TrangThaiMonStore.LoadData();
+
                 bool currentStatus = true;
                 if (TrangThaiMonStore.DuLieu.ContainsKey(id))
                     currentStatus = TrangThaiMonStore.DuLieu[id];
