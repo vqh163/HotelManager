@@ -1,0 +1,64 @@
+﻿@page "{maPhong}"
+@model HotelManager.Pages.QuanLySoDoPhong.CapNhatTrangThaiModel
+@{
+    ViewData["Title"] = "Cập nhật trạng thái phòng";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Cập nhật Trạng thái Phòng: @Model.MaPhong</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Hiển thị thông báo lỗi nếu có -->
+                    @if (!ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <div asp-validation-summary="All" class="mb-0"></div>
+                        </div>
+                    }
+
+                    <!-- Form cập nhật sử dụng Tag Helpers -->
+                    <form method="post">
+                        <!-- Trường ẩn để giữ ID của trạng thái -->
+                        <input type="hidden" asp-for="TrangThaiPhongEdit.MaTrangThai" />
+                        <input type="hidden" asp-for="MaPhong" />
+
+                        <!-- Trạng thái nghiệp vụ của phòng -->
+                        <div class="mb-3">
+                            <label asp-for="TrangThaiPhongEdit.TrangThaiPhong" class="form-label fw-bold">Trạng thái phòng</label>
+                            <select asp-for="TrangThaiPhongEdit.TrangThaiPhong" class="form-select">
+                                <option value="Trống">Trống</option>
+                                <option value="Đã đặt">Đã đặt</option>
+                                <option value="Đang sử dụng">Đang sử dụng</option>
+                                <option value="DND">DND (Đừng làm phiền)</option>
+                                <option value="Hư hại">Hư hại / Bảo trì</option>
+                            </select>
+                        </div>
+
+                        <!-- Trạng thái dọn dẹp vệ sinh -->
+                        <div class="mb-4">
+                            <label asp-for="TrangThaiPhongEdit.TrangThaiVeSinh" class="form-label fw-bold">Trạng thái vệ sinh</label>
+                            <select asp-for="TrangThaiPhongEdit.TrangThaiVeSinh" class="form-select">
+                                <option value="Sạch">Sạch</option>
+                                <option value="Cần dọn">Cần dọn</option>
+                                <option value="Đang dọn">Đang dọn</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-page="/QuanLySoDoPhong/Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-save"></i> Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

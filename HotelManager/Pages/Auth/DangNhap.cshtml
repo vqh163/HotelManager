@@ -1,51 +1,111 @@
 ﻿@page
 @model HotelManager.Pages.Auth.DangNhapModel
 @{
-    ViewData["Title"] = "Đăng nhập hệ thống";
-    // Form này sẽ tự động nằm gọn trong _Layout.cshtml chung của hệ thống
+    ViewData["Title"] = "Đăng nhập";
 }
+
+<style>
+    /* Tùy chỉnh tiêu đề Đăng nhập Tài khoản to, rõ và sang trọng */
+    .login-header-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #0d47a1;
+        letter-spacing: 0.5px;
+    }
+
+    /* Thanh gạch chân điểm nhấn đồng bộ màu vàng kim với Logo Grand Horizon */
+    .title-divider {
+        width: 60px;
+        height: 4px;
+        background: linear-gradient(90deg, #c59b27, #f3d478, #c59b27);
+        border-radius: 2px;
+        margin: 10px auto 0 auto;
+    }
+</style>
 
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <img src="~/images/logo.png" alt="Grand Horizon Logo" class="img-fluid" style="max-height: 80px; object-fit: contain;" />
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                
+                <!-- PHẦN HEADER ĐÃ ĐỔI SANG NỀN TRẮNG & LÀM NỔI BẬT TIÊU ĐỀ -->
+                <div class="card-header bg-white text-center pt-4 pb-3 border-bottom">
+                    <!-- Logo khách sạn Grand Horizon -->
+                    <div class="mb-3">
+                        <img src="~/images/logo.png" alt="Grand Horizon Hotel" style="height: 80px; width: auto; object-fit: contain;" onerror="this.style.display='none'" />
                     </div>
-                    <h5 class="text-center mb-4 text-muted">Đăng nhập tài khoản</h5>
 
+                    <!-- Chữ Đăng nhập Tài khoản to, đậm và đẹp hơn -->
+                    <h2 class="login-header-title text-uppercase mb-1">
+                        Đăng nhập Tài khoản
+                    </h2>
+                    <div class="title-divider"></div>
+                </div>
+
+                <!-- PHẦN BODY CHỨA FORM ĐĂNG NHẬP -->
+                <div class="card-body p-4 p-md-5 bg-white pt-4">
+                    <!-- Hiển thị thông báo lỗi nếu đăng nhập thất bại -->
                     @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
                     {
-                        <div class="alert alert-danger rounded-3">@Model.ThongBaoLoi</div>
+                        <div class="alert alert-danger d-flex align-items-center shadow-sm" role="alert">
+                            <i class="bi bi-exclamation-octagon-fill fs-5 me-2"></i>
+                            <div class="small fw-bold">@Model.ThongBaoLoi</div>
+                        </div>
                     }
 
-                    <!-- Bắt buộc dùng method="post" và bỏ trống action để post về chính OnPostAsync -->
                     <form method="post">
+                        <!-- Giữ lại ReturnUrl bằng Tag Helper để điều hướng khách về lại trang đang xem -->
+                        <input type="hidden" asp-for="ReturnUrl" />
+
+                        <!-- Ô nhập Tên đăng nhập -->
                         <div class="mb-3">
-                            <label asp-for="Input.TenDangNhap" class="form-label fw-semibold">Tên đăng nhập</label>
-                            <input asp-for="Input.TenDangNhap" class="form-control rounded-pill px-4" placeholder="Nhập tên đăng nhập" />
-                            <span asp-validation-for="Input.TenDangNhap" class="text-danger small"></span>
+                            <label asp-for="Input.TenDangNhap" class="form-label fw-bold text-dark">
+                                Tên đăng nhập <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-person-fill text-primary"></i>
+                                </span>
+                                <input asp-for="Input.TenDangNhap" class="form-control bg-light border-start-0 py-2" placeholder="Nhập tên đăng nhập..." autocomplete="username" />
+                            </div>
+                            <span asp-validation-for="Input.TenDangNhap" class="text-danger small fw-bold"></span>
                         </div>
 
-                        <div class="mb-4">
-                            <label asp-for="Input.MatKhau" class="form-label fw-semibold">Mật khẩu</label>
-                            <input asp-for="Input.MatKhau" type="password" class="form-control rounded-pill px-4" placeholder="Nhập mật khẩu" />
-                            <span asp-validation-for="Input.MatKhau" class="text-danger small"></span>
+                        <!-- Ô nhập Mật khẩu kèm nút Con mắt ẩn/hiện -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label asp-for="Input.MatKhau" class="form-label fw-bold text-dark mb-1">
+                                    Mật khẩu <span class="text-danger">*</span>
+                                </label>
+                                <a asp-page="/Auth/QuenMatKhau" class="small text-decoration-none fw-semibold text-primary">Quên mật khẩu?</a>
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-key-fill text-primary"></i>
+                                </span>
+                                <input asp-for="Input.MatKhau" type="password" id="txtMatKhauDangNhap" class="form-control bg-light border-start-0 py-2" placeholder="Nhập mật khẩu..." autocomplete="current-password" />
+                                <button class="btn btn-outline-secondary" type="button" onclick="toggleLoginPassword()" title="Hiện/Ẩn mật khẩu">
+                                    <i class="bi bi-eye-slash" id="iconEyeLogin"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Input.MatKhau" class="text-danger small fw-bold"></span>
                         </div>
 
-                        <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary rounded-pill fw-bold py-2">ĐĂNG NHẬP</button>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between mt-4 border-top pt-4 small fw-bold">
-                        <!-- Trỏ đến chức năng Quên mật khẩu vừa làm -->
-                        <a asp-page="/Auth/QuenMatKhau" class="text-decoration-none text-secondary">Quên mật khẩu?</a>
-                        
-                        <!-- Trỏ đến UC_02 Đăng ký -->
-                        <span>Chưa có tài khoản? <a asp-page="/Auth/DangKy" class="text-decoration-none text-primary">Đăng ký ngay</a></span>
+                        <!-- Nút Submit Đăng nhập -->
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm py-2">
+                                ĐĂNG NHẬP <i class="bi bi-box-arrow-in-right ms-1"></i>
+                            </button>
                         </div>
                     </form>
+
+                    <!-- Liên kết sang trang Đăng ký (UC_02) dành cho Khách hàng -->
+                    <div class="text-center mt-4 pt-3 border-top">
+                        <span class="text-muted small">Bạn là khách hàng chưa có tài khoản?</span>
+                        <a asp-page="/Auth/DangKy" class="fw-bold text-primary text-decoration-none small ms-1">
+                            Đăng ký ngay
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -54,4 +114,22 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Hàm bật/tắt hiển thị mật khẩu trên trang Đăng nhập
+        function toggleLoginPassword() {
+            const pwdInput = document.getElementById("txtMatKhauDangNhap");
+            const eyeIcon = document.getElementById("iconEyeLogin");
+
+            if (pwdInput.type === "password") {
+                pwdInput.type = "text";
+                eyeIcon.classList.remove("bi-eye-slash");
+                eyeIcon.classList.add("bi-eye");
+            } else {
+                pwdInput.type = "password";
+                eyeIcon.classList.remove("bi-eye");
+                eyeIcon.classList.add("bi-eye-slash");
+            }
+        }
+    </script>
 }

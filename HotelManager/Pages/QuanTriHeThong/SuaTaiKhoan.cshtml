@@ -1,65 +1,169 @@
 ﻿@page "{id?}"
 @model HotelManager.Pages.QuanTriHeThong.SuaTaiKhoanModel
 @{
-    ViewData["Title"] = "Cập nhật Tài khoản (UC_13)";
+    ViewData["Title"] = "Chỉnh Sửa Tài Khoản (UC_13)";
 }
 
-<div class="container mt-4">
-    <h3 class="mb-4 text-warning"><i class="bi bi-pencil-square"></i> Cập nhật Phân quyền & Trạng thái</h3>
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-primary fw-bold mb-0">
+            <i class="bi bi-pencil-square me-2"></i>Chỉnh Sửa & Phân Quyền Tài Khoản
+        </h3>
+        <a asp-page="./QuanLyTaiKhoan" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Danh sách tài khoản
+        </a>
+    </div>
 
-    <!-- Vùng hiển thị thông báo lỗi -->
-    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    <!-- Hiển thị thông báo thành công khi cập nhật xong -->
+    @if (!string.IsNullOrEmpty(Model.ThongBaoThanhCong))
     {
-        <div class="alert alert-danger shadow-sm">
-            @Model.ThongBaoLoi
+        <div class="alert alert-success alert-dismissible fade show shadow-sm fw-bold" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBaoThanhCong
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-white text-secondary py-3">
-            <h5 class="mb-0">Thông tin tài khoản: <span class="text-primary fw-bold">@Model.Input.TenDangNhap</span></h5>
+    <!-- Hiển thị thông báo lỗi (trùng tài khoản, trùng nhân viên hoặc lỗi DB) -->
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm fw-bold" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div class="card-body">
-            <form method="post">
-                <!-- Mã tài khoản ẩn để Submit về POST -->
-                <input type="hidden" asp-for="Input.MaTaiKhoan" />
+    }
 
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-white text-secondary py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-dark">
+                <i class="bi bi-person-lines-fill me-2 text-primary"></i>1. Thông tin Hồ sơ Liên kết (Nhân sự / Khách hàng)
+            </h5>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6">
+                Mã TK: @Model.Input.MaTaiKhoan
+            </span>
+        </div>
+
+        <div class="card-body p-4">
+            <form method="post" id="formSuaTaiKhoan">
+                <!-- Giữ lại Mã Tài Khoản và Mã Khách Hàng (ẩn) khi Submit Form -->
+                <input type="hidden" asp-for="Input.MaTaiKhoan" />
+                <input type="hidden" asp-for="Input.MaKhachHang" />
+
+                <!-- BƯỚC 1: CHỌN HOẶC XEM NHÂN VIÊN LIÊN KẾT -->
                 <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold text-muted">Tên đăng nhập (Không được sửa)</label>
-                        <!-- Thuộc tính readonly để chặn sửa đổi Tên đăng nhập -->
-                        <input asp-for="Input.TenDangNhap" class="form-control bg-light" readonly />
+                    <div class="col-md-12">
+                        <label asp-for="Input.MaNhanVien" class="form-label fw-bold">
+                            Nhân viên sở hữu tài khoản (Từ Quản lý Nhân sự - UC_11)
+                        </label>
+                        <select asp-for="Input.MaNhanVien" asp-items="Model.DanhSachNhanVienKhaDung" 
+                                class="form-select form-select-lg border-primary" id="selectMaNhanVien">
+                            <option value="">-- Không gắn nhân viên (Tài khoản Admin gốc / Khách hàng) --</option>
+                        </select>
+                        <span asp-validation-for="Input.MaNhanVien" class="text-danger small fw-bold"></span>
+                        <small class="text-muted d-block mt-1">
+                            <i class="bi bi-info-circle me-1"></i>Danh sách bao gồm nhân viên đang sở hữu tài khoản này và các nhân viên chưa được cấp tài khoản.
+                        </small>
                     </div>
                 </div>
 
-                <div class="row mb-4">
+                <!-- KHỐI THÔNG TIN CÁ NHÂN TỰ ĐỘNG ĐIỀN (READONLY) -->
+                <div class="p-3 bg-light rounded-3 border mb-4">
+                    <h6 class="fw-bold text-secondary mb-3">
+                        <i class="bi bi-card-heading me-2"></i>Thông tin cá nhân người sở hữu (Tự động trích xuất)
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-semibold">Họ và tên</label>
+                            <input asp-for="Input.HoTen" id="txtHoTen" class="form-control bg-white fw-bold" readonly placeholder="Chưa liên kết hồ sơ..." />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-semibold">Số CCCD</label>
+                            <input asp-for="Input.SoCCCD" id="txtCCCD" class="form-control bg-white" readonly placeholder="Chưa liên kết hồ sơ..." />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-semibold">Số điện thoại</label>
+                            <input asp-for="Input.SDT" id="txtSDT" class="form-control bg-white" readonly placeholder="Chưa liên kết hồ sơ..." />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-semibold">Địa chỉ Email</label>
+                            <input asp-for="Input.Email" id="txtEmail" class="form-control bg-white" readonly placeholder="Chưa liên kết hồ sơ..." />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-semibold">Chức vụ hiện tại (Trong hồ sơ nhân sự)</label>
+                            <input asp-for="Input.TenChucVu" id="txtChucVu" class="form-control bg-white text-primary fw-bold" readonly placeholder="Chưa cập nhật chức vụ..." />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BƯỚC 2: CẬP NHẬT THÔNG TIN ĐĂNG NHẬP & PHÂN QUYỀN -->
+                <h5 class="mb-3 fw-bold text-dark pt-2 border-top">
+                    <i class="bi bi-shield-lock-fill me-2 text-primary"></i>2. Cập nhật Tài khoản & Đặt lại Mật khẩu (SHA-256)
+                </h5>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label asp-for="Input.TenDangNhap" class="form-label fw-bold">
+                            Tên đăng nhập <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.TenDangNhap" class="form-control" placeholder="Nhập tên đăng nhập..." autocomplete="off" />
+                        <span asp-validation-for="Input.TenDangNhap" class="text-danger small fw-bold"></span>
+                    </div>
+
+                    <!-- Ô nhập Mật khẩu mới (Để trống nếu giữ nguyên mật khẩu cũ) -->
+                    <div class="col-md-4">
+                        <label asp-for="Input.MatKhauMoi" class="form-label fw-bold">
+                            Mật khẩu mới <span class="text-muted fw-normal small">(Để trống nếu giữ nguyên)</span>
+                        </label>
+                        <div class="input-group">
+                            <input asp-for="Input.MatKhauMoi" type="password" id="txtMatKhauMoi" class="form-control" placeholder="Nhập mật khẩu mới nếu cần đổi..." autocomplete="new-password" />
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('txtMatKhauMoi', 'iconEyeMatKhauMoi')" title="Hiện/Ẩn mật khẩu">
+                                <i class="bi bi-eye-slash" id="iconEyeMatKhauMoi"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Input.MatKhauMoi" class="text-danger small fw-bold"></span>
+                    </div>
+
+                    <!-- Ô Xác nhận mật khẩu mới -->
+                    <div class="col-md-4">
+                        <label asp-for="Input.XacNhanMatKhauMoi" class="form-label fw-bold">
+                            Xác nhận mật khẩu mới
+                        </label>
+                        <div class="input-group">
+                            <input asp-for="Input.XacNhanMatKhauMoi" type="password" id="txtXacNhanMatKhauMoi" class="form-control" placeholder="Nhập lại mật khẩu mới..." autocomplete="new-password" />
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('txtXacNhanMatKhauMoi', 'iconEyeXacNhanMoi')" title="Hiện/Ẩn mật khẩu">
+                                <i class="bi bi-eye-slash" id="iconEyeXacNhanMoi"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Input.XacNhanMatKhauMoi" class="text-danger small fw-bold"></span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Vai trò / Quyền hạn <span class="text-danger">*</span></label>
-                        <!-- CẬP NHẬT: Dùng asp-items để liên kết với DanhSachVaiTro -->
-                        <select asp-for="Input.VaiTro" asp-items="Model.DanhSachVaiTro" class="form-select">
+                        <label asp-for="Input.VaiTro" class="form-label fw-bold">
+                            Vai trò (Phân quyền hệ thống) <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="Input.VaiTro" asp-items="Model.DanhSachVaiTro" id="selectVaiTro" class="form-select">
                             <option value="">-- Chọn quyền hạn --</option>
                         </select>
-                        <span asp-validation-for="Input.VaiTro" class="text-danger small"></span>
+                        <span asp-validation-for="Input.VaiTro" class="text-danger small fw-bold"></span>
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Trạng thái hoạt động <span class="text-danger">*</span></label>
+                        <label asp-for="Input.TrangThai" class="form-label fw-bold">Trạng thái kích hoạt</label>
                         <select asp-for="Input.TrangThai" class="form-select">
                             <option value="Hoạt động">Hoạt động</option>
-                            <option value="Khóa">Khóa (Cấm đăng nhập)</option>
+                            <option value="Khóa">Khóa</option>
                         </select>
-                        <span asp-validation-for="Input.TrangThai" class="text-danger small"></span>
-                        <small class="text-muted">Chọn "Khóa" nếu muốn thu hồi quyền truy cập của người dùng này.</small>
+                        <span asp-validation-for="Input.TrangThai" class="text-danger small fw-bold"></span>
                     </div>
                 </div>
 
                 <div class="border-top pt-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-warning px-4 fw-bold">
-                        <i class="bi bi-save"></i> Lưu Thay Đổi
+                    <button type="submit" class="btn btn-primary px-4 py-2 fw-bold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> Lưu Thay Đổi
                     </button>
-                    <!-- Tag Helper điều hướng quay lại trang danh sách -->
-                    <a asp-page="./QuanLyTaiKhoan" class="btn btn-outline-secondary px-4">
-                        Hủy bỏ
+                    <a asp-page="./QuanLyTaiKhoan" class="btn btn-outline-secondary px-4 py-2">
+                        Hủy & Quay lại
                     </a>
                 </div>
             </form>
@@ -68,6 +172,82 @@
 </div>
 
 @section Scripts {
-    <!-- Kích hoạt validation phía Client -->
+    <!-- Script hỗ trợ validate trực tiếp phía Frontend -->
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // 1. Hàm bật/tắt hiển thị mật khẩu (nút hình con mắt)
+        function togglePasswordVisibility(inputId, iconId) {
+            const passwordInput = document.getElementById(inputId);
+            const eyeIcon = document.getElementById(iconId);
+
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                eyeIcon.classList.remove("bi-eye-slash");
+                eyeIcon.classList.add("bi-eye");
+            } else {
+                passwordInput.type = "password";
+                eyeIcon.classList.remove("bi-eye");
+                eyeIcon.classList.add("bi-eye-slash");
+            }
+        }
+
+        // 2. Sự kiện tự động lấy thông tin nhân viên khi Admin thay đổi Mã nhân viên trên Dropdown
+        document.getElementById("selectMaNhanVien").addEventListener("change", async function () {
+            const maNV = this.value;
+            const txtHoTen = document.getElementById("txtHoTen");
+            const txtCCCD = document.getElementById("txtCCCD");
+            const txtSDT = document.getElementById("txtSDT");
+            const txtEmail = document.getElementById("txtEmail");
+            const txtChucVu = document.getElementById("txtChucVu");
+            const selectVaiTro = document.getElementById("selectVaiTro");
+
+            if (!maNV) {
+                txtHoTen.value = "";
+                txtCCCD.value = "";
+                txtSDT.value = "";
+                txtEmail.value = "";
+                txtChucVu.value = "";
+                return;
+            }
+
+            try {
+                // Gọi Handler OnGetThongTinNhanVienAsync ở Code-behind
+                const response = await fetch(`?handler=ThongTinNhanVien&maNV=${encodeURIComponent(maNV)}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    txtHoTen.value = result.data.hoTen || "";
+                    txtCCCD.value = result.data.soCCCD || "";
+                    txtSDT.value = result.data.sdt || "";
+                    txtEmail.value = result.data.email || "";
+
+                    const chucVu = (result.data.tenChucVu || "").trim();
+                    txtChucVu.value = chucVu !== "" ? chucVu : "Chưa cập nhật chức vụ";
+
+                    // Tự động khớp chức vụ của nhân viên vào ô Dropdown Vai trò
+                    if (chucVu !== "") {
+                        let matched = false;
+                        for (let i = 0; i < selectVaiTro.options.length; i++) {
+                            const optVal = selectVaiTro.options[i].value.trim().toLowerCase();
+                            if (optVal === chucVu.toLowerCase() || optVal.includes(chucVu.toLowerCase())) {
+                                selectVaiTro.selectedIndex = i;
+                                matched = true;
+                                break;
+                            }
+                        }
+
+                        if (!matched) {
+                            const newOption = new Option(chucVu, chucVu, true, true);
+                            selectVaiTro.add(newOption);
+                        }
+                    }
+                } else {
+                    alert(result.message || "Không thể tải thông tin nhân viên.");
+                }
+            } catch (error) {
+                console.error("Lỗi khi truy xuất dữ liệu nhân sự:", error);
+            }
+        });
+    </script>
 }

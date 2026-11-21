@@ -1,0 +1,235 @@
+﻿@page
+@model HotelManager.Pages.QuanLyKho.QuanLyNhapKhoModel
+@{
+    ViewData["Title"] = "Quản lý Nhập Kho";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-11">
+
+            <!-- Khu vực hiển thị thông báo kết quả xử lý -->
+            @if (!string.IsNullOrEmpty(Model.ThongBao))
+            {
+                <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBao
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+            {
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- Thanh điều hướng nội bộ phân hệ Kho (UC_09) -->
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <div class="btn-group shadow-sm rounded-pill overflow-hidden bg-white p-1">
+                    <a asp-page="./QuanLyKho" class="btn btn-light rounded-pill px-4 fw-bold text-secondary">
+                        <i class="bi bi-box-seam me-1"></i> Danh mục Tồn kho
+                    </a>
+                    <a asp-page="./QuanLyNhapKho" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="bi bi-box-arrow-in-down me-1"></i> Quản lý Nhập kho
+                    </a>
+                    <a asp-page="./QuanLyXuatKho" class="btn btn-light rounded-pill px-4 fw-bold text-secondary">
+                        <i class="bi bi-box-arrow-up me-1"></i> Quản lý Xuất kho
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Cột Trái: Form Lập Phiếu Nhập Kho -->
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
+                        <div class="card-header bg-gradient bg-success text-white p-4 border-0">
+                            <h5 class="mb-0 fw-bold"><i class="bi bi-file-earmark-plus me-2"></i> Lập Phiếu Nhập Kho</h5>
+                            <p class="mb-0 text-white-50 small mt-1">Bổ sung số lượng hàng hóa / vật tư vào kho</p>
+                        </div>
+                        <div class="card-body p-4 bg-light">
+                            <form method="post">
+                                <div class="mb-3">
+                                    <label asp-for="Input.MaVatTu" class="form-label fw-bold">Chọn vật tư / hàng hóa <span class="text-danger">*</span></label>
+                                    <select asp-for="Input.MaVatTu" id="selectVatTuNhap" class="form-select rounded-3 border-0 shadow-sm" onchange="capNhatThongTinVatTuNhap()" required>
+                                        <option value="">-- Chọn vật tư cần nhập --</option>
+                                        @if (Model.DanhSachVatTu != null)
+                                        {
+                                            @foreach (var vt in Model.DanhSachVatTu)
+                                            {
+                                                <option value="@vt.MaVatTu"
+                                                        data-kho="@(vt.LoaiVatTu ?? "Chưa phân loại")"
+                                                        data-dvt="@(vt.DonViTinh ?? "Cái")"
+                                                        data-ton="@(vt.SoLuongTon ?? 0)"
+                                                        data-gia="@(vt.DonGiaNhap ?? 0)">
+                                                    [@vt.MaVatTu] @vt.TenVatTu (Tồn: @(vt.SoLuongTon ?? 0) @(vt.DonViTinh ?? ""))
+                                                </option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+
+                                <!-- Khung hiển thị nhanh thông tin tồn hiện tại của vật tư được chọn -->
+                                <div class="p-3 bg-white rounded-3 shadow-sm mb-3 border-start border-4 border-success">
+                                    <div class="row text-center">
+                                        <div class="col-4 border-end">
+                                            <small class="text-muted d-block">Phân loại</small>
+                                            <strong class="text-dark small" id="lblLoaiKho">-</strong>
+                                        </div>
+                                        <div class="col-4 border-end">
+                                            <small class="text-muted d-block">Tồn hiện tại</small>
+                                            <strong class="text-primary fs-6" id="lblTonHienTai">0</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">Đơn vị</small>
+                                            <strong class="text-secondary" id="lblDonViTinh">-</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="Input.SoLuongNhap" class="form-label fw-bold">Số lượng nhập <span class="text-danger">*</span></label>
+                                        <input asp-for="Input.SoLuongNhap" id="inpSoLuongNhap" type="number" min="1" class="form-control rounded-3 border-0 shadow-sm fw-bold text-success" oninput="tinhThanhTien()" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="Input.DonGiaNhapMoi" class="form-label fw-bold">Đơn giá nhập (VNĐ) <span class="text-danger">*</span></label>
+                                        <input asp-for="Input.DonGiaNhapMoi" id="inpDonGiaNhap" type="number" step="0.01" min="0" class="form-control rounded-3 border-0 shadow-sm" oninput="tinhThanhTien()" required />
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-muted small">Tổng thành tiền dự kiến:</label>
+                                    <div class="fs-5 fw-bold text-danger" id="lblThanhTien">0 VNĐ</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.NhaCungCap" class="form-label fw-bold">Nhà cung cấp / Nguồn nhập <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.NhaCungCap" class="form-control rounded-3 border-0 shadow-sm" placeholder="VD: Công ty CP Thực phẩm Đà Nẵng..." required />
+                                </div>
+
+                                <div class="mb-4">
+                                    <label asp-for="Input.GhiChu" class="form-label fw-bold">Ghi chú phiếu nhập</label>
+                                    <textarea asp-for="Input.GhiChu" class="form-control rounded-3 border-0 shadow-sm" rows="2" placeholder="Số hóa đơn chứng từ, tình trạng hàng..."></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-success btn-lg w-100 rounded-pill fw-bold shadow">
+                                    <i class="bi bi-check2-circle me-1"></i> Xác nhận Nhập Kho
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột Phải: Lịch sử Phiếu Nhập Kho gần đây -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
+                        <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-clock-history text-success me-2"></i> Lịch sử Phiếu Nhập Kho</h5>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-3 py-2">
+                                Tổng: @(Model.LichSuNhapKho?.Count ?? 0) phiếu
+                            </span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 text-center">
+                                    <thead class="table-light text-secondary small">
+                                        <tr>
+                                            <th class="ps-3 text-start">Mã Phiếu</th>
+                                            <th class="text-start">Vật Tư</th>
+                                            <th>SL Nhập</th>
+                                            <th>Đơn Giá</th>
+                                            <th>Thành Tiền</th>
+                                            <th class="text-start pe-3">Nhà Cung Cấp & Thời Gian</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.LichSuNhapKho != null && Model.LichSuNhapKho.Any())
+                                        {
+                                            @foreach (var item in Model.LichSuNhapKho)
+                                            {
+                                                <tr class="border-bottom">
+                                                    <td class="ps-3 text-start">
+                                                        <span class="badge bg-light text-dark border">@item.MaPhieu</span>
+                                                    </td>
+                                                    <td class="text-start">
+                                                        <div class="fw-bold text-dark">@item.TenVatTu</div>
+                                                        <small class="text-muted">@item.LoaiKho</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-success rounded-pill px-3">+@item.SoLuong @item.DonViTinh</span>
+                                                    </td>
+                                                    <td class="text-muted small">@item.DonGia.ToString("N0") ₫</td>
+                                                    <td class="fw-bold text-success">@item.ThanhTien.ToString("N0") ₫</td>
+                                                    <td class="text-start pe-3">
+                                                        <div class="small fw-semibold text-dark"><i class="bi bi-building me-1"></i>@item.DoiTacHoacBoPhan</div>
+                                                        <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>@item.ThoiGian.ToString("dd/MM/yyyy HH:mm")</small>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-5">
+                                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i> Chưa có lịch sử phiếu nhập kho nào.
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // @@ts-nocheck
+        // Cập nhật thông tin tồn kho và đơn giá khi chọn vật tư từ Dropdown
+        function capNhatThongTinVatTuNhap() {
+            var selectEl = document.getElementById('selectVatTuNhap');
+            if (!selectEl || selectEl['selectedIndex'] <= 0) {
+                document.getElementById('lblLoaiKho').innerText = '-';
+                document.getElementById('lblTonHienTai').innerText = '0';
+                document.getElementById('lblDonViTinh').innerText = '-';
+                return;
+            }
+
+            var selectedOpt = selectEl['options'][selectEl['selectedIndex']];
+            var kho = selectedOpt.getAttribute('data-kho') || '-';
+            var dvt = selectedOpt.getAttribute('data-dvt') || '-';
+            var ton = selectedOpt.getAttribute('data-ton') || '0';
+            var gia = selectedOpt.getAttribute('data-gia') || '0';
+
+            document.getElementById('lblLoaiKho').innerText = kho;
+            document.getElementById('lblTonHienTai').innerText = ton;
+            document.getElementById('lblDonViTinh').innerText = dvt;
+
+            var inpGia = document.getElementById('inpDonGiaNhap');
+            if (inpGia) inpGia['value'] = gia;
+
+            tinhThanhTien();
+        }
+
+        // Tự động tính tổng thành tiền = Số lượng nhập * Đơn giá nhập
+        function tinhThanhTien() {
+            var inpSL = document.getElementById('inpSoLuongNhap');
+            var inpGia = document.getElementById('inpDonGiaNhap');
+            var lblTien = document.getElementById('lblThanhTien');
+
+            var sl = inpSL ? parseFloat(inpSL['value'] || '0') : 0;
+            var gia = inpGia ? parseFloat(inpGia['value'] || '0') : 0;
+            var tong = sl * gia;
+
+            if (lblTien) {
+                lblTien.innerText = tong.toLocaleString('vi-VN') + ' VNĐ';
+            }
+        }
+    </script>
+}

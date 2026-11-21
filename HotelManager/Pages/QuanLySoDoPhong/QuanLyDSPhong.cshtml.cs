@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using HotelManager.Data;
 using HotelManager.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HotelManager.Pages.QuanLySoDoPhong
 {
@@ -23,29 +27,71 @@ namespace HotelManager.Pages.QuanLySoDoPhong
         [BindProperty(SupportsGet = true)]
         public string? TrangThaiLoc { get; set; }
 
+        // Thuộc tính hứng ngày giờ truy vấn sơ đồ phòng từ giao diện
+        [BindProperty(SupportsGet = true)]
+        public DateTime? NgayTraCuu { get; set; }
+
         public async Task<IActionResult> OnGetAsync()
         {
             try
             {
+                // Nếu người dùng không chọn ngày trên lịch, mặc định lấy ngày hôm nay
+                DateTime targetDate = NgayTraCuu ?? DateTime.Now.Date;
+
+                // Gán lại biến để đẩy ra View HTML
+                NgayTraCuu = targetDate;
+
                 var query = _context.PHONG.AsNoTracking().AsQueryable();
 
                 if (!string.IsNullOrEmpty(TuKhoaTimKiem))
                 {
                     // Xử lý an toàn cảnh báo CS8602 bằng toán tử !
-                    query = query.Where(p => 
-                        (p.SoPhong != null && p.SoPhong.Contains(TuKhoaTimKiem!)) || 
+                    query = query.Where(p =>
+                        (p.SoPhong != null && p.SoPhong.Contains(TuKhoaTimKiem!)) ||
                         (p.LoaiPhong != null && p.LoaiPhong.Contains(TuKhoaTimKiem!))
                     );
                 }
 
                 if (!string.IsNullOrEmpty(TrangThaiLoc))
                 {
-                    // ĐÃ SỬA: Gọi đúng tên thuộc tính MaTrangThai theo model PHONG.cs mới
-                    query = query.Where(p => p.MaTrangThai == TrangThaiLoc); 
+                    query = query.Where(p => p.MaTrangThai == TrangThaiLoc);
                 }
 
-                DanhSachPhong = await query.OrderBy(p => p.SoPhong).ToListAsync();
-                
+                var rooms = await query.OrderBy(p => p.SoPhong).ToListAsync();
+
+                // =====================================================================
+                // THUẬT TOÁN XÁC ĐỊNH TRẠNG THÁI PHÒNG THEO NGÀY TRUY VẤN (UC_03)
+                // =====================================================================
+                foreach (var phong in rooms)
+                {
+                    // Bỏ qua các phòng đang khóa/bảo trì (Trạng thái tĩnh)
+                    if (phong.MaTrangThai != "TT04")
+                    {
+                        // Kiểm tra xem phòng có giao dịch đặt phòng nào bao trùm lên targetDate không
+                        bool isBooked = await (from dp in _context.DAT_PHONG
+                                               join ct in _context.CHI_TIET_DAT_PHONG on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
+                                               where ct.PHONGMaPhong == phong.MaPhong
+                                                  && dp.TrangThaiDatPhong != "Đã hủy"
+                                                  && dp.TrangThaiDatPhong != "Đã check-out"
+                                                  && dp.TrangThaiDatPhong != "Đã hoàn tất"
+                                                  && dp.NgayNhan <= targetDate
+                                                  && dp.NgayTra > targetDate
+                                               select dp.MaDatPhong).AnyAsync();
+
+                        // Ảo hóa trạng thái hiển thị theo ngày được chọn (Không thay đổi Database gốc)
+                        if (isBooked)
+                        {
+                            phong.MaTrangThai = "TT02"; // Đã đặt / Đang ở
+                        }
+                        else
+                        {
+                            phong.MaTrangThai = "TT01"; // Trống
+                        }
+                    }
+                }
+
+                DanhSachPhong = rooms;
+
                 return Page();
             }
             catch (Exception ex)
@@ -54,6 +100,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 return Page();
             }
         }
+
         public async Task<IActionResult> OnGetKhoaAsync(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
