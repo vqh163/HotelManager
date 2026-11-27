@@ -97,6 +97,9 @@
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhanSu/QuanLyDanhSachNhanVien"><i class="bi bi-people-fill me-2"></i>Quản lý Nhân sự</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLySuCo/Index"><i class="bi bi-wrench-adjustable me-2"></i>Sự cố & Kỹ thuật</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/SoDoBan"><i class="bi bi-cup-hot me-2"></i>Nhà hàng & Bàn</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyOrder"><i class="bi bi-fire me-2"></i>Màn hình Bếp (KDS)</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyThucDon"><i class="bi bi-journal-richtext me-2"></i>Quản lý Thực đơn</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuayThuNgan"><i class="bi bi-cash-stack me-2"></i>Quầy Thu ngân NH</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyKho"><i class="bi bi-box-seam me-2"></i>Quản lý Kho</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
@@ -123,6 +126,7 @@
                                     }
                                     @if (User.IsInRole("Đầu bếp"))
                                     {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyOrder"><i class="bi bi-fire me-2"></i>Màn hình Bếp (Order)</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyThucDon"><i class="bi bi-journal-richtext me-2"></i>Quản lý Thực đơn</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
                                         <li><hr class="dropdown-divider"></li>

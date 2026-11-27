@@ -96,7 +96,7 @@ namespace HotelManager.Helpers
                 VaiTroQuanLy => "/QuanLyLichCaNhan/QuanLyLichCaNhan",
                 VaiTroLeTan => "/QuanLyTienSanh/Index",
                 VaiTroSales or VaiTroBuongPhong or VaiTroBuongPhongCu => "/QuanLySoDoPhong/SoDoPhong",
-                VaiTroDauBep => "/QuanLyNhaHang/QuanLyThucDon",
+                VaiTroDauBep => "/QuanLyNhaHang/QuanLyOrder",
                 VaiTroPhucVu => "/QuanLyNhaHang/SoDoBan",
                 VaiTroThuNgan => "/QuanLyNhaHang/QuayThuNgan",
                 VaiTroKyThuat or VaiTroKyThuatCu => "/QuanLySuCo/Index",

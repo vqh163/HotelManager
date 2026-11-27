@@ -2,11 +2,10 @@
 @model HotelManagement.Pages.NhaHang.ThuNgan.QuayThuNganModel
 @{
     ViewData["Title"] = "Quầy Thu Ngân";
+    string currentFilter = string.IsNullOrEmpty(Model.TrangThaiLoc) ? "Tất cả" : Model.TrangThaiLoc;
 }
 
 <div class="container-fluid mt-4 mb-5">
-
-    <!-- Thông báo hệ thống khi Thanh toán thành công -->
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success fw-bold shadow-sm mb-4">
@@ -23,12 +22,18 @@
     <div class="row">
         <!-- CỘT TRÁI: KHU VỰC HIỂN THỊ ĐỘNG -->
         <div class="col-lg-8">
-
-            <!-- VIEW 1: DANH SÁCH HÓA ĐƠN (Hiển thị mặc định) -->
+            <!-- VIEW 1: DANH SÁCH HÓA ĐƠN -->
             <div id="viewDanhSach" class="card shadow-sm border-0 rounded-4 p-4 h-100">
-                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
                     <h3 class="fw-bold mb-0">Danh sách Hoá Đơn</h3>
-                    <small class="text-muted"><i class="bi bi-clock-history"></i> Lịch sử gọi món</small>
+
+                    <!-- BỘ LỌC TRẠNG THÁI HÓA ĐƠN TẠI QUẦY THU NGÂN -->
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="?TrangThaiLoc=Tất cả" class="btn btn-sm rounded-pill px-3 fw-bold @(currentFilter == "Tất cả" ? "btn-dark" : "btn-light border text-muted")">Tất cả</a>
+                        <a href="?TrangThaiLoc=Chờ Thanh Toán" class="btn btn-sm rounded-pill px-3 fw-bold @(currentFilter == "Chờ Thanh Toán" ? "btn-danger" : "btn-light border text-danger")">Chờ Thanh Toán</a>
+                        <a href="?TrangThaiLoc=Chưa thanh toán" class="btn btn-sm rounded-pill px-3 fw-bold @(currentFilter == "Chưa thanh toán" ? "btn-secondary" : "btn-light border text-dark")">Chưa thanh toán</a>
+                        <a href="?TrangThaiLoc=Đã Thanh Toán" class="btn btn-sm rounded-pill px-3 fw-bold @(currentFilter == "Đã Thanh Toán" ? "btn-success" : "btn-light border text-success")">Đã Thanh Toán</a>
+                    </div>
                 </div>
 
                 <div class="row text-center fw-bold text-muted mb-3 px-3">
@@ -46,6 +51,9 @@
                             string bgClass = "bg-light";
                             string textClass = "text-dark";
                             string iconClass = "bi-receipt";
+                            bool canSelectToMerge = hd.HinhThucThanhToan != "Đã Thanh Toán"
+                                && hd.HinhThucThanhToan != "Đã thanh toán"
+                                && hd.HinhThucThanhToan != "Ghi nợ phòng";
 
                             if (hd.HinhThucThanhToan == "Chờ thanh toán" || hd.HinhThucThanhToan == "Chờ Thanh Toán")
                             {
@@ -65,13 +73,24 @@
                                 iconClass = "bi-door-closed";
                             }
 
-                            <!-- TRUYỀN DỮ LIỆU ĐỘNG VÀO JAVASCRIPT -->
                             <div class="row align-items-center py-3 px-3 rounded-pill border shadow-sm @bgClass"
                                  style="cursor: pointer; transition: transform 0.2s;"
                                  onmouseover="this.style.transform='translateY(-2px)'"
                                  onmouseout="this.style.transform='translateY(0)'"
                                  onclick="hienThiChiTiet('@hd.MaHoaDonNhaHang', '@hd.TenBan', '@hd.DanhSachMonJson', @hd.TamTinh, @hd.PhiPhucVu, @hd.ThueVAT, @hd.TongCong)">
-                                <div class="col-2 text-center fw-bold @textClass">@hd.STT</div>
+                                <div class="col-2 text-center fw-bold @textClass d-flex justify-content-center align-items-center gap-2">
+                                    <!-- Checkbox tích chọn nhiều hóa đơn chờ thanh toán để Gộp bill -->
+                                    @if (canSelectToMerge)
+                                    {
+                                        <input type="checkbox" class="form-check-input bill-merge-checkbox m-0"
+                                               value="@hd.MaHoaDonNhaHang"
+                                               data-tenban="@hd.TenBan"
+                                               data-tongcong="@hd.TongCong"
+                                               onclick="event.stopPropagation(); updateMergeButtonState();"
+                                               title="Tích chọn để gộp bill" />
+                                    }
+                                    <span>@hd.STT</span>
+                                </div>
                                 <div class="col-4 text-center fw-bold @textClass">@hd.MaHoaDonNhaHang</div>
                                 <div class="col-3 text-center fw-bold @textClass">@hd.TenBan</div>
                                 <div class="col-3 text-center fw-bold @textClass">
@@ -107,7 +126,6 @@
                     <div class="col-2 text-end">THÀNH TIỀN</div>
                 </div>
 
-                <!-- Khu vực render Món ăn tự động bằng JS -->
                 <div id="danhSachMonContainer" class="mb-3 border-bottom pb-3"></div>
 
                 <div class="row mt-4">
@@ -135,16 +153,14 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
-        <!-- CỘT PHẢI: THAO TÁC THU NGÂN (BỌC BỞI FORM ĐỂ GỬI POST VỀ BACKEND) -->
+        <!-- CỘT PHẢI: THAO TÁC THU NGÂN -->
         <div class="col-lg-4">
             <form method="post">
-                <!-- Input ẩn lưu mã hóa đơn đang chọn để gửi về Server -->
                 <input type="hidden" name="maHoaDonToPay" id="maHoaDonToPayInput" value="" />
 
-                <div id="khuVucThaoTac" class="card shadow-sm border-0 rounded-4 p-4" style="opacity: 0.5; pointer-events: none; transition: 0.3s;">
+                <div id="khuVucThaoTac" class="card shadow-sm border-0 rounded-4 p-4" style="transition: 0.3s;">
                     <h4 class="fw-bold mb-4">Thao Tác Thu Ngân</h4>
 
                     <div class="mb-4">
@@ -180,17 +196,21 @@
                         </select>
                     </div>
 
-                    <!-- Nút Submit gọi hàm OnPostThanhToanAsync -->
-                    <button type="submit" asp-page-handler="ThanhToan" class="btn btn-success fw-bold w-100 py-3 rounded-3 mb-3 d-flex justify-content-between align-items-center">
+                    <button type="submit" id="btnThanhToanChot" asp-page-handler="ThanhToan" class="btn btn-success fw-bold w-100 py-3 rounded-3 mb-3 d-flex justify-content-between align-items-center" disabled>
                         <span><i class="bi bi-cash me-2"></i> THANH TOÁN & Chốt hóa đơn</span>
                         <i class="bi bi-check-circle-fill"></i>
                     </button>
 
+                    <!-- Nút In tạm tính và Gộp bill dành cho Thu ngân -->
                     <div class="d-flex gap-2 mb-3">
-                        <button type="button" class="btn btn-light border flex-grow-1 text-muted fw-bold rounded-3 py-2" onclick="window.print()"><i class="bi bi-printer me-2"></i> In tạm tính</button>
+                        <button type="button" class="btn btn-light border flex-grow-1 text-muted fw-bold rounded-3 py-2" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i> In tạm tính
+                        </button>
+                        <button type="button" id="btnGopBill" class="btn btn-warning text-white fw-bold flex-grow-1 rounded-3 py-2 shadow-sm" onclick="openGopBillModal()">
+                            <i class="bi bi-intersect me-1"></i> Gộp bill
+                        </button>
                     </div>
 
-                    <!-- Nút quay lại (Không submit form) -->
                     <button type="button" id="btnQuayLai" class="btn btn-secondary fw-bold w-100 py-2 rounded-3 mt-2" style="display: none;" onclick="quayLaiDanhSach()">
                         <i class="bi bi-arrow-return-left me-2"></i> Quay lại
                     </button>
@@ -210,7 +230,50 @@
     </div>
 </div>
 
-<!-- SCRIPTS XỬ LÝ LOGIC ẨN HIỆN & RENDER MÓN -->
+<!-- MODAL GỘP BILL LINH HOẠT DÀNH CHO THU NGÂN -->
+<div class="modal fade" id="gopBillModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0" style="background-color: #f39c12; color: #fff;">
+                <h5 class="modal-title fw-bold text-uppercase">
+                    <i class="bi bi-intersect me-2"></i> Gộp Bill Thanh Toán Thống Nhất
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="GopBill" onsubmit="return confirmGopBillSubmit();">
+                <div class="modal-body p-4 bg-light">
+                    <p class="small text-muted fw-bold mb-3">
+                        <i class="bi bi-info-circle me-1"></i> Tích chọn các hóa đơn chờ thanh toán bên dưới để gom chung thành một Bill thống nhất. Khi thanh toán hoàn tất, hệ thống sẽ tự động giải phóng đồng loạt toàn bộ các bàn liên quan về trạng thái <strong>Trống (màu xanh)</strong>:
+                    </p>
+
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var hd in Model.DanhSachHoaDon.Where(x => x.HinhThucThanhToan != "Đã Thanh Toán" && x.HinhThucThanhToan != "Đã thanh toán" && x.HinhThucThanhToan != "Ghi nợ phòng"))
+                        {
+                            <label class="card p-3 border-0 shadow-sm rounded-3" style="cursor: pointer;">
+                                <div class="form-check d-flex justify-content-between align-items-center m-0">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input class="form-check-input modal-gopbill-cb" type="checkbox" name="maHoaDonGopList" value="@hd.MaHoaDonNhaHang" style="transform: scale(1.25);" />
+                                        <div>
+                                            <span class="fw-bold text-dark">Mã HD: @hd.MaHoaDonNhaHang</span>
+                                            <span class="badge bg-info text-white ms-2">@hd.TenBan</span>
+                                            <span class="badge bg-danger bg-opacity-10 text-danger ms-1">@hd.HinhThucThanhToan</span>
+                                        </div>
+                                    </div>
+                                    <div class="fw-bold text-primary">@hd.TongCong.ToString("N0") VND</div>
+                                </div>
+                            </label>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-white">
+                    <button type="button" class="btn btn-light border px-4 fw-bold" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-warning text-white px-4 fw-bold">Xác nhận Gộp Bill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         function toggleGhiNoPhong() {
@@ -232,9 +295,8 @@
 
             document.getElementById('lblMaHDCT').innerText = maHD;
             document.getElementById('lblSoBanCT').innerText = tenBan.toUpperCase();
-
-            // Cập nhật input ẩn để chuẩn bị dữ liệu gửi POST Thanh toán
             document.getElementById('maHoaDonToPayInput').value = maHD;
+            document.getElementById('btnThanhToanChot').removeAttribute('disabled');
 
             // Render động danh sách món ăn từ JSON (đã escape HTML chống XSS)
             const dsMon = JSON.parse(decodeURIComponent(dsMonJsonEncoded));
@@ -256,16 +318,10 @@
                         `;
             });
 
-            // Cập nhật giá tiền tổng kết
             document.getElementById('lblTamTinh').innerText = formatVND(tamTinh);
             document.getElementById('lblPhiPhucVu').innerText = formatVND(phiPhucVu);
             document.getElementById('lblVAT').innerText = formatVND(vat);
             document.getElementById('lblTongCong').innerText = formatVND(tongCong);
-
-            // Mở khóa bảng Thao tác thu ngân
-            let panelThaoTac = document.getElementById('khuVucThaoTac');
-            panelThaoTac.style.opacity = '1';
-            panelThaoTac.style.pointerEvents = 'auto';
 
             document.getElementById('btnQuayLai').style.display = 'block';
         }
@@ -274,12 +330,36 @@
             document.getElementById('viewChiTiet').style.display = 'none';
             document.getElementById('viewDanhSach').style.display = 'block';
             document.getElementById('maHoaDonToPayInput').value = '';
-
-            let panelThaoTac = document.getElementById('khuVucThaoTac');
-            panelThaoTac.style.opacity = '0.5';
-            panelThaoTac.style.pointerEvents = 'none';
-
+            document.getElementById('btnThanhToanChot').setAttribute('disabled', 'disabled');
             document.getElementById('btnQuayLai').style.display = 'none';
+        }
+
+        // Đồng bộ các checkbox tích chọn ngoài danh sách với Modal Gộp Bill
+        function updateMergeButtonState() {
+            const checkedOutside = document.querySelectorAll('.bill-merge-checkbox:checked');
+            const btnGop = document.getElementById('btnGopBill');
+            if (checkedOutside.length > 0) {
+                btnGop.innerHTML = `<i class="bi bi-intersect me-1"></i> Gộp bill (${checkedOutside.length})`;
+            } else {
+                btnGop.innerHTML = `<i class="bi bi-intersect me-1"></i> Gộp bill`;
+            }
+        }
+
+        function openGopBillModal() {
+            const selectedIds = Array.from(document.querySelectorAll('.bill-merge-checkbox:checked')).map(cb => cb.value);
+            document.querySelectorAll('.modal-gopbill-cb').forEach(cb => {
+                cb.checked = selectedIds.includes(cb.value);
+            });
+            new bootstrap.Modal(document.getElementById('gopBillModal')).show();
+        }
+
+        function confirmGopBillSubmit() {
+            const checkedCount = document.querySelectorAll('.modal-gopbill-cb:checked').length;
+            if (checkedCount < 2) {
+                alert('Vui lòng tích chọn ít nhất 2 hóa đơn để gom chung thành một bill!');
+                return false;
+            }
+            return confirm(`Bạn có chắc chắn muốn gộp ${checkedCount} hóa đơn đã chọn thành 1 Bill thống nhất?`);
         }
     </script>
 }

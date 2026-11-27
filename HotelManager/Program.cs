@@ -122,6 +122,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/QuanLyNhanSu", HangSoHeThong.PolicyNhanSu);
     options.Conventions.AuthorizeFolder("/QuanLyKho", HangSoHeThong.PolicyKho);
     options.Conventions.AuthorizeFolder("/QuanLyNhaHang", HangSoHeThong.PolicyNhaHang);
+    options.Conventions.AuthorizePage("/QuanLyNhaHang/QuanLyOrder", HangSoHeThong.PolicyThucDon);
     options.Conventions.AuthorizePage("/QuanLyNhaHang/QuanLyThucDon", HangSoHeThong.PolicyThucDon);
     options.Conventions.AuthorizePage("/QuanLyNhaHang/ThemMon", HangSoHeThong.PolicyThucDon);
     options.Conventions.AuthorizePage("/QuanLyNhaHang/SuaMon", HangSoHeThong.PolicyThucDon);

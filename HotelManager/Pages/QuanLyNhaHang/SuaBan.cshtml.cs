@@ -1,11 +1,10 @@
 using HotelManager.Data;
-using HotelManager.Helpers;
-using HotelManager.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace HotelManagement.Pages.NhaHang.PhucVu
@@ -24,6 +23,7 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         [BindProperty]
         public ThemBanViewModel BanInfo { get; set; } = new ThemBanViewModel();
 
+        // Tải thông tin bàn hiện tại lên form chỉnh sửa
         public async Task<IActionResult> OnGetAsync(string id)
         {
             if (string.IsNullOrEmpty(id)) return RedirectToPage("./SoDoBan");
@@ -43,46 +43,30 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
             return Page();
         }
 
+        // Xử lý lưu cập nhật thông tin bàn (Tên/Số bàn & Sức chứa; giữ nguyên Trạng thái vận hành thực tế)
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid) return Page();
 
             try
             {
-                var ban = await _context.BAN_NHA_HANG.FirstOrDefaultAsync(b => b.MaBan == BanInfo.MaBan);
+                string maBanHienTai = BanInfo.MaBan.Trim();
+                string tenBanMoi = BanInfo.TenBan.Trim();
+
+                // Kiểm tra trùng Số bàn/Tên bàn với bàn khác trong hệ thống bằng LINQ
+                bool isDuplicate = await _context.BAN_NHA_HANG.AsNoTracking()
+                    .AnyAsync(b => b.MaBan != maBanHienTai && b.TenBan == tenBanMoi);
+                if (isDuplicate)
+                {
+                    ModelState.AddModelError(string.Empty, "Tên bàn/Số bàn này đã tồn tại ở một bàn khác. Vui lòng nhập số bàn khác!");
+                    return Page();
+                }
+
+                var ban = await _context.BAN_NHA_HANG.FirstOrDefaultAsync(b => b.MaBan == maBanHienTai);
                 if (ban == null) return RedirectToPage("./SoDoBan");
 
-                ban.TenBan = BanInfo.TenBan.Trim();
-                ban.TrangThai = BanInfo.TrangThai;
+                ban.TenBan = tenBanMoi;
                 ban.SucChua = BanInfo.SucChua;
-                ban.TenKhachDat = BanInfo.TrangThai == "Đã đặt trước" ? BanInfo.TenKhachDat?.Trim() : null;
-
-                // Kiểm tra hóa đơn đang mở bằng LINQ chuẩn (thay thế hoàn toàn câu SQL thuần sai tên cột trước đó)
-                if (BanInfo.TrangThai == "Đang có khách")
-                {
-                    bool hasActiveInvoice = await _context.HOA_DON_NHA_HANG.AsNoTracking()
-                        .AnyAsync(h => h.BAN_NHA_HANGMaBan == ban.MaBan
-                            && (h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
-                                || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan));
-
-                    if (!hasActiveInvoice)
-                    {
-                        _context.HOA_DON_NHA_HANG.Add(new HOA_DON_NHA_HANG
-                        {
-                            MaHoaDonNhaHang = BaoMatHelper.SinhMaNgauNhien("HD"),
-                            BAN_NHA_HANGMaBan = ban.MaBan,
-                            NHAN_VIENMaNV = User.FindFirst("MaNV")?.Value,
-                            ThoiGianTao = DateTime.Now,
-                            TongTienMonAn = 0,
-                            PhiPhucVu = 0,
-                            TienThueVAT = 0,
-                            GiamGia = 0,
-                            ThanhTien = 0,
-                            TrangThaiThanhToan = HangSoHeThong.HoaDonNHDangPhucVu,
-                            HinhThucThanhToan = "Đang phục vụ"
-                        });
-                    }
-                }
 
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Cập nhật thông tin bàn thành công!";

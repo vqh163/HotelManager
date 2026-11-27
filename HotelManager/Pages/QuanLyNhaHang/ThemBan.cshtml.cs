@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace HotelManagement.Pages.NhaHang.PhucVu
@@ -25,6 +26,7 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         [Range(1, 100, ErrorMessage = "Sức chứa phải từ 1 đến 100 khách.")]
         public int? SucChua { get; set; }
 
+        // Mặc định khi thêm bàn mới sẽ là Trống
         public string TrangThai { get; set; } = "Trống";
         public string? TenKhachDat { get; set; }
         public string? SoPhongDat { get; set; }
@@ -53,25 +55,32 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
             try
             {
                 string maBanChuan = BanInfo.MaBan.Trim();
-                bool daTonTai = await _context.BAN_NHA_HANG.AnyAsync(b => b.MaBan == maBanChuan);
+                string tenBanChuan = BanInfo.TenBan.Trim();
+
+                // Kiểm tra trùng Mã bàn hoặc Tên/Số bàn bằng LINQ
+                bool daTonTai = await _context.BAN_NHA_HANG.AsNoTracking()
+                    .AnyAsync(b => b.MaBan == maBanChuan || b.TenBan == tenBanChuan);
                 if (daTonTai)
                 {
-                    ModelState.AddModelError("BanInfo.MaBan", "Mã bàn này đã tồn tại trong hệ thống!");
+                    ModelState.AddModelError(string.Empty, "Mã bàn hoặc Tên/Số bàn này đã tồn tại trong hệ thống. Vui lòng nhập thông tin khác!");
                     return Page();
                 }
+
+                string trangThai = string.IsNullOrWhiteSpace(BanInfo.TrangThai) ? "Trống" : BanInfo.TrangThai.Trim();
 
                 var ban = new BAN_NHA_HANG
                 {
                     MaBan = maBanChuan,
-                    TenBan = BanInfo.TenBan.Trim(),
+                    TenBan = tenBanChuan,
                     SucChua = BanInfo.SucChua,
-                    TrangThai = BanInfo.TrangThai,
-                    TenKhachDat = BanInfo.TrangThai == "Đã đặt trước" ? BanInfo.TenKhachDat?.Trim() : null
+                    TrangThai = trangThai,
+                    TenKhachDat = trangThai == "Đã đặt trước" ? BanInfo.TenKhachDat?.Trim() : null
                 };
+
                 _context.BAN_NHA_HANG.Add(ban);
 
                 // Sinh hóa đơn đang phục vụ nếu thêm bàn ở trạng thái Đang có khách
-                if (BanInfo.TrangThai == "Đang có khách")
+                if (trangThai == "Đang có khách")
                 {
                     _context.HOA_DON_NHA_HANG.Add(new HOA_DON_NHA_HANG
                     {
@@ -85,7 +94,7 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
                         GiamGia = 0,
                         ThanhTien = 0,
                         TrangThaiThanhToan = HangSoHeThong.HoaDonNHDangPhucVu,
-                        HinhThucThanhToan = "Đang phục vụ"
+                        HinhThucThanhToan = "Chưa thanh toán"
                     });
                 }
 

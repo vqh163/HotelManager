@@ -1,4 +1,5 @@
 using HotelManager.Data;
+using HotelManager.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -36,17 +37,28 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         [BindProperty(SupportsGet = true)] public string? DanhMucLoc { get; set; }
         [BindProperty(SupportsGet = true)] public string? TrangThaiLoc { get; set; }
 
+        // Thuộc tính xác định người dùng hiện tại có phải cấp Quản lý / Giám đốc hay không
+        // (Quản lý: hiện nút Thêm/Sửa/Xóa món; Đầu bếp: chỉ bật/tắt trạng thái Còn/Hết món)
+        public bool LaQuanLy { get; set; } = false;
+
         public List<ThucDonViewModel> DanhSachThucDon { get; set; } = new List<ThucDonViewModel>();
 
         public int TongSoMon { get; set; }
         public int DangBan { get; set; }
         public int TamNgung { get; set; }
 
+        private bool KiemTraLaQuanLy()
+        {
+            return User.IsInRole(HangSoHeThong.VaiTroQuanLy) || User.IsInRole(HangSoHeThong.VaiTroGiamDoc);
+        }
+
         public async Task<IActionResult> OnGetAsync()
         {
+            LaQuanLy = KiemTraLaQuanLy();
+
             try
             {
-                // Truy vấn toàn bộ danh mục món ăn trực tiếp từ bảng DICH_VU (bỏ lưu file JSON rời rạc)
+                // Truy vấn toàn bộ danh mục món ăn trực tiếp từ bảng DICH_VU trong SQL Server
                 var query = _context.DICH_VU.AsNoTracking().AsQueryable();
 
                 if (!string.IsNullOrWhiteSpace(TuKhoaTimKiem))
@@ -98,9 +110,15 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
             }
         }
 
-        // Xóa món ăn (chặn xóa nếu món đã phát sinh lịch sử gọi món / dịch vụ)
+        // Xóa món ăn (chỉ cấp Quản lý mới được phép, chặn xóa nếu món đã phát sinh lịch sử gọi món)
         public async Task<IActionResult> OnPostDeleteAsync(string id)
         {
+            if (!KiemTraLaQuanLy())
+            {
+                ModelState.AddModelError(string.Empty, "Truy cập bị từ chối: Chỉ tài khoản cấp Quản lý mới được phép xóa món ăn!");
+                return await OnGetAsync();
+            }
+
             try
             {
                 bool daPhatSinh = await _context.CHI_TIET_DICH_VU.AsNoTracking()
