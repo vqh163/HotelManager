@@ -14,8 +14,9 @@ namespace HotelManager.Pages.Auth
         {
             try
             {
-                // Xóa hoàn toàn Cookie Authentication của hệ thống
+                // Xóa hoàn toàn Cookie Authentication và Session của hệ thống
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                HttpContext.Session.Clear();
 
                 // Điều hướng về trang chủ mặc định
                 return RedirectToPage("/Index");

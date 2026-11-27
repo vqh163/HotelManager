@@ -54,15 +54,22 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-end gap-2">
-                            <!-- Nút Nâng hạng -->
-                            <button class="btn btn-outline-primary fw-bold rounded-pill px-4" onclick="alert('Tính năng Nâng hạng phòng đang được cập nhật ở luồng sau!')">
-                                <i class="bi bi-arrow-up-circle me-1"></i> Nâng hạng
-                            </button>
-                            
-                            <button class="btn btn-danger fw-bold rounded-pill px-4" 
-                                    onclick="showCancelModal('@item.DatPhong.MaDatPhong', '@item.DatPhong.NgayNhan?.ToString("yyyy-MM-dd")', @(item.DatPhong.TienCoc ?? 0))">
-                                <i class="bi bi-x-circle me-1"></i> Hủy phòng
-                            </button>
+                            @if (item.DatPhong.TrangThaiDatPhong != "DANG_O")
+                            {
+                                <button class="btn btn-outline-primary fw-bold rounded-pill px-4" onclick="alert('Tính năng Nâng hạng phòng đang được cập nhật ở luồng sau!')">
+                                    <i class="bi bi-arrow-up-circle me-1"></i> Nâng hạng
+                                </button>
+                                <button class="btn btn-danger fw-bold rounded-pill px-4"
+                                        onclick="showCancelModal('@item.DatPhong.MaDatPhong', '@item.DatPhong.NgayNhan?.ToString("yyyy-MM-dd")', @(item.DatPhong.TienCoc ?? 0))">
+                                    <i class="bi bi-x-circle me-1"></i> Hủy phòng
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info text-dark fs-6 px-3 py-2 rounded-pill">
+                                    <i class="bi bi-house-check me-1"></i> Đang lưu trú tại khách sạn
+                                </span>
+                            }
                         </div>
                     </div>
                 </div>
@@ -100,6 +107,14 @@
                         @if (isCancelled && !string.IsNullOrEmpty(item.DatPhong.GhiChu))
                         {
                             <div class="text-danger small fst-italic">@item.DatPhong.GhiChu</div>
+                        }
+                        @if (!isCancelled)
+                        {
+                            <div class="d-flex justify-content-end mt-2">
+                                <a asp-page="/QuanLySoDoPhong/HoaDonCheckout" asp-route-maDatPhong="@item.DatPhong.MaDatPhong" class="btn btn-outline-success btn-sm rounded-pill fw-bold px-3">
+                                    <i class="bi bi-receipt me-1"></i> Xem hóa đơn
+                                </a>
+                            </div>
                         }
                     </div>
                 </div>

@@ -19,10 +19,11 @@ namespace HotelManager.Pages.QuanTriHeThong
 
         public async Task OnGetAsync()
         {
-            // Dùng LINQ truy xuất dữ liệu từ Entity Framework Core
-            // Sắp xếp giảm dần theo thời gian (Hành động mới nhất lên đầu)
+            // Dùng LINQ truy xuất dữ liệu tối ưu với AsNoTracking và giới hạn 200 bản ghi gần nhất
             DanhSachNhatKy = await _context.NHAT_KY_HE_THONG
+                .AsNoTracking()
                 .OrderByDescending(n => n.ThoiGian)
+                .Take(200)
                 .ToListAsync();
         }
     }

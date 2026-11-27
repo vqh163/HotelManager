@@ -1,32 +1,36 @@
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-// TODO: Đảm bảo sử dụng đúng namespace chứa ApplicationDbContext của bạn
-// using HotelManager.Data; 
 
 namespace HotelManager.Pages.QuanLySoDoPhong
 {
+    [Authorize(Policy = HangSoHeThong.PolicyQuanLyCap)]
     public class ThemPhongModel : PageModel
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<ThemPhongModel> _logger;
 
-        public ThemPhongModel(ApplicationDbContext context, IWebHostEnvironment environment)
+        public ThemPhongModel(ApplicationDbContext context, IWebHostEnvironment environment, ILogger<ThemPhongModel> logger)
         {
             _context = context;
             _environment = environment;
+            _logger = logger;
         }
 
         [BindProperty]
         public PHONG InputPhong { get; set; } = new PHONG();
 
-        // Thêm dấu ? để khắc phục CS8618
         [BindProperty]
         public IFormFile? HinhAnhUpload { get; set; }
 
@@ -43,20 +47,46 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
             try
             {
-                // Xử lý lưu hình ảnh
+                string maPhongChuan = (InputPhong.MaPhong ?? string.Empty).Trim();
+                string soPhongChuan = (InputPhong.SoPhong ?? string.Empty).Trim();
+
+                if (await _context.PHONG.AnyAsync(p => p.MaPhong == maPhongChuan || (!string.IsNullOrEmpty(soPhongChuan) && p.SoPhong == soPhongChuan)))
+                {
+                    ModelState.AddModelError(string.Empty, "Mã phòng hoặc Số phòng đã tồn tại trong hệ thống!");
+                    return Page();
+                }
+
+                // Kiểm tra và lưu ảnh phòng an toàn
                 if (HinhAnhUpload != null && HinhAnhUpload.Length > 0)
                 {
-                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(HinhAnhUpload.FileName);
                     var uploadsFolder = Path.Combine(_environment.WebRootPath, "images", "rooms");
-                    Directory.CreateDirectory(uploadsFolder);
-
-                    var filePath = Path.Combine(uploadsFolder, fileName);
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    var (ok, ketQua) = await BaoMatHelper.LuuAnhAnToanAsync(HinhAnhUpload, uploadsFolder, "ROOM");
+                    if (!ok)
                     {
-                        await HinhAnhUpload.CopyToAsync(fileStream);
+                        ModelState.AddModelError("HinhAnhUpload", ketQua);
+                        return Page();
                     }
-                    InputPhong.HinhAnh = "/images/rooms/" + fileName;
+                    InputPhong.HinhAnh = "/images/rooms/" + ketQua;
                 }
+
+                // Khởi tạo sẵn bản ghi trạng thái phòng độc lập (TTP_SoPhong)
+                string maTTRieng = "TTP_" + (string.IsNullOrEmpty(soPhongChuan) ? maPhongChuan : soPhongChuan);
+                if (maTTRieng.Length > 20) maTTRieng = maTTRieng.Substring(0, 20);
+
+                if (!await _context.TRANG_THAI_PHONG.AnyAsync(t => t.MaTrangThai == maTTRieng))
+                {
+                    _context.TRANG_THAI_PHONG.Add(new TRANG_THAI_PHONG
+                    {
+                        MaTrangThai = maTTRieng,
+                        TrangThaiPhong = "Trống",
+                        TrangThaiVeSinh = "Sạch",
+                        ThoiGianDonVeSinh = DateTime.Now
+                    });
+                }
+
+                InputPhong.MaPhong = maPhongChuan;
+                InputPhong.SoPhong = soPhongChuan;
+                InputPhong.MaTrangThai = maTTRieng;
 
                 _context.PHONG.Add(InputPhong);
                 await _context.SaveChangesAsync();
@@ -65,7 +95,8 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, $"Lỗi hệ thống: {ex.Message}");
+                _logger.LogError(ex, "Lỗi thêm phòng mới.");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi hệ thống khi thêm phòng.");
                 return Page();
             }
         }

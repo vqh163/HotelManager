@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System;
@@ -19,47 +19,42 @@ namespace HotelManager.Pages.Auth
     public class DangNhapModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<DangNhapModel> _logger;
 
-        public DangNhapModel(ApplicationDbContext context)
+        public DangNhapModel(ApplicationDbContext context, ILogger<DangNhapModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public class DangNhapInputModel
         {
             [Required(ErrorMessage = "Vui lòng nhập Tên đăng nhập")]
-            public string TenDangNhap { get; set; } = default!;
+            public string TenDangNhap { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "Vui lòng nhập Mật khẩu")]
-            public string MatKhau { get; set; } = default!;
+            public string MatKhau { get; set; } = string.Empty;
         }
 
         // Thuộc tính Binding nhận dữ liệu từ Form đăng nhập
         [BindProperty]
-        public DangNhapInputModel Input { get; set; } = default!;
+        public DangNhapInputModel Input { get; set; } = new DangNhapInputModel();
 
         // Thuộc tính hứng đường dẫn ReturnUrl qua phương thức GET
         [BindProperty(SupportsGet = true)]
         public string? ReturnUrl { get; set; }
 
-        public string ThongBaoLoi { get; set; } = "";
-
-        // Hàm phụ trợ: Băm mật khẩu chuẩn SHA-256 Base64 (Đồng bộ với ThemTaiKhoan và SuaTaiKhoan)
-        private string HashPassword(string password)
-        {
-            using var sha256 = SHA256.Create();
-            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
-        }
+        public string ThongBaoLoi { get; set; } = string.Empty;
 
         public IActionResult OnGet(string? returnUrl = null)
         {
             ReturnUrl = returnUrl;
 
-            // Nếu đã đăng nhập thì chuyển thẳng về Trang chủ
+            // Nếu đã đăng nhập thì chuyển thẳng về trang chủ theo vai trò
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                return RedirectToPage("/Index");
+                var role = User.FindFirst(ClaimTypes.Role)?.Value;
+                return RedirectToPage(HangSoHeThong.LayTrangMacDinhTheoVaiTro(role));
             }
             return Page();
         }
@@ -75,37 +70,52 @@ namespace HotelManager.Pages.Auth
             {
                 string tenDangNhapChuan = Input.TenDangNhap.Trim();
                 string matKhauNhap = Input.MatKhau;
-                string matKhauDaBam = HashPassword(matKhauNhap);
 
-                // 1. Truy vấn LINQ: Kiểm tra tài khoản khớp mật khẩu đã Hash SHA-256 hoặc mật khẩu gốc
+                // 1. Truy vấn LINQ theo tên đăng nhập trước để xác thực mật khẩu an toàn (chặn Pass-the-Hash)
                 var taiKhoan = await _context.TAI_KHOAN
-                    .FirstOrDefaultAsync(t => t.TenDangNhap.ToLower() == tenDangNhapChuan.ToLower() &&
-                                             (t.MatKhau == matKhauDaBam || t.MatKhau == matKhauNhap));
+                    .FirstOrDefaultAsync(t => t.TenDangNhap.ToLower() == tenDangNhapChuan.ToLower());
 
-                if (taiKhoan == null)
+                if (taiKhoan == null || !BaoMatHelper.XacThucMatKhau(taiKhoan.MatKhau, matKhauNhap, out bool canNangCapHash))
                 {
                     ThongBaoLoi = "Tên đăng nhập hoặc mật khẩu không chính xác!";
                     return Page();
                 }
 
-                // 2. Kiểm tra trạng thái khóa của tài khoản
-                if (taiKhoan.TrangThai == "Khóa" || taiKhoan.TrangThai == "Ngừng hoạt động")
+                // 2. Kiểm tra trạng thái hoạt động theo danh sách cho phép (Allowlist)
+                string trangThai = (taiKhoan.TrangThai ?? string.Empty).Trim();
+                if (trangThai.Equals("Chờ xác thực", StringComparison.OrdinalIgnoreCase))
                 {
-                    ThongBaoLoi = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên!";
+                    ThongBaoLoi = "Tài khoản của bạn chưa được kích hoạt OTP. Vui lòng xác thực OTP trước khi đăng nhập!";
                     return Page();
                 }
 
-                // 3. Tự động nâng cấp mật khẩu Plaintext cũ lên chuẩn Hash SHA-256
-                if (taiKhoan.MatKhau == matKhauNhap && taiKhoan.MatKhau != matKhauDaBam)
+                if (!trangThai.Equals("Hoạt động", StringComparison.OrdinalIgnoreCase))
                 {
-                    taiKhoan.MatKhau = matKhauDaBam;
-                    _context.TAI_KHOAN.Update(taiKhoan);
-                    await _context.SaveChangesAsync();
+                    ThongBaoLoi = "Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động. Vui lòng liên hệ Quản trị viên!";
+                    return Page();
                 }
 
-                string vaiTroNguoiDung = (taiKhoan.VaiTro ?? "Khách hàng").Trim();
+                // 3. Tự động nâng cấp mật khẩu Plaintext / Hex cũ lên chuẩn SHA-256 Base64
+                if (canNangCapHash)
+                {
+                    taiKhoan.MatKhau = BaoMatHelper.BamMatKhauSHA256(matKhauNhap);
+                    _context.TAI_KHOAN.Update(taiKhoan);
+                }
 
-                // 4. Thiết lập Claims cho Cookie Authentication
+                // Ghi nhận nhật ký đăng nhập vào NHAT_KY_HE_THONG
+                _context.NHAT_KY_HE_THONG.Add(new NHAT_KY_HE_THONG
+                {
+                    MaNhatKy = BaoMatHelper.SinhMaNgauNhien("LG"),
+                    TenDangNhap = taiKhoan.TenDangNhap,
+                    HanhDong = "Đăng nhập hệ thống",
+                    ChiTiet = $"Đăng nhập thành công với vai trò: {taiKhoan.VaiTro}",
+                    ThoiGian = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+
+                string vaiTroNguoiDung = (taiKhoan.VaiTro ?? HangSoHeThong.VaiTroKhachHang).Trim();
+
+                // 4. Thiết lập Claims cho Cookie Authentication tự code
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, taiKhoan.MaTaiKhoan),
@@ -126,7 +136,7 @@ namespace HotelManager.Pages.Auth
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = false,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60),
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8),
                     AllowRefresh = true
                 };
 
@@ -135,55 +145,19 @@ namespace HotelManager.Pages.Auth
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties);
 
-                // 5. Điều hướng về ReturnUrl nếu hợp lệ
+                // 5. Điều hướng về ReturnUrl nếu hợp lệ (nội bộ)
                 if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
                 {
                     return LocalRedirect(ReturnUrl);
                 }
 
-                // 6. Điều hướng theo Vai trò người dùng (Mục 1.2.5)
-                switch (vaiTroNguoiDung)
-                {
-                    case "Quản trị viên":
-                    case "Quản trị viên hệ thống":
-                    case "Giám đốc":
-                        return RedirectToPage("/QuanTriHeThong/Index");
-
-                    case "Quản lý":
-                        return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
-
-                    case "Lễ tân":
-                        return RedirectToPage("/QuanLyTienSanh/Index");
-
-                    case "Sales":
-                    case "Nhân viên Buồng phòng":
-                        return RedirectToPage("/QuanLySoDoPhong/SoDoPhong");
-
-                    case "Đầu bếp":
-                        return RedirectToPage("/QuanLyNhaHang/QuanLyThucDon");
-
-                    case "Phục vụ Nhà hàng":
-                        return RedirectToPage("/QuanLyNhaHang/SoDoBan");
-
-                    case "Thu ngân Nhà hàng":
-                        return RedirectToPage("/QuanLyNhaHang/QuayThuNgan");
-
-                    case "Nhân viên Kỹ thuật":
-                        return RedirectToPage("/QuanLySuCo/Index");
-                    case "Thủ kho":
-                    case "Kế toán":
-                        return RedirectToPage("/QuanLyLichCaNhan/QuanLyLichCaNhan");
-
-                    case "Khách hàng":
-                        return RedirectToPage("/QuanLySoDoPhong/TimPhong");
-
-                    default:
-                        return RedirectToPage("/Index");
-                }
+                // 6. Điều hướng chuẩn theo Vai trò người dùng
+                return RedirectToPage(HangSoHeThong.LayTrangMacDinhTheoVaiTro(vaiTroNguoiDung));
             }
             catch (Exception ex)
             {
-                ThongBaoLoi = "Lỗi hệ thống trong quá trình đăng nhập: " + ex.Message;
+                _logger.LogError(ex, "Lỗi hệ thống trong quá trình đăng nhập.");
+                ThongBaoLoi = "Đã xảy ra lỗi hệ thống trong quá trình đăng nhập. Vui lòng thử lại sau!";
                 return Page();
             }
         }

@@ -1,24 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
-using System.Text;
 using HotelManager.Data;
+using HotelManager.Helpers;
+using HotelManager.Models;
 
 namespace HotelManager.Pages.QuanTriHeThong
 {
     // Bắt buộc phải là Quản trị viên mới được truy cập tính năng này
-    [Authorize(Roles = "Quản trị viên")]
+    [Authorize(Policy = HangSoHeThong.PolicyQuanTri)]
     public class BaoMatMaHoaModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<BaoMatMaHoaModel> _logger;
 
-        public BaoMatMaHoaModel(ApplicationDbContext context)
+        public BaoMatMaHoaModel(ApplicationDbContext context, ILogger<BaoMatMaHoaModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -32,80 +36,84 @@ namespace HotelManager.Pages.QuanTriHeThong
 
         public void OnGet()
         {
-            // Trong thực tế, bạn sẽ dùng LINQ gọi từ CSDL lên. Ở đây gán mặc định để hiển thị UI.
             Input.SessionTimeout = 60;
             Input.YeuCauMatKhauManh = true;
         }
 
-        // Xử lý lưu cấu hình
         public IActionResult OnPostLuuCauHinh()
         {
             try
             {
-                // TODO: Lưu vào CSDL hoặc file appsettings.json
                 TempData["ThongBao"] = "Cập nhật chính sách bảo mật thành công!";
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
-                TempData["Loi"] = "Lỗi hệ thống: " + ex.Message;
+                _logger.LogError(ex, "Lỗi lưu cấu hình bảo mật.");
+                TempData["Loi"] = "Đã xảy ra lỗi hệ thống khi lưu cấu hình.";
                 return RedirectToPage();
             }
         }
 
-        // Xử lý Mã hóa đồng loạt các mật khẩu cũ chưa mã hóa
+        // Xử lý Mã hóa đồng loạt các mật khẩu cũ còn dạng Plaintext sang chuẩn SHA-256 Base64 (KHÔNG băm đè mật khẩu đã băm)
         public async Task<IActionResult> OnPostMaHoaDongLoatAsync()
         {
             try
             {
-                // Dùng LINQ tìm tất cả tài khoản (Giả sử mật khẩu chưa mã hóa có độ dài ngắn hơn 50 ký tự)
-                var dsTaiKhoan = _context.TAI_KHOAN.Where(t => t.MatKhau.Length < 60).ToList();
-                int count = 0;
+                var tatCaTaiKhoan = await _context.TAI_KHOAN.ToListAsync();
+                int soLuongDaMaHoa = 0;
+                int soLuongHexCu = 0;
 
-                foreach (var tk in dsTaiKhoan)
+                foreach (var tk in tatCaTaiKhoan)
                 {
-                    // Gọi hàm mã hóa
-                    tk.MatKhau = HashPasswordSHA256(tk.MatKhau);
-                    count++;
+                    if (BaoMatHelper.LaChuoiDaBamBase64(tk.MatKhau))
+                    {
+                        // Đã ở chuẩn SHA-256 Base64 (44 ký tự) -> Bỏ qua, tuyệt đối không băm chồng
+                        continue;
+                    }
+
+                    if (BaoMatHelper.LaChuoiDaBamHex(tk.MatKhau))
+                    {
+                        // Đã ở chuẩn Hex (64 ký tự) -> Không băm chồng, ghi nhận để thông báo
+                        soLuongHexCu++;
+                        continue;
+                    }
+
+                    // Chỉ băm các tài khoản còn lưu mật khẩu gốc (Plaintext)
+                    tk.MatKhau = BaoMatHelper.BamMatKhauSHA256(tk.MatKhau);
+                    _context.TAI_KHOAN.Update(tk);
+                    soLuongDaMaHoa++;
                 }
 
-                if (count > 0)
+                if (soLuongDaMaHoa > 0)
                 {
+                    _context.NHAT_KY_HE_THONG.Add(new NHAT_KY_HE_THONG
+                    {
+                        MaNhatKy = BaoMatHelper.SinhMaNgauNhien("LG"),
+                        TenDangNhap = User.Identity?.Name ?? "Admin",
+                        HanhDong = "Mã hóa mật khẩu đồng loạt",
+                        ChiTiet = $"Đã nâng cấp mã hóa SHA-256 Base64 cho {soLuongDaMaHoa} tài khoản Plaintext.",
+                        ThoiGian = DateTime.Now
+                    });
+
                     await _context.SaveChangesAsync();
-                    TempData["ThongBao"] = $"Đã mã hóa thành công {count} tài khoản trong hệ thống.";
+                    TempData["ThongBao"] = $"Đã mã hóa an toàn {soLuongDaMaHoa} tài khoản Plaintext sang chuẩn SHA-256 Base64.";
                 }
                 else
                 {
-                    TempData["ThongBao"] = "Tất cả tài khoản đều đã được mã hóa an toàn.";
+                    string ghiChuHex = soLuongHexCu > 0
+                        ? $" (Có {soLuongHexCu} tài khoản dùng chuẩn Hex cũ sẽ tự động chuyển sang Base64 khi người dùng đăng nhập)."
+                        : "";
+                    TempData["ThongBao"] = "Tất cả tài khoản đều đã được mã hóa an toàn, không có mật khẩu Plaintext." + ghiChuHex;
                 }
 
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
-                TempData["Loi"] = "Lỗi mã hóa dữ liệu: " + ex.Message;
+                _logger.LogError(ex, "Lỗi khi mã hóa mật khẩu đồng loạt.");
+                TempData["Loi"] = "Đã xảy ra lỗi hệ thống khi mã hóa dữ liệu.";
                 return RedirectToPage();
-            }
-        }
-
-        /// <summary>
-        /// Hàm băm mật khẩu chuẩn SHA256 để bảo mật dữ liệu theo yêu cầu dự án
-        /// Bạn Trần (UC_01) và Bạn Uyên (UC_02) cần dùng hàm này khi Đăng nhập/Đăng ký.
-        /// </summary>
-        private string HashPasswordSHA256(string rawData)
-        {
-            using (SHA256 sha256Hash = SHA256.Create())
-            {
-                // Chuyển chuỗi thành mảng byte
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
-
-                // Chuyển mảng byte thành chuỗi Hex
-                StringBuilder builder = new StringBuilder();
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    builder.Append(bytes[i].ToString("x2"));
-                }
-                return builder.ToString();
             }
         }
     }

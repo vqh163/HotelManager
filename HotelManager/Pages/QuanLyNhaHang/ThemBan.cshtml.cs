@@ -1,11 +1,13 @@
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Linq; // BẮT BUỘC CÓ ĐỂ DÙNG LINQ KHÔNG BỊ LỖI CS0411
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace HotelManagement.Pages.NhaHang.PhucVu
@@ -13,17 +15,19 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
     public class ThemBanViewModel
     {
         [Required(ErrorMessage = "Vui lòng nhập mã bàn.")]
+        [StringLength(20, ErrorMessage = "Mã bàn tối đa 20 ký tự.")]
         public string MaBan { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vui lòng nhập tên/số bàn.")]
+        [StringLength(50, ErrorMessage = "Tên bàn tối đa 50 ký tự.")]
         public string TenBan { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vui lòng nhập sức chứa.")]
+        [Range(1, 100, ErrorMessage = "Sức chứa phải từ 1 đến 100 khách.")]
         public int? SucChua { get; set; }
 
         // Mặc định khi thêm bàn mới sẽ là Trống
         public string TrangThai { get; set; } = "Trống";
-
         public string? TenKhachDat { get; set; }
         public string? SoPhongDat { get; set; }
     }
@@ -31,10 +35,12 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
     public class ThemBanModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<ThemBanModel> _logger;
 
-        public ThemBanModel(ApplicationDbContext context)
+        public ThemBanModel(ApplicationDbContext context, ILogger<ThemBanModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -48,78 +54,48 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
 
             try
             {
-                string maBanMoi = BanInfo.MaBan?.Trim() ?? string.Empty;
-                string tenBanMoi = BanInfo.TenBan?.Trim() ?? string.Empty;
+                string maBanChuan = BanInfo.MaBan.Trim();
+                string tenBanChuan = BanInfo.TenBan.Trim();
 
-                // SỬA TRIỆT ĐỂ LỖI CS0411: Dùng .Any() của System.Linq để kiểm tra trùng Mã bàn hoặc Số bàn
-                bool isDuplicate = _context.BAN_NHA_HANG.Any(b => b.MaBan == maBanMoi || b.TenBan == tenBanMoi);
-
-                if (isDuplicate)
+                // Kiểm tra trùng Mã bàn hoặc Tên/Số bàn bằng LINQ
+                bool daTonTai = await _context.BAN_NHA_HANG.AsNoTracking()
+                    .AnyAsync(b => b.MaBan == maBanChuan || b.TenBan == tenBanChuan);
+                if (daTonTai)
                 {
-                    ModelState.AddModelError(string.Empty, "LỖI: Mã bàn hoặc Tên bàn/Số bàn này đã tồn tại trong hệ thống. Vui lòng nhập thông tin khác!");
+                    ModelState.AddModelError(string.Empty, "Mã bàn hoặc Tên/Số bàn này đã tồn tại trong hệ thống. Vui lòng nhập thông tin khác!");
                     return Page();
                 }
 
+                string trangThai = string.IsNullOrWhiteSpace(BanInfo.TrangThai) ? "Trống" : BanInfo.TrangThai.Trim();
+
                 var ban = new BAN_NHA_HANG
                 {
-                    MaBan = maBanMoi, // Xóa khoảng trắng thừa để tránh lỗi map khóa ngoại
-                    TenBan = tenBanMoi,
+                    MaBan = maBanChuan,
+                    TenBan = tenBanChuan,
                     SucChua = BanInfo.SucChua,
-                    TrangThai = BanInfo.TrangThai
+                    TrangThai = trangThai,
+                    TenKhachDat = trangThai == "Đã đặt trước" ? BanInfo.TenKhachDat?.Trim() : null
                 };
-
-                // Gán dữ liệu khách đặt an toàn
-                if (ban.GetType().GetProperty("TenKhachDat") != null)
-                {
-                    ban.GetType().GetProperty("TenKhachDat")?.SetValue(ban, BanInfo.TrangThai == "Đã đặt trước" ? BanInfo.TenKhachDat : null);
-                }
-
-                // Lưu SoPhongDat lấy từ form
-                if (ban.GetType().GetProperty("SoPhongDat") != null)
-                {
-                    ban.GetType().GetProperty("SoPhongDat")?.SetValue(ban, BanInfo.TrangThai == "Đã đặt trước" ? BanInfo.SoPhongDat : null);
-                }
 
                 _context.BAN_NHA_HANG.Add(ban);
 
-                // Sinh Hóa đơn tự động nếu Đang có khách
-                if (BanInfo.TrangThai == "Đang có khách")
+                // Sinh hóa đơn đang phục vụ nếu thêm bàn ở trạng thái Đang có khách
+                if (trangThai == "Đang có khách")
                 {
-                    string uniqueInvoiceId = "HD" + DateTime.Now.ToString("yyMMdd") + Guid.NewGuid().ToString().Substring(0, 6).ToUpper();
-
-                    var hoaDonMoi = new HOA_DON_NHA_HANG
+                    _context.HOA_DON_NHA_HANG.Add(new HOA_DON_NHA_HANG
                     {
-                        MaHoaDonNhaHang = uniqueInvoiceId,
+                        MaHoaDonNhaHang = BaoMatHelper.SinhMaNgauNhien("HD"),
+                        BAN_NHA_HANGMaBan = ban.MaBan,
+                        NHAN_VIENMaNV = User.FindFirst("MaNV")?.Value,
                         ThoiGianTao = DateTime.Now,
                         TongTienMonAn = 0,
+                        PhiPhucVu = 0,
+                        TienThueVAT = 0,
                         GiamGia = 0,
                         ThanhTien = 0,
-                        HinhThucThanhToan = "Đang phục vụ"
-                    };
-
-                    // Gán trạng thái cho hóa đơn
-                    if (hoaDonMoi.GetType().GetProperty("TrangThai") != null)
-                    {
-                        hoaDonMoi.GetType().GetProperty("TrangThai")?.SetValue(hoaDonMoi, "Chưa thanh toán");
-                    }
-
-                    // Gán ngược Mã Hóa Đơn cho Bàn
-                    if (ban.GetType().GetProperty("MaHoaDonHienTai") != null)
-                    {
-                        ban.GetType().GetProperty("MaHoaDonHienTai")?.SetValue(ban, uniqueInvoiceId);
-                    }
-
-                    var dbProperties = hoaDonMoi.GetType().GetProperties();
-                    foreach (var prop in dbProperties)
-                    {
-                        if (prop.Name == "MaBan" || prop.Name.EndsWith("MaBan"))
-                        {
-                            prop.SetValue(hoaDonMoi, ban.MaBan);
-                            break;
-                        }
-                    }
-
-                    _context.HOA_DON_NHA_HANG.Add(hoaDonMoi);
+                        TrangThaiThanhToan = HangSoHeThong.HoaDonNHDangPhucVu,
+                        HinhThucThanhToan = "Chưa thanh toán"
+                    });
                 }
 
                 await _context.SaveChangesAsync();
@@ -128,7 +104,8 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Lỗi thêm bàn. Có thể Mã bàn đã tồn tại: " + ex.Message);
+                _logger.LogError(ex, "Lỗi thêm bàn nhà hàng.");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi hệ thống khi thêm bàn.");
                 return Page();
             }
         }

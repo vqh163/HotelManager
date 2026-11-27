@@ -1,10 +1,12 @@
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
@@ -15,9 +17,11 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
     public class ThemMonViewModel
     {
         [Required(ErrorMessage = "Vui lòng nhập mã món.")]
+        [StringLength(20, ErrorMessage = "Mã món tối đa 20 ký tự.")]
         public string MaDichVu { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vui lòng nhập tên món.")]
+        [StringLength(100, ErrorMessage = "Tên món tối đa 100 ký tự.")]
         public string TenDichVu { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vui lòng chọn danh mục.")]
@@ -27,14 +31,9 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         [Range(0, double.MaxValue, ErrorMessage = "Giá bán phải lớn hơn hoặc bằng 0.")]
         public decimal DonGia { get; set; }
 
-        // Thêm dấu ? để cho phép thuộc tính Mô tả để trống
         public string? MoTa { get; set; }
-
-        // ĐÃ SỬA LỖI: Thêm dấu ? để biến Lưu ý dị ứng thành trường không bắt buộc (Optional)
         public string? LuuYDiUng { get; set; }
-
         public IFormFile? HinhAnhUpload { get; set; }
-
         public string HinhAnh { get; set; } = string.Empty;
     }
 
@@ -42,11 +41,13 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<ThemMonModel> _logger;
 
-        public ThemMonModel(ApplicationDbContext context, IWebHostEnvironment environment)
+        public ThemMonModel(ApplicationDbContext context, IWebHostEnvironment environment, ILogger<ThemMonModel> logger)
         {
             _context = context;
             _environment = environment;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -65,55 +66,50 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 
             try
             {
-                bool isExist = await _context.DICH_VU.AnyAsync(d => d.MaDichVu == ThemMonInfo.MaDichVu);
+                string maChuan = ThemMonInfo.MaDichVu.Trim();
+                bool isExist = await _context.DICH_VU.AnyAsync(d => d.MaDichVu == maChuan);
                 if (isExist)
                 {
                     ModelState.AddModelError("ThemMonInfo.MaDichVu", "Mã món (SKU) này đã tồn tại. Vui lòng nhập mã khác.");
                     return Page();
                 }
 
-                // Xử lý lưu hình ảnh
+                // Kiểm tra và lưu hình ảnh an toàn (chặn tệp giả mạo .svg/.html/quá dung lượng)
                 if (ThemMonInfo.HinhAnhUpload != null && ThemMonInfo.HinhAnhUpload.Length > 0)
                 {
                     string uploadsFolder = Path.Combine(_environment.WebRootPath, "images", "thuc-don");
-                    if (!Directory.Exists(uploadsFolder))
+                    var (ok, ketQua) = await BaoMatHelper.LuuAnhAnToanAsync(ThemMonInfo.HinhAnhUpload, uploadsFolder, "MON");
+                    if (!ok)
                     {
-                        Directory.CreateDirectory(uploadsFolder);
+                        ModelState.AddModelError("ThemMonInfo.HinhAnhUpload", ketQua);
+                        return Page();
                     }
-
-                    string uniqueFileName = Guid.NewGuid().ToString() + "_" + ThemMonInfo.HinhAnhUpload.FileName;
-                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await ThemMonInfo.HinhAnhUpload.CopyToAsync(fileStream);
-                    }
-
-                    ThemMonInfo.HinhAnh = "/images/thuc-don/" + uniqueFileName;
+                    ThemMonInfo.HinhAnh = "/images/thuc-don/" + ketQua;
                 }
 
+                // Lưu toàn bộ thông tin (kể cả MoTa, CanhBaoDiUng, ConMon) thẳng vào SQL Server
                 var dichVuMoi = new DICH_VU
                 {
-                    MaDichVu = ThemMonInfo.MaDichVu,
-                    TenDichVu = ThemMonInfo.TenDichVu,
+                    MaDichVu = maChuan,
+                    TenDichVu = ThemMonInfo.TenDichVu.Trim(),
                     LoaiDichVu = ThemMonInfo.LoaiDichVu,
                     DonGia = ThemMonInfo.DonGia,
                     DonViTinh = "Phần",
-                    HinhAnh = ThemMonInfo.HinhAnh
+                    HinhAnh = ThemMonInfo.HinhAnh,
+                    MoTa = ThemMonInfo.MoTa?.Trim(),
+                    CanhBaoDiUng = ThemMonInfo.LuuYDiUng?.Trim(),
+                    ConMon = true
                 };
 
                 _context.DICH_VU.Add(dichVuMoi);
                 await _context.SaveChangesAsync();
 
-                // Lưu dữ liệu tùy chọn vào RAM, nếu người dùng để trống thì lưu chuỗi rỗng
-                TrangThaiMonStore.MoTaDict[dichVuMoi.MaDichVu] = ThemMonInfo.MoTa ?? "";
-                TrangThaiMonStore.DiUngDict[dichVuMoi.MaDichVu] = ThemMonInfo.LuuYDiUng ?? "";
-
                 return RedirectToPage("./QuanLyThucDon");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi lưu món ăn: " + ex.Message);
+                _logger.LogError(ex, "Lỗi khi thêm mới món ăn.");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi hệ thống khi lưu món ăn.");
                 return Page();
             }
         }

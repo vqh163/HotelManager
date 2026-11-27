@@ -11,8 +11,8 @@ using HotelManager.Models;
 
 namespace HotelManager.Pages.QuanLyTienSanh
 {
-    // Bắt buộc phân quyền: Chỉ Lễ tân và Quản lý mới được truy cập phân hệ UC_04
-    [Authorize(Roles = "Lễ tân,Quản lý")]
+    // Bắt buộc phân quyền: Lễ tân, Quản lý và Giám đốc
+    [Authorize(Policy = HotelManager.Helpers.HangSoHeThong.PolicyTienSanh)]
     public class IndexModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -69,7 +69,7 @@ namespace HotelManager.Pages.QuanLyTienSanh
                     .ToListAsync();
 
                 int khachChuaMoPhong = arrivalsToday
-                    .Where(dp => dp.TrangThaiDatPhong == "DA_DAT" || dp.TrangThaiDatPhong == "Chờ xác nhận")
+                    .Where(dp => HotelManager.Helpers.HangSoHeThong.TrangThaiChoCheckIn.Contains(dp.TrangThaiDatPhong ?? ""))
                     .Sum(dp => dp.SoLuongKhach ?? 0);
 
                 int soPhieuCheckInHomNay = await _context.PHIEU_LUU_TRU.AsNoTracking()

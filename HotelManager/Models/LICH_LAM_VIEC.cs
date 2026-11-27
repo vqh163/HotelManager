@@ -30,5 +30,17 @@ namespace HotelManager.Models
 
         [Column(TypeName = "nvarchar(255)")]
         public string? GhiChu { get; set; }
+
+        // Khóa ngoại liên kết tới mã nhân viên được phân công ca làm việc
+        [Column(TypeName = "varchar(20)")]
+        public string? NHAN_VIENMaNV { get; set; }
+
+        // Tiêu đề công việc của ca trực
+        [Column(TypeName = "nvarchar(100)")]
+        public string? TieuDe { get; set; }
+
+        // Chức vụ / bộ phận tại thời điểm phân công ca
+        [Column(TypeName = "nvarchar(100)")]
+        public string? ChucVu { get; set; }
     }
 }

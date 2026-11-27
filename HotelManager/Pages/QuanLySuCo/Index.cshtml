@@ -24,6 +24,10 @@
         border-left: 5px solid #198754 !important;
         background-color: #f8fff9;
     }
+    /* Đảm bảo Modal luôn giới hạn trong khung nhìn màn hình và phần thân cuộn mượt */
+    .modal-dialog-scrollable .modal-content {
+        max-height: calc(100vh - 2rem);
+    }
 </style>
 
 <div class="container-fluid px-4 py-4">
@@ -46,9 +50,6 @@
                     <i class="bi bi-plus-circle-fill me-1"></i> Tạo Phiếu Sự Cố Mới
                 </button>
             }
-            <a asp-page="/QuanLySoDoPhong/SoDoPhong" class="btn btn-outline-primary fw-bold px-3 py-2 rounded-pill">
-                <i class="bi bi-grid-3x3-gap me-1"></i> Sơ đồ phòng
-            </a>
         </div>
     </div>
 
@@ -378,11 +379,12 @@
 </div>
 
 <!-- ========================================================================= -->
-<!-- MODAL 1: TẠO PHIẾU BÁO CÁO SỰ CỐ MỚI (PHÒNG LƯU TRÚ & KHU VỰC CHUNG)      -->
+<!-- MODAL 1: TẠO PHIẾU BÁO CÁO SỰ CỐ MỚI (ĐÃ ĐƯA <form> LÀM .modal-content)   -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="createTicketModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg rounded-4">
+        <!-- Gộp form vào modal-content để modal-body tự cuộn và footer luôn cố định ở đáy -->
+        <form method="post" asp-page-handler="TaoPhieuSuCo" enctype="multipart/form-data" class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-danger text-white px-4 py-3">
                 <h5 class="modal-title fw-bold mb-0">
                     <i class="bi bi-exclamation-octagon-fill me-2"></i>Tạo Phiếu Báo Cáo Sự Cố Mới
@@ -390,121 +392,120 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopIncidentCamera()"></button>
             </div>
 
-            <form method="post" asp-page-handler="TaoPhieuSuCo" enctype="multipart/form-data">
-                <div class="modal-body p-4">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-5">
-                            <label class="form-label small fw-bold">Phạm vi vị trí sự cố <span class="text-danger">*</span></label>
-                            <select asp-for="LoaiViTriMoi" id="selectLoaiViTriMoi" class="form-select" onchange="toggleLocationInputs()">
-                                <option value="Phong">Phòng lưu trú (PHONG)</option>
-                                <option value="KhuVucChung">Khu vực chung khách sạn</option>
-                            </select>
-                        </div>
-
-                        <!-- Chọn Phòng lưu trú -->
-                        <div class="col-md-7" id="boxChonPhongMoi">
-                            <label class="form-label small fw-bold">Chọn Phòng <span class="text-danger">*</span></label>
-                            <select asp-for="MaPhongMoi" id="selectMaPhongMoi" class="form-select">
-                                <option value="">-- Chọn số phòng --</option>
-                                @foreach (var p in Model.DanhSachPhong)
-                                {
-                                    <option value="@p.MaPhong">Phòng @p.SoPhong (@p.LoaiPhong)</option>
-                                }
-                            </select>
-                        </div>
-
-                        <!-- Chọn Khu vực chung -->
-                        <div class="col-md-7" id="boxChonKhuVucChungMoi" style="display: none;">
-                            <label class="form-label small fw-bold">Chọn Khu vực chung <span class="text-danger">*</span></label>
-                            <select asp-for="KhuVucChungMoi" id="selectKhuVucChungMoi" class="form-select">
-                                <option value="">-- Chọn khu vực chung --</option>
-                                <option value="Sảnh chính (Lobby)">Sảnh chính (Lobby)</option>
-                                <option value="Hành lang các tầng">Hành lang các tầng</option>
-                                <option value="Khu vực Nhà hàng">Khu vực Nhà hàng</option>
-                                <option value="Khu vực Bếp">Khu vực Bếp</option>
-                                <option value="Thang máy">Thang máy</option>
-                                <option value="Khu vực Kho vật tư">Khu vực Kho vật tư</option>
-                                <option value="Bãi đỗ xe / Sân thượng">Bãi đỗ xe / Sân thượng</option>
-                            </select>
-                        </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-5">
+                        <label asp-for="LoaiViTriMoi" class="form-label small fw-bold">Phạm vi vị trí sự cố <span class="text-danger">*</span></label>
+                        <select asp-for="LoaiViTriMoi" id="selectLoaiViTriMoi" class="form-select" onchange="toggleLocationInputs()">
+                            <option value="Phong">Phòng lưu trú (PHONG)</option>
+                            <option value="KhuVucChung">Khu vực chung khách sạn</option>
+                        </select>
                     </div>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold">Mức độ ưu tiên <span class="text-danger">*</span></label>
-                            <select asp-for="MucDoUuTienMoi" id="selectMucDoUuTienMoi" class="form-select" onchange="onPriorityCreateChange()">
-                                <option value="Thấp">Thấp (Sửa định kỳ)</option>
-                                <option value="Trung bình" selected>Trung bình</option>
-                                <option value="Cao">Cao (Tự động khóa Bảo trì nếu là phòng)</option>
-                                <option value="Khẩn cấp">Khẩn cấp (Xử lý ngay & Khóa Bảo trì)</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-6 d-flex flex-column justify-content-end">
-                            <div class="form-check mb-1" id="wrapCheckKhoaPhong">
-                                <input class="form-check-input" type="checkbox" asp-for="KhoaPhongDeSuaMoi" id="chkKhoaPhongDeSuaMoi" />
-                                <label class="form-check-label small fw-bold text-danger" for="chkKhoaPhongDeSuaMoi">
-                                    Khóa phòng sang "Bảo trì" trên Sơ đồ phòng
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" asp-for="DoKhachLamHongMoi" id="chkDoKhachLamHongMoi" />
-                                <label class="form-check-label small fw-semibold text-dark" for="chkDoKhachLamHongMoi">
-                                    Sự cố do Khách hàng làm hỏng (Cần theo dõi chi phí)
-                                </label>
-                            </div>
-                        </div>
+                    <!-- Chọn Phòng lưu trú -->
+                    <div class="col-md-7" id="boxChonPhongMoi">
+                        <label asp-for="MaPhongMoi" class="form-label small fw-bold">Chọn Phòng <span class="text-danger">*</span></label>
+                        <select asp-for="MaPhongMoi" id="selectMaPhongMoi" class="form-select">
+                            <option value="">-- Chọn số phòng --</option>
+                            @foreach (var p in Model.DanhSachPhong)
+                            {
+                                <option value="@p.MaPhong">Phòng @p.SoPhong (@p.LoaiPhong)</option>
+                            }
+                        </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Mô tả chi tiết sự cố <span class="text-danger">*</span></label>
-                        <textarea asp-for="MoTaSuCoMoi" class="form-control" rows="3" required
-                                  placeholder="Mô tả rõ thiết bị hỏng, tình trạng thực tế (VD: Điều hòa chảy nước, bóng đèn nhà tắm cháy, vòi sen rò rỉ...)"></textarea>
+                    <!-- Chọn Khu vực chung -->
+                    <div class="col-md-7" id="boxChonKhuVucChungMoi" style="display: none;">
+                        <label asp-for="KhuVucChungMoi" class="form-label small fw-bold">Chọn Khu vực chung <span class="text-danger">*</span></label>
+                        <select asp-for="KhuVucChungMoi" id="selectKhuVucChungMoi" class="form-select">
+                            <option value="">-- Chọn khu vực chung --</option>
+                            <option value="Sảnh chính (Lobby)">Sảnh chính (Lobby)</option>
+                            <option value="Hành lang các tầng">Hành lang các tầng</option>
+                            <option value="Khu vực Nhà hàng">Khu vực Nhà hàng</option>
+                            <option value="Khu vực Bếp">Khu vực Bếp</option>
+                            <option value="Thang máy">Thang máy</option>
+                            <option value="Khu vực Kho vật tư">Khu vực Kho vật tư</option>
+                            <option value="Bãi đỗ xe / Sân thượng">Bãi đỗ xe / Sân thượng</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="MucDoUuTienMoi" class="form-label small fw-bold">Mức độ ưu tiên <span class="text-danger">*</span></label>
+                        <select asp-for="MucDoUuTienMoi" id="selectMucDoUuTienMoi" class="form-select" onchange="onPriorityCreateChange()">
+                            <option value="Thấp">Thấp (Sửa định kỳ)</option>
+                            <option value="Trung bình" selected>Trung bình</option>
+                            <option value="Cao">Cao (Tự động khóa Bảo trì nếu là phòng)</option>
+                            <option value="Khẩn cấp">Khẩn cấp (Xử lý ngay & Khóa Bảo trì)</option>
+                        </select>
                     </div>
 
-                    <div class="mb-2">
-                        <label class="form-label small fw-bold">Hình ảnh hiện trường (Trước khi sửa)</label>
-                        <div class="input-group">
-                            <input type="file" asp-for="AnhHienTruongMoi" id="fileCreateBefore" class="form-control" accept="image/*"
-                                   onchange="previewIncidentImg(this, 'prevCreateBefore')" />
-                            <button type="button" class="btn btn-outline-dark fw-semibold"
-                                    onclick="openIncidentCamera('fileCreateBefore', 'prevCreateBefore', 'cameraBoxCreate')">
-                                <i class="bi bi-camera-fill me-1"></i>Chụp Camera
-                            </button>
+                    <div class="col-md-6 d-flex flex-column justify-content-end">
+                        <div class="form-check mb-1" id="wrapCheckKhoaPhong">
+                            <input class="form-check-input" type="checkbox" asp-for="KhoaPhongDeSuaMoi" id="chkKhoaPhongDeSuaMoi" />
+                            <label class="form-check-label small fw-bold text-danger" for="chkKhoaPhongDeSuaMoi">
+                                Khóa phòng sang "Bảo trì" trên Sơ đồ phòng
+                            </label>
                         </div>
-                        <img id="prevCreateBefore" class="img-thumbnail mt-2" style="max-height: 120px; display: none;" />
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" asp-for="DoKhachLamHongMoi" id="chkDoKhachLamHongMoi" />
+                            <label class="form-check-label small fw-semibold text-dark" for="chkDoKhachLamHongMoi">
+                                Sự cố do Khách hàng làm hỏng (Cần theo dõi chi phí)
+                            </label>
+                        </div>
                     </div>
+                </div>
 
-                    <!-- Khung Camera cho Modal Tạo phiếu -->
-                    <div id="cameraBoxCreate" class="mt-3 p-3 bg-dark text-white rounded-3 text-center" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="small fw-bold"><i class="bi bi-camera-video-fill text-danger me-1"></i>Camera chụp hiện trường sự cố</span>
-                            <button type="button" class="btn btn-sm btn-outline-light" onclick="stopIncidentCamera()">Đóng Camera</button>
-                        </div>
-                        <video class="incident-video rounded border w-100" autoplay playsinline style="max-height: 220px; object-fit: cover;"></video>
-                        <button type="button" class="btn btn-warning fw-bold mt-2 px-4" onclick="captureIncidentPhoto()">
-                            <i class="bi bi-camera-fill me-1"></i> Chụp ảnh ngay
+                <div class="mb-3">
+                    <label asp-for="MoTaSuCoMoi" class="form-label small fw-bold">Mô tả chi tiết sự cố <span class="text-danger">*</span></label>
+                    <textarea asp-for="MoTaSuCoMoi" class="form-control" rows="3" required
+                              placeholder="Mô tả rõ thiết bị hỏng, tình trạng thực tế (VD: Điều hòa chảy nước, bóng đèn nhà tắm cháy, vòi sen rò rỉ...)"></textarea>
+                </div>
+
+                <div class="mb-2">
+                    <label asp-for="AnhHienTruongMoi" class="form-label small fw-bold">Hình ảnh hiện trường (Trước khi sửa)</label>
+                    <div class="input-group">
+                        <input type="file" asp-for="AnhHienTruongMoi" id="fileCreateBefore" class="form-control" accept="image/*"
+                               onchange="previewIncidentImg(this, 'prevCreateBefore')" />
+                        <button type="button" class="btn btn-outline-dark fw-semibold"
+                                onclick="openIncidentCamera('fileCreateBefore', 'prevCreateBefore', 'cameraBoxCreate')">
+                            <i class="bi bi-camera-fill me-1"></i>Chụp Camera
                         </button>
                     </div>
+                    <img id="prevCreateBefore" class="img-thumbnail mt-2" style="max-height: 120px; display: none;" />
                 </div>
 
-                <div class="modal-footer bg-light border-top px-4 py-3">
-                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal" onclick="stopIncidentCamera()">Hủy</button>
-                    <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm">
-                        <i class="bi bi-send-fill me-1"></i> Tạo Phiếu & Gửi Kỹ Thuật
+                <!-- Khung Camera cho Modal Tạo phiếu -->
+                <div id="cameraBoxCreate" class="mt-3 p-3 bg-dark text-white rounded-3 text-center" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold"><i class="bi bi-camera-video-fill text-danger me-1"></i>Camera chụp hiện trường sự cố</span>
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="stopIncidentCamera()">Đóng Camera</button>
+                    </div>
+                    <video class="incident-video rounded border w-100" autoplay playsinline style="max-height: 220px; object-fit: cover;"></video>
+                    <button type="button" class="btn btn-warning fw-bold mt-2 px-4" onclick="captureIncidentPhoto()">
+                        <i class="bi bi-camera-fill me-1"></i> Chụp ảnh ngay
                     </button>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <div class="modal-footer bg-light border-top px-4 py-3">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal" onclick="stopIncidentCamera()">Hủy</button>
+                <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-send-fill me-1"></i> Tạo Phiếu & Gửi Kỹ Thuật
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- ========================================================================= -->
-<!-- MODAL 2: KỸ THUẬT CẬP NHẬT SỬA CHỮA, XUẤT NHIỀU VẬT TƯ & CHỤP ẢNH SAU SỬA -->
+<!-- MODAL 2: KỸ THUẬT CẬP NHẬT SỬA CHỮA & VẬT TƯ (ĐÃ SỬA LỖI CUỘN & GHIM NÚT) -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="techUpdateModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg rounded-4">
+        <!-- Gộp thẻ <form> thành .modal-content để .modal-body có thanh cuộn và .modal-footer không bao giờ bị đẩy mất -->
+        <form method="post" asp-page-handler="CapNhatSuaChua" enctype="multipart/form-data" class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-warning text-dark px-4 py-3">
                 <div>
                     <h5 class="modal-title fw-bold mb-0">
@@ -515,144 +516,144 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopIncidentCamera()"></button>
             </div>
 
-            <form method="post" asp-page-handler="CapNhatSuaChua" enctype="multipart/form-data">
+            <div class="modal-body p-4" id="techModalBodyScroll">
+                <!-- Đặt input ẩn bên trong modal-body để không phá cấu trúc Flexbox của modal-content -->
                 <input type="hidden" asp-for="MaPhieuThaoTac" id="techInputMaPhieu" />
                 <input type="hidden" asp-for="HanhDongKyThuat" id="techInputHanhDong" value="LuuTam" />
 
-                <div class="modal-body p-4">
-                    <!-- Cảnh báo nếu phiếu này vừa bị Quản lý trả lại -->
-                    <div id="techRejectWarningBox" class="alert alert-danger border-danger mb-3" style="display: none;">
-                        <div class="fw-bold"><i class="bi bi-exclamation-octagon-fill me-1"></i>Phiếu này bị Quản lý yêu cầu sửa lại:</div>
-                        <div id="techRejectReasonText" class="small mt-1"></div>
-                    </div>
+                <!-- Cảnh báo nếu phiếu này vừa bị Quản lý trả lại -->
+                <div id="techRejectWarningBox" class="alert alert-danger border-danger mb-3" style="display: none;">
+                    <div class="fw-bold"><i class="bi bi-exclamation-octagon-fill me-1"></i>Phiếu này bị Quản lý yêu cầu sửa lại:</div>
+                    <div id="techRejectReasonText" class="small mt-1"></div>
+                </div>
 
-                    <div class="p-3 bg-light rounded-3 border mb-3 small">
-                        <strong>Mô tả sự cố ban đầu:</strong> <span id="techMoTaBanDau"></span>
-                    </div>
+                <div class="p-3 bg-light rounded-3 border mb-3 small">
+                    <strong>Mô tả sự cố ban đầu:</strong> <span id="techMoTaBanDau"></span>
+                </div>
 
-                    <!-- PHẦN A: DANH SÁCH VẬT TƯ ĐÃ XUẤT TRƯỚC ĐÓ (CHỈ ĐỌC - TRÁNH TRỪ KHO 2 LẦN) -->
-                    <div id="techUsedMaterialsBox" class="mb-3" style="display: none;">
-                        <h6 class="fw-bold text-secondary small mb-2">
-                            <i class="bi bi-box-seam me-1"></i>Vật tư đã xuất kho trước đó cho phiếu này:
-                        </h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered mb-0 small">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Tên vật tư</th>
-                                        <th class="text-center">Số lượng</th>
-                                        <th class="text-center">Đơn vị</th>
-                                        <th class="text-end">Đơn giá</th>
-                                        <th class="text-end">Thành tiền</th>
-                                        <th>Thời gian xuất</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="techUsedMaterialsBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- PHẦN B: CHỌN NHIỀU VẬT TƯ TIÊU HAO XUẤT THÊM (TỰ ĐỘNG HIỆN ĐƠN VỊ & TRỪ KHO) -->
-                    <div class="card border-primary border-opacity-50 rounded-3 mb-3">
-                        <div class="card-header bg-primary-subtle py-2 px-3 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-primary small">
-                                <i class="bi bi-boxes me-1"></i>Chọn vật tư tiêu hao xuất thêm từ Kho (Tự động trừ tồn kho KHO_VAT_TU)
-                            </span>
-                            <button type="button" class="btn btn-sm btn-primary fw-bold py-0 px-3" onclick="addMaterialRow()">
-                                <i class="bi bi-plus-lg me-1"></i>Thêm vật tư
-                            </button>
-                        </div>
-                        <div class="card-body p-3">
-                            <div id="materialRowsContainer">
-                                <div class="text-muted small text-center py-2" id="emptyMaterialHint">
-                                    Nhấn nút <strong>"+ Thêm vật tư"</strong> nếu quá trình sửa chữa cần xuất vật tư từ kho.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- PHẦN C: CHI PHÍ PHÁT SINH & GHI CHÚ KỸ THUẬT -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Chi phí sửa chữa phát sinh / Đền bù (VNĐ)</label>
-                            <input type="number" asp-for="ChiPhiPhatSinhKT" id="techInputChiPhiPhatSinh" class="form-control form-control-sm fw-bold text-danger" min="0" step="10000" value="0" />
-                            <small class="text-muted" style="font-size: 0.72rem;">Nhập thêm phí nhân công/thuê ngoài/đền bù (nếu có).</small>
-                        </div>
-                        <div class="col-md-8 d-flex flex-column justify-content-center">
-                            <div class="form-check mb-1">
-                                <input class="form-check-input" type="checkbox" asp-for="DoKhachLamHongKT" id="techChkDoKhach" onchange="toggleChargeGuestCheckbox()" />
-                                <label class="form-check-label small fw-bold text-dark" for="techChkDoKhach">
-                                    Xác nhận sự cố này do Khách hàng làm hỏng
-                                </label>
-                            </div>
-                            <div class="form-check" id="techWrapChargeGuest" style="display: none;">
-                                <input class="form-check-input" type="checkbox" asp-for="CongPhiVaoHoaDonPhongKT" id="techChkCongHoaDon" />
-                                <label class="form-check-label small fw-bold text-danger" for="techChkCongHoaDon">
-                                    Cộng thẳng tổng chi phí sửa chữa vào hóa đơn phòng (CHI_TIET_DICH_VU) nếu khách đang ở
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Ghi chú kết quả xử lý kỹ thuật</label>
-                        <textarea asp-for="GhiChuXuLyKT" id="techInputGhiChuXuLy" class="form-control" rows="2"
-                                  placeholder="Mô tả hạng mục đã thay thế, đã kiểm tra vận hành ổn định..."></textarea>
-                    </div>
-
-                    <!-- PHẦN D: CHỤP / TẢI ẢNH SAU KHI SỬA CHỮA XONG -->
-                    <div class="mb-2">
-                        <label class="form-label small fw-bold">
-                            Hình ảnh chứng minh sau khi sửa chữa xong <span class="text-danger">(Bắt buộc khi Gửi nghiệm thu)</span>
-                        </label>
-                        <div class="input-group">
-                            <input type="file" asp-for="AnhSauSuaChuaKT" id="fileTechAfter" class="form-control" accept="image/*"
-                                   onchange="previewIncidentImg(this, 'prevTechAfter')" />
-                            <button type="button" class="btn btn-outline-dark fw-semibold"
-                                    onclick="openIncidentCamera('fileTechAfter', 'prevTechAfter', 'cameraBoxTech')">
-                                <i class="bi bi-camera-fill me-1"></i>Chụp Camera
-                            </button>
-                        </div>
-                        <img id="prevTechAfter" class="img-thumbnail mt-2" style="max-height: 120px; display: none;" />
-                    </div>
-
-                    <!-- Khung Camera cho Modal Kỹ thuật -->
-                    <div id="cameraBoxTech" class="mt-3 p-3 bg-dark text-white rounded-3 text-center" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="small fw-bold"><i class="bi bi-camera-video-fill text-success me-1"></i>Camera chụp ảnh nghiệm thu sau sửa chữa</span>
-                            <button type="button" class="btn btn-sm btn-outline-light" onclick="stopIncidentCamera()">Đóng Camera</button>
-                        </div>
-                        <video class="incident-video rounded border w-100" autoplay playsinline style="max-height: 220px; object-fit: cover;"></video>
-                        <button type="button" class="btn btn-warning fw-bold mt-2 px-4" onclick="captureIncidentPhoto()">
-                            <i class="bi bi-camera-fill me-1"></i> Chụp ảnh ngay
-                        </button>
+                <!-- PHẦN A: DANH SÁCH VẬT TƯ ĐÃ XUẤT TRƯỚC ĐÓ (CHỈ ĐỌC - TRÁNH TRỪ KHO 2 LẦN) -->
+                <div id="techUsedMaterialsBox" class="mb-3" style="display: none;">
+                    <h6 class="fw-bold text-secondary small mb-2">
+                        <i class="bi bi-box-seam me-1"></i>Vật tư đã xuất kho trước đó cho phiếu này:
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tên vật tư</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th class="text-center">Đơn vị</th>
+                                    <th class="text-end">Đơn giá</th>
+                                    <th class="text-end">Thành tiền</th>
+                                    <th>Thời gian xuất</th>
+                                </tr>
+                            </thead>
+                            <tbody id="techUsedMaterialsBody"></tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal" onclick="stopIncidentCamera()">Đóng</button>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-outline-primary fw-bold rounded-pill px-4"
-                                onclick="document.getElementById('techInputHanhDong').value='LuuTam';">
-                            <i class="bi bi-save me-1"></i> Lưu tiến độ & Xuất vật tư
-                        </button>
-                        <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm"
-                                onclick="document.getElementById('techInputHanhDong').value='GuiNghiemThu'; return confirm('Xác nhận đã sửa xong và gửi Quản lý nghiệm thu?');">
-                            <i class="bi bi-send-check-fill me-1"></i> Hoàn tất & Gửi Nghiệm Thu
+                <!-- PHẦN B: CHỌN NHIỀU VẬT TƯ TIÊU HAO XUẤT THÊM (TỰ ĐỘNG HIỆN ĐƠN VỊ & TRỪ KHO) -->
+                <div class="card border-primary border-opacity-50 rounded-3 mb-3">
+                    <div class="card-header bg-primary-subtle py-2 px-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-primary small">
+                            <i class="bi bi-boxes me-1"></i>Chọn vật tư tiêu hao xuất thêm từ Kho (Tự động trừ tồn kho KHO_VAT_TU)
+                        </span>
+                        <button type="button" class="btn btn-sm btn-primary fw-bold py-0 px-3" onclick="addMaterialRow()">
+                            <i class="bi bi-plus-lg me-1"></i>Thêm vật tư
                         </button>
                     </div>
+                    <div class="card-body p-3">
+                        <div id="materialRowsContainer">
+                            <div class="text-muted small text-center py-2" id="emptyMaterialHint">
+                                Nhấn nút <strong>"+ Thêm vật tư"</strong> nếu quá trình sửa chữa cần xuất vật tư từ kho.
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </form>
-        </div>
+
+                <!-- PHẦN C: CHI PHÍ PHÁT SINH & GHI CHÚ KỸ THUẬT -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label asp-for="ChiPhiPhatSinhKT" class="form-label small fw-bold">Chi phí sửa chữa phát sinh / Đền bù (VNĐ)</label>
+                        <input type="number" asp-for="ChiPhiPhatSinhKT" id="techInputChiPhiPhatSinh" class="form-control form-control-sm fw-bold text-danger" min="0" step="10000" value="0" />
+                        <small class="text-muted" style="font-size: 0.72rem;">Nhập thêm phí nhân công/thuê ngoài/đền bù (nếu có).</small>
+                    </div>
+                    <div class="col-md-8 d-flex flex-column justify-content-center">
+                        <div class="form-check mb-1">
+                            <input class="form-check-input" type="checkbox" asp-for="DoKhachLamHongKT" id="techChkDoKhach" onchange="toggleChargeGuestCheckbox()" />
+                            <label class="form-check-label small fw-bold text-dark" for="techChkDoKhach">
+                                Xác nhận sự cố này do Khách hàng làm hỏng
+                            </label>
+                        </div>
+                        <div class="form-check" id="techWrapChargeGuest" style="display: none;">
+                            <input class="form-check-input" type="checkbox" asp-for="CongPhiVaoHoaDonPhongKT" id="techChkCongHoaDon" />
+                            <label class="form-check-label small fw-bold text-danger" for="techChkCongHoaDon">
+                                Cộng thẳng tổng chi phí sửa chữa vào hóa đơn phòng (CHI_TIET_DICH_VU) nếu khách đang ở
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="GhiChuXuLyKT" class="form-label small fw-bold">Ghi chú kết quả xử lý kỹ thuật</label>
+                    <textarea asp-for="GhiChuXuLyKT" id="techInputGhiChuXuLy" class="form-control" rows="2"
+                              placeholder="Mô tả hạng mục đã thay thế, đã kiểm tra vận hành ổn định..."></textarea>
+                </div>
+
+                <!-- PHẦN D: CHỤP / TẢI ẢNH SAU KHI SỬA CHỮA XONG -->
+                <div class="mb-2">
+                    <label asp-for="AnhSauSuaChuaKT" class="form-label small fw-bold">
+                        Hình ảnh chứng minh sau khi sửa chữa xong <span class="text-danger">(Bắt buộc khi Gửi nghiệm thu)</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="file" asp-for="AnhSauSuaChuaKT" id="fileTechAfter" class="form-control" accept="image/*"
+                               onchange="previewIncidentImg(this, 'prevTechAfter')" />
+                        <button type="button" class="btn btn-outline-dark fw-semibold"
+                                onclick="openIncidentCamera('fileTechAfter', 'prevTechAfter', 'cameraBoxTech')">
+                            <i class="bi bi-camera-fill me-1"></i>Chụp Camera
+                        </button>
+                    </div>
+                    <img id="prevTechAfter" class="img-thumbnail mt-2" style="max-height: 120px; display: none;" />
+                </div>
+
+                <!-- Khung Camera cho Modal Kỹ thuật -->
+                <div id="cameraBoxTech" class="mt-3 p-3 bg-dark text-white rounded-3 text-center" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold"><i class="bi bi-camera-video-fill text-success me-1"></i>Camera chụp ảnh nghiệm thu sau sửa chữa</span>
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="stopIncidentCamera()">Đóng Camera</button>
+                    </div>
+                    <video class="incident-video rounded border w-100" autoplay playsinline style="max-height: 220px; object-fit: cover;"></video>
+                    <button type="button" class="btn btn-warning fw-bold mt-2 px-4" onclick="captureIncidentPhoto()">
+                        <i class="bi bi-camera-fill me-1"></i> Chụp ảnh ngay
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh nút bấm luôn ghim cố định ở đáy Modal -->
+            <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal" onclick="stopIncidentCamera()">Đóng</button>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-outline-primary fw-bold rounded-pill px-4"
+                            onclick="document.getElementById('techInputHanhDong').value='LuuTam';">
+                        <i class="bi bi-save me-1"></i> Lưu tiến độ & Xuất vật tư
+                    </button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm"
+                            onclick="document.getElementById('techInputHanhDong').value='GuiNghiemThu'; return confirm('Xác nhận đã sửa xong và gửi Quản lý nghiệm thu?');">
+                        <i class="bi bi-send-check-fill me-1"></i> Hoàn tất & Gửi Nghiệm Thu
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- ========================================================================= -->
-<!-- MODAL 3: QUẢN LÝ NGHIỆM THU (ĐẠT -> BÁO XANH / KHÔNG ĐẠT -> TRẢ LẠI)       -->
+<!-- MODAL 3: QUẢN LÝ NGHIỆM THU (ĐÃ ĐƯA <form> LÀM .modal-content)            -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="approvalModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg rounded-4">
+        <form method="post" asp-page-handler="NghiemThu" class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header bg-success text-white px-4 py-3">
                 <h5 class="modal-title fw-bold mb-0">
                     <i class="bi bi-patch-check-fill me-2"></i>Nghiệm Thu Phiếu Sự Cố - <span id="appMaPhieuLbl" class="font-monospace"></span>
@@ -660,74 +661,72 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
 
-            <form method="post" asp-page-handler="NghiemThu">
+            <div class="modal-body p-4">
                 <input type="hidden" asp-for="MaPhieuThaoTac" id="appInputMaPhieu" />
                 <input type="hidden" asp-for="KetQuaNghiemThu" id="appInputKetQua" value="Dat" />
 
-                <div class="modal-body p-4">
-                    <div class="row g-3 mb-3 p-3 bg-light rounded-3 border small">
-                        <div class="col-md-6"><strong>Vị trí:</strong> <span id="appViTri" class="text-primary fw-bold"></span></div>
-                        <div class="col-md-6"><strong>Kỹ thuật xử lý:</strong> <span id="appNguoiXuLy" class="fw-bold"></span></div>
-                        <div class="col-md-12"><strong>Mô tả sự cố:</strong> <span id="appMoTa"></span></div>
-                        <div class="col-md-12"><strong>Ghi chú kỹ thuật:</strong> <span id="appGhiChuXuLy" class="text-success fw-semibold"></span></div>
-                        <div class="col-md-12"><strong>Tổng chi phí (Vật tư + Phát sinh):</strong> <span id="appTongChiPhi" class="text-danger fw-bold fs-6"></span></div>
-                    </div>
+                <div class="row g-3 mb-3 p-3 bg-light rounded-3 border small">
+                    <div class="col-md-6"><strong>Vị trí:</strong> <span id="appViTri" class="text-primary fw-bold"></span></div>
+                    <div class="col-md-6"><strong>Kỹ thuật xử lý:</strong> <span id="appNguoiXuLy" class="fw-bold"></span></div>
+                    <div class="col-md-12"><strong>Mô tả sự cố:</strong> <span id="appMoTa"></span></div>
+                    <div class="col-md-12"><strong>Ghi chú kỹ thuật:</strong> <span id="appGhiChuXuLy" class="text-success fw-semibold"></span></div>
+                    <div class="col-md-12"><strong>Tổng chi phí (Vật tư + Phát sinh):</strong> <span id="appTongChiPhi" class="text-danger fw-bold fs-6"></span></div>
+                </div>
 
-                    <!-- Đối chiếu Hình ảnh Trước & Sau sửa chữa -->
-                    <div class="row g-3 mb-3 text-center">
-                        <div class="col-md-6">
-                            <div class="border rounded-3 p-2 bg-white">
-                                <div class="small fw-bold text-danger mb-2">Ảnh hiện trường (Trước sửa)</div>
-                                <div id="appAnhTruocBox"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="border rounded-3 p-2 bg-white">
-                                <div class="small fw-bold text-success mb-2">Ảnh kết quả (Sau khi sửa)</div>
-                                <div id="appAnhSauBox"></div>
-                            </div>
+                <!-- Đối chiếu Hình ảnh Trước & Sau sửa chữa -->
+                <div class="row g-3 mb-3 text-center">
+                    <div class="col-md-6">
+                        <div class="border rounded-3 p-2 bg-white">
+                            <div class="small fw-bold text-danger mb-2">Ảnh hiện trường (Trước sửa)</div>
+                            <div id="appAnhTruocBox"></div>
                         </div>
                     </div>
-
-                    <!-- Danh sách vật tư đã tiêu hao -->
-                    <div class="mb-3">
-                        <h6 class="fw-bold small text-secondary mb-2">Chi tiết vật tư đã tiêu hao:</h6>
-                        <div id="appMaterialsSummary" class="small"></div>
-                    </div>
-
-                    <div id="appUnlockNotice" class="alert alert-info small mb-3" style="display: none;">
-                        <i class="bi bi-info-circle-fill me-1"></i>
-                        Khi bấm <strong>Nghiệm thu Đạt (Báo xanh)</strong>, phòng đang bị khóa <strong>Bảo trì</strong> sẽ tự động mở khóa chuyển về <strong>Trống + Vệ sinh: Bẩn</strong> để Nhân viên Buồng phòng vào dọn dẹp lại.
-                    </div>
-
-                    <!-- Ô nhập lý do nếu trả lại -->
-                    <div class="mb-2">
-                        <label class="form-label small fw-bold text-danger">Lý do trả lại (Bắt buộc nhập nếu chọn "Trả lại / Sửa lại")</label>
-                        <textarea asp-for="LyDoTuChoiQL" id="appInputLyDoTuChoi" class="form-control" rows="2"
-                                  placeholder="VD: Thiết bị vẫn còn kêu to, chưa vệ sinh sạch khu vực vừa sửa..."></textarea>
+                    <div class="col-md-6">
+                        <div class="border rounded-3 p-2 bg-white">
+                            <div class="small fw-bold text-success mb-2">Ảnh kết quả (Sau khi sửa)</div>
+                            <div id="appAnhSauBox"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-outline-danger fw-bold rounded-pill px-4"
-                                onclick="return submitRejection();">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> Trả lại / Sửa lại
-                        </button>
-                        <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm"
-                                onclick="document.getElementById('appInputKetQua').value='Dat'; return confirm('Xác nhận nghiệm thu ĐẠT và Báo xanh hoàn thành phiếu sự cố này?');">
-                            <i class="bi bi-check-circle-fill me-1"></i> Nghiệm thu Đạt (Báo xanh)
-                        </button>
-                    </div>
+                <!-- Danh sách vật tư đã tiêu hao -->
+                <div class="mb-3">
+                    <h6 class="fw-bold small text-secondary mb-2">Chi tiết vật tư đã tiêu hao:</h6>
+                    <div id="appMaterialsSummary" class="small"></div>
                 </div>
-            </form>
-        </div>
+
+                <div id="appUnlockNotice" class="alert alert-info small mb-3" style="display: none;">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    Khi bấm <strong>Nghiệm thu Đạt (Báo xanh)</strong>, phòng đang bị khóa <strong>Bảo trì</strong> sẽ tự động mở khóa chuyển về <strong>Trống + Vệ sinh: Bẩn</strong> để Nhân viên Buồng phòng vào dọn dẹp lại.
+                </div>
+
+                <!-- Ô nhập lý do nếu trả lại -->
+                <div class="mb-2">
+                    <label asp-for="LyDoTuChoiQL" class="form-label small fw-bold text-danger">Lý do trả lại (Bắt buộc nhập nếu chọn "Trả lại / Sửa lại")</label>
+                    <textarea asp-for="LyDoTuChoiQL" id="appInputLyDoTuChoi" class="form-control" rows="2"
+                              placeholder="VD: Thiết bị vẫn còn kêu to, chưa vệ sinh sạch khu vực vừa sửa..."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-outline-danger fw-bold rounded-pill px-4"
+                            onclick="return submitRejection();">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Trả lại / Sửa lại
+                    </button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm"
+                            onclick="document.getElementById('appInputKetQua').value='Dat'; return confirm('Xác nhận nghiệm thu ĐẠT và Báo xanh hoàn thành phiếu sự cố này?');">
+                        <i class="bi bi-check-circle-fill me-1"></i> Nghiệm thu Đạt (Báo xanh)
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- ========================================================================= -->
-<!-- MODAL 4: XEM CHI TIẾT TOÀN BỘ THÔNG TIN PHIẾU SỰ CỐ (ALL ROLES)            -->
+<!-- MODAL 4: XEM CHI TIẾT TOÀN BỘ THÔNG TIN PHIẾU SỰ CỐ (ALL ROLES)           -->
 <!-- ========================================================================= -->
 <div class="modal fade" id="detailTicketModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -815,7 +814,6 @@
             document.getElementById('techChkCongHoaDon').checked = false;
             toggleChargeGuestCheckbox();
 
-            // Hiển thị lý do từ chối nếu Quản lý vừa trả lại
             const rejBox = document.getElementById('techRejectWarningBox');
             if (t.LyDoTuChoi) {
                 rejBox.style.display = 'block';
@@ -824,7 +822,6 @@
                 rejBox.style.display = 'none';
             }
 
-            // Hiển thị ảnh sau sửa đã lưu trước đó (nếu có)
             const prevAfter = document.getElementById('prevTechAfter');
             document.getElementById('fileTechAfter').value = '';
             if (t.AnhSauSua) {
@@ -834,7 +831,6 @@
                 prevAfter.style.display = 'none';
             }
 
-            // Hiển thị bảng vật tư đã xuất trước đó
             const usedBox = document.getElementById('techUsedMaterialsBox');
             const usedBody = document.getElementById('techUsedMaterialsBody');
             usedBody.innerHTML = '';
@@ -855,7 +851,6 @@
                 usedBox.style.display = 'none';
             }
 
-            // Reset khung chọn vật tư mới
             document.getElementById('materialRowsContainer').innerHTML = `
                 <div class="text-muted small text-center py-2" id="emptyMaterialHint">
                     Nhấn nút <strong>"+ Thêm vật tư"</strong> nếu quá trình sửa chữa cần xuất vật tư từ kho.
@@ -1059,7 +1054,7 @@
         }
 
         // =====================================================================
-        // 5. CAMERA TRỰC TIẾP & XEM TRƯỚC HÌNH ẢNH (WEBRTC)
+        // 5. CAMERA TRỰC TIẾP & XEM TRƯỚC HÌNH ẢNH (TỰ CUỘN NHẸ TRONG MODAL BODY)
         // =====================================================================
         let incidentStream = null;
         let currentCamInputId = null;
@@ -1071,6 +1066,14 @@
             if (inputEl.files && inputEl.files[0] && img) {
                 img.src = URL.createObjectURL(inputEl.files[0]);
                 img.style.display = 'inline-block';
+
+                // Tự động cuộn nhẹ modal-body xuống để nhìn rõ ảnh xem trước mà không ảnh hưởng nút footer
+                const modalBody = img.closest('.modal-body');
+                if (modalBody) {
+                    setTimeout(() => {
+                        modalBody.scrollTo({ top: modalBody.scrollHeight, behavior: 'smooth' });
+                    }, 100);
+                }
             }
         }
 
@@ -1087,7 +1090,10 @@
                 incidentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
                 video.srcObject = incidentStream;
                 box.style.display = 'block';
-                box.scrollIntoView({ behavior: 'smooth' });
+                const modalBody = box.closest('.modal-body');
+                if (modalBody) {
+                    modalBody.scrollTo({ top: modalBody.scrollHeight, behavior: 'smooth' });
+                }
             } catch (err) {
                 alert("Không thể mở Camera trực tiếp. Vui lòng chọn ảnh từ thiết bị!");
             }

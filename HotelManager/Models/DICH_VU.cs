@@ -24,5 +24,16 @@ namespace HotelManager.Models
 
         [Column(TypeName = "nvarchar(255)")]
         public string? HinhAnh { get; set; }
+
+        // Mô tả chi tiết món ăn / dịch vụ (chuyển từ menu_data.json vào SQL Server)
+        [Column(TypeName = "nvarchar(500)")]
+        public string? MoTa { get; set; }
+
+        // Cảnh báo thành phần dị ứng của món ăn
+        [Column(TypeName = "nvarchar(255)")]
+        public string? CanhBaoDiUng { get; set; }
+
+        // Trạng thái còn món / đang phục vụ (true: còn món, false: tạm hết)
+        public bool ConMon { get; set; } = true;
     }
 }

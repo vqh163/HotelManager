@@ -87,25 +87,86 @@
                                         <li><hr class="dropdown-divider"></li>
                                     }
 
-                                    <!-- LUỒNG DÀNH CHO NHÂN VIÊN / QUẢN LÝ -->
-                                    @if (User.IsInRole("Quản lý"))
+                                    <!-- LUỒNG DÀNH CHO QUẢN LÝ / GIÁM ĐỐC -->
+                                    @if (User.IsInRole("Quản lý") || User.IsInRole("Giám đốc"))
                                     {
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyTienSanh/Index"><i class="bi bi-building-check me-2"></i>Quản lý Tiền sảnh</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/QuanLyDSPhong"><i class="bi bi-door-open me-2"></i>Danh sách phòng</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/SoDoPhong"><i class="bi bi-grid-fill me-2"></i>Sơ đồ lưới phòng</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhanSu/QuanLyDanhSachNhanVien"><i class="bi bi-people-fill me-2"></i>Quản lý Nhân sự</a></li>
-                                        <li class="nav-item"><a class="nav-link text-dark fw-semibold" asp-page="/QuanLySuCo/Index"><i class="bi bi-wrench-adjustable me-1"></i>Sự cố & Kỹ thuật</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySuCo/Index"><i class="bi bi-wrench-adjustable me-2"></i>Sự cố & Kỹ thuật</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/SoDoBan"><i class="bi bi-cup-hot me-2"></i>Nhà hàng & Bàn</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyOrder"><i class="bi bi-fire me-2"></i>Màn hình Bếp (KDS)</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyThucDon"><i class="bi bi-journal-richtext me-2"></i>Quản lý Thực đơn</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuayThuNgan"><i class="bi bi-cash-stack me-2"></i>Quầy Thu ngân NH</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyKho"><i class="bi bi-box-seam me-2"></i>Quản lý Kho</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
-                                    @if (User.IsInRole("Lễ tân") || User.IsInRole("Nhân viên Buồng phòng") || User.IsInRole("Nhân viên Kỹ thuật"))
+                                    @if (User.IsInRole("Lễ tân"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyTienSanh/Index"><i class="bi bi-building-check me-2"></i>Quản lý Tiền sảnh</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/SoDoPhong"><i class="bi bi-grid-fill me-2"></i>Sơ đồ lưới phòng</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySuCo/Index"><i class="bi bi-wrench-adjustable me-2"></i>Sự cố & Kỹ thuật</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.IsInRole("Nhân viên Buồng phòng") || User.IsInRole("Buồng phòng"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/SoDoPhong"><i class="bi bi-grid-fill me-2"></i>Sơ đồ lưới phòng</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySuCo/Index"><i class="bi bi-wrench-adjustable me-2"></i>Sự cố & Kỹ thuật</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.IsInRole("Nhân viên Kỹ thuật") || User.IsInRole("Kỹ thuật"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySuCo/Index"><i class="bi bi-wrench-adjustable me-2"></i>Sự cố & Kỹ thuật</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.IsInRole("Đầu bếp"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyOrder"><i class="bi bi-fire me-2"></i>Màn hình Bếp (Order)</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyThucDon"><i class="bi bi-journal-richtext me-2"></i>Quản lý Thực đơn</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.IsInRole("Phục vụ Nhà hàng"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/SoDoBan"><i class="bi bi-cup-hot me-2"></i>Sơ đồ bàn & Gọi món</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.IsInRole("Thu ngân Nhà hàng"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuayThuNgan"><i class="bi bi-cash-stack me-2"></i>Quầy Thu ngân</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/SoDoBan"><i class="bi bi-cup-hot me-2"></i>Sơ đồ bàn</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.IsInRole("Thủ kho"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyKho"><i class="bi bi-box-seam me-2"></i>Quản lý Kho</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyNhapKho"><i class="bi bi-box-arrow-in-down me-2"></i>Nhập kho</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyXuatKho"><i class="bi bi-box-arrow-up me-2"></i>Xuất kho</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/KiemKeKho"><i class="bi bi-clipboard-check me-2"></i>Kiểm kê kho</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.IsInRole("Sales"))
+                                    {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/SoDoPhong"><i class="bi bi-grid-fill me-2"></i>Sơ đồ lưới phòng</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/TimPhong"><i class="bi bi-search me-2"></i>Đặt phòng cho khách</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    @if (User.IsInRole("Kế toán"))
                                     {
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
-                                        <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/SoDoPhong"><i class="bi bi-grid-fill me-2"></i>Sơ đồ lưới phòng</a></li>
-                                        <li class="nav-item"><a class="nav-link text-dark fw-semibold" asp-page="/QuanLySuCo/Index"><i class="bi bi-wrench-adjustable me-1"></i>Sự cố & Kỹ thuật</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
                                     <!-- LUỒNG DÀNH CHO QUẢN TRỊ VIÊN -->
-                                    @if (User.IsInRole("Quản trị viên"))
+                                    @if (User.IsInRole("Quản trị viên") || User.IsInRole("Quản trị viên hệ thống"))
                                     {
                                         <li><a class="dropdown-item py-2 text-primary" asp-page="/QuanTriHeThong/QuanLyTaiKhoan"><i class="bi bi-gear me-2"></i>Quản trị hệ thống</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhanSu/QuanLyDanhSachNhanVien"><i class="bi bi-people-fill me-2"></i>Quản lý Nhân sự</a></li>

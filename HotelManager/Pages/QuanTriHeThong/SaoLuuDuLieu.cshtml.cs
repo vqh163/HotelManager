@@ -1,8 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace HotelManager.Pages.QuanTriHeThong
 {
@@ -10,21 +15,20 @@ namespace HotelManager.Pages.QuanTriHeThong
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly ILogger<SaoLuuDuLieuModel> _logger;
 
-        // Tiêm Dependency Injection cho DbContext và WebHostEnvironment (để lấy đường dẫn thư mục)
-        public SaoLuuDuLieuModel(ApplicationDbContext context, IWebHostEnvironment env)
+        public SaoLuuDuLieuModel(ApplicationDbContext context, IWebHostEnvironment env, ILogger<SaoLuuDuLieuModel> logger)
         {
             _context = context;
             _env = env;
+            _logger = logger;
         }
 
-        // Biến lưu trữ thông báo cho UI
-        public string ThongBao { get; set; } = "";
+        public string ThongBao { get; set; } = string.Empty;
         public bool IsSuccess { get; set; } = false;
 
         public void OnGet()
         {
-            // Chỉ hiển thị giao diện mặc định
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -38,36 +42,38 @@ namespace HotelManager.Pages.QuanTriHeThong
                     Directory.CreateDirectory(backupFolder);
                 }
 
-                // 2. Đặt tên file backup theo chuẩn thời gian thực để không bị trùng
-                string fileName = $"HotelManager_Backup_{DateTime.Now:yyyyMMddHHmmss}.bak";
+                // 2. Lấy tên Database thực tế từ chuỗi kết nối (HotelManagerDB) thay vì gõ cứng
+                string dbName = _context.Database.GetDbConnection().Database;
+                if (string.IsNullOrWhiteSpace(dbName)) dbName = "HotelManagerDB";
+
+                string safeDbName = dbName.Replace("]", "]]");
+                string fileName = $"{dbName}_Backup_{DateTime.Now:yyyyMMddHHmmss}.bak";
                 string backupPath = Path.Combine(backupFolder, fileName);
 
-                // 3. Chuẩn bị câu lệnh SQL Server thuần để thực thi lệnh BACKUP
-                // Lưu ý: Đảm bảo tên Database trong chuỗi này khớp với tên trong appsettings.json của bạn
-                string sqlCommand = $"BACKUP DATABASE [HotelManager] TO DISK = '{backupPath}'";
+                // 3. Thực thi lệnh BACKUP DATABASE có tham số hóa đường dẫn tệp (an toàn chống SQL Injection)
+                string sqlCommand = $"BACKUP DATABASE [{safeDbName}] TO DISK = {{0}} WITH INIT, FORMAT";
+                await _context.Database.ExecuteSqlRawAsync(sqlCommand, backupPath);
 
-                // 4. Dùng Entity Framework Core để thực thi câu lệnh SQL thuần
-                await _context.Database.ExecuteSqlRawAsync(sqlCommand);
-
-                // 5. Ghi log lại hành động này vào bảng NHAT_KY_HE_THONG
+                // 4. Ghi nhật ký hệ thống
                 var nhatKy = new NHAT_KY_HE_THONG
                 {
-                    MaNhatKy = "LOG" + DateTime.Now.ToString("yyyyMMddHHmmss"),
+                    MaNhatKy = BaoMatHelper.SinhMaNgauNhien("LG"),
                     TenDangNhap = User.Identity?.Name ?? "Admin",
                     HanhDong = "Sao lưu CSDL",
-                    ChiTiet = $"Đã tạo bản sao lưu dữ liệu thành công tại tệp: {fileName}"
+                    ChiTiet = $"Đã sao lưu CSDL [{dbName}] thành công tại tệp: {fileName}",
+                    ThoiGian = DateTime.Now
                 };
                 _context.NHAT_KY_HE_THONG.Add(nhatKy);
                 await _context.SaveChangesAsync();
 
                 IsSuccess = true;
-                ThongBao = $"Sao lưu dữ liệu thành công! File được lưu tại: {fileName}";
+                ThongBao = $"Sao lưu dữ liệu thành công! Tệp sao lưu: {fileName}";
             }
             catch (Exception ex)
             {
-                // Bắt lỗi nếu SQL Server không có quyền ghi file hoặc sai tên CSDL
+                _logger.LogError(ex, "Lỗi khi sao lưu cơ sở dữ liệu.");
                 IsSuccess = false;
-                ThongBao = "Đã xảy ra lỗi trong quá trình sao lưu: " + ex.Message;
+                ThongBao = "Không thể sao lưu cơ sở dữ liệu lúc này. Vui lòng kiểm tra quyền ghi thư mục của SQL Server.";
             }
 
             return Page();

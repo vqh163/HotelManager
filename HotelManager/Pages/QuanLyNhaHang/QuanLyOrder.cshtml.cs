@@ -1,17 +1,16 @@
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Claims;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace HotelManagement.Pages.NhaHang.NhaBep
@@ -74,11 +73,16 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
     {
         private readonly ApplicationDbContext _context;
         private readonly IActionDescriptorCollectionProvider _actionProvider;
+        private readonly ILogger<QuanLyOrderModel> _logger;
 
-        public QuanLyOrderModel(ApplicationDbContext context, IActionDescriptorCollectionProvider actionProvider)
+        public QuanLyOrderModel(
+            ApplicationDbContext context,
+            IActionDescriptorCollectionProvider actionProvider,
+            ILogger<QuanLyOrderModel> logger)
         {
             _context = context;
             _actionProvider = actionProvider;
+            _logger = logger;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -88,8 +92,8 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         public string? TuKhoaTimKiem { get; set; }
 
         // Phân quyền chặt chẽ:
-        // - LaQuanLy = true: Có toàn quyền quản trị, xóa đơn, chuẩn hóa DB, vào Quản lý Thực Đơn nhưng KHÔNG được bấm nút chế biến.
-        // - LaDauBep = true: Độc quyền thao tác các nút chế biến ("Bắt đầu chế biến", "Đang chế biến", "Đã hoàn thành").
+        // - LaQuanLy = true: Giám sát, xóa đơn lỗi, truy cập Quản lý Thực Đơn nhưng không bấm nút chế biến.
+        // - LaDauBep = true: Độc quyền thao tác các nút chế biến ("Bắt đầu chế biến", "Hoàn tất").
         public bool LaQuanLy { get; set; } = false;
         public bool LaDauBep { get; set; } = false;
 
@@ -112,303 +116,65 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
             return page != null ? page.ViewEnginePath : duongDanMacDinh;
         }
 
-        // Truy vấn trực tiếp VaiTro & HoTen từ bảng TAI_KHOAN và NHAN_VIEN trong SQL Server
-        private async Task<(string vaiTro, string hoTen)> LayThongTinNguoiDungAsync()
+        private bool KiemTraLaQuanLy()
         {
-            string tenDangNhap = User?.Identity?.Name
-                              ?? User?.FindFirst(ClaimTypes.Name)?.Value
-                              ?? User?.FindFirst("TenDangNhap")?.Value
-                              ?? User?.FindFirst("Username")?.Value
-                              ?? Request.Cookies["GrandHorizon_User"]
-                              ?? string.Empty;
-
-            string maTaiKhoan = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                             ?? User?.FindFirst("MaTaiKhoan")?.Value
-                             ?? string.Empty;
-
-            if (string.IsNullOrEmpty(tenDangNhap))
-            {
-                try
-                {
-                    tenDangNhap = HttpContext.Session.GetString("TenDangNhap")
-                               ?? HttpContext.Session.GetString("Username")
-                               ?? HttpContext.Session.GetString("User")
-                               ?? string.Empty;
-                }
-                catch { }
-            }
-
-            if (string.IsNullOrEmpty(maTaiKhoan))
-            {
-                try { maTaiKhoan = HttpContext.Session.GetString("MaTaiKhoan") ?? string.Empty; } catch { }
-            }
-
-            string vaiTro = string.Empty;
-            string hoTen = string.Empty;
-
-            if (!string.IsNullOrEmpty(tenDangNhap) || !string.IsNullOrEmpty(maTaiKhoan))
-            {
-                var tkDb = await _context.TAI_KHOAN
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(t => t.TenDangNhap == tenDangNhap || t.MaTaiKhoan == maTaiKhoan);
-
-                if (tkDb != null)
-                {
-                    vaiTro = (tkDb.VaiTro ?? string.Empty).Trim();
-                    hoTen = tkDb.TenDangNhap ?? string.Empty;
-
-                    try
-                    {
-                        var nvList = await _context.NHAN_VIEN.AsNoTracking().ToListAsync();
-                        var propMaNv = tkDb.GetType().GetProperty("MaNV") ?? tkDb.GetType().GetProperty("NHAN_VIENMaNV");
-                        string? maNv = propMaNv?.GetValue(tkDb)?.ToString();
-                        if (!string.IsNullOrEmpty(maNv))
-                        {
-                            var nv = nvList.FirstOrDefault(n => n.MaNV == maNv);
-                            if (nv != null && !string.IsNullOrEmpty(nv.HoTen)) hoTen = nv.HoTen;
-                        }
-                    }
-                    catch { }
-                }
-            }
-
-            if (string.IsNullOrEmpty(vaiTro))
-            {
-                vaiTro = User?.FindFirst(ClaimTypes.Role)?.Value
-                      ?? User?.FindFirst("VaiTro")?.Value
-                      ?? User?.FindFirst("Role")?.Value
-                      ?? Request.Cookies["GrandHorizon_Role"]
-                      ?? string.Empty;
-
-                if (string.IsNullOrEmpty(vaiTro))
-                {
-                    try { vaiTro = HttpContext.Session.GetString("VaiTro") ?? HttpContext.Session.GetString("Role") ?? string.Empty; } catch { }
-                }
-            }
-
-            if (string.IsNullOrEmpty(hoTen))
-            {
-                hoTen = !string.IsNullOrEmpty(tenDangNhap) ? tenDangNhap : "Trần Minh Đức";
-            }
-
-            return (vaiTro.Trim(), hoTen.Trim());
+            return User.IsInRole(HangSoHeThong.VaiTroQuanLy) || User.IsInRole(HangSoHeThong.VaiTroGiamDoc);
         }
 
-        private bool KiemTraLaQuanLy(string vaiTro)
+        private bool KiemTraLaDauBep()
         {
-            if (string.IsNullOrEmpty(vaiTro)) return false;
-            return vaiTro.Contains("Quản lý", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("QuanLy", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("Admin", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("Giám đốc", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("Quản trị", StringComparison.OrdinalIgnoreCase);
+            return !KiemTraLaQuanLy() && User.IsInRole(HangSoHeThong.VaiTroDauBep);
         }
 
-        private bool KiemTraLaDauBep(string vaiTro)
+        // Lấy họ tên hiển thị của nhân sự đang đăng nhập bằng LINQ
+        private async Task<string> LayTenNhanVienHienThiAsync()
         {
-            if (string.IsNullOrEmpty(vaiTro)) return false;
-            if (KiemTraLaQuanLy(vaiTro)) return false; // Tách biệt rõ Quản lý và Đầu bếp
-
-            return vaiTro.Contains("Đầu bếp", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("DauBep", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("Bếp", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("Bep", StringComparison.OrdinalIgnoreCase);
-        }
-
-        // HÀM LÀM SẠCH & CHUẨN HÓA DỮ LIỆU CŨ TRONG CSDL SANG ĐỊNH DẠNG MỚI (YYMMDD + STT)
-        public async Task ChuanHoaDuLieuCuAsync()
-        {
-            try
+            string? maNv = User.FindFirst("MaNV")?.Value;
+            if (!string.IsNullOrWhiteSpace(maNv))
             {
-                TrangThaiOrderBepStore.Load();
-                bool hasChanges = false;
-
-                // 1. Làm sạch tên bàn (Đảm bảo đồng bộ số bàn dạng 2 chữ số: 01, 02, 04...)
-                var dsBan = await _context.BAN_NHA_HANG.ToListAsync();
-                foreach (var ban in dsBan)
-                {
-                    if (string.IsNullOrEmpty(ban.TrangThai))
-                    {
-                        ban.TrangThai = "Trống";
-                        hasChanges = true;
-                    }
-                }
-
-                // 2. Làm sạch và chuẩn hóa toàn bộ Mã Hóa Đơn sang chuẩn YYMMDD + STT (VD: 26111401)
-                var dsHoaDon = await _context.HOA_DON_NHA_HANG
-                    .OrderBy(h => h.ThoiGianTao)
-                    .ToListAsync();
-
-                var dsChiTiet = await _context.CHI_TIET_DICH_VU.ToListAsync();
-
-                // Nhóm các hóa đơn theo ngày tạo (YYMMDD) để đánh lại STT chuẩn xác
-                var nhomTheoNgay = dsHoaDon.GroupBy(h => (h.ThoiGianTao ?? DateTime.Now).ToString("yyMMdd")).ToList();
-
-                foreach (var nhom in nhomTheoNgay)
-                {
-                    string datePrefix = nhom.Key;
-                    int stt = 1;
-
-                    // Giữ lại các mã đã đúng chuẩn YYMMDD + STT (8 chữ số thuần)
-                    var tapMaDaChuan = new HashSet<string>(
-                        nhom.Where(h => Regex.IsMatch(h.MaHoaDonNhaHang ?? "", @"^\d{8,}$"))
-                            .Select(h => h.MaHoaDonNhaHang!)
-                    );
-
-                    foreach (var hd in nhom)
-                    {
-                        string oldId = (hd.MaHoaDonNhaHang ?? string.Empty).Trim();
-                        // Kiểm tra nếu mã cũ còn chứa chữ "HD" hoặc ký tự chữ cái ngẫu nhiên (VD: HD261104131824EA77)
-                        if (!Regex.IsMatch(oldId, @"^\d{8,9}$"))
-                        {
-                            string newId;
-                            do
-                            {
-                                newId = $"{datePrefix}{stt:D2}";
-                                stt++;
-                            }
-                            while (tapMaDaChuan.Contains(newId) || dsHoaDon.Any(x => x.MaHoaDonNhaHang == newId));
-
-                            tapMaDaChuan.Add(newId);
-
-                            // Tạo bản ghi HOA_DON_NHA_HANG mới với khóa chính chuẩn YYMMDD + STT
-                            var hdMoi = new HOA_DON_NHA_HANG
-                            {
-                                MaHoaDonNhaHang = newId,
-                                ThoiGianTao = hd.ThoiGianTao ?? DateTime.Now,
-                                TongTienMonAn = hd.TongTienMonAn ?? 0,
-                                GiamGia = hd.GiamGia ?? 0,
-                                ThanhTien = hd.ThanhTien ?? 0,
-                                HinhThucThanhToan = hd.HinhThucThanhToan ?? "Chưa thanh toán"
-                            };
-
-                            // Sao chép khóa ngoại MaBan và DanhSachMonJson sang hóa đơn chuẩn mới
-                            string maBanCuaHd = string.Empty;
-                            var propMb = hd.GetType().GetProperty("MaBan") ?? hd.GetType().GetProperty("BAN_NHA_HANGMaBan");
-                            if (propMb != null) maBanCuaHd = propMb.GetValue(hd)?.ToString() ?? string.Empty;
-                            if (string.IsNullOrEmpty(maBanCuaHd))
-                            {
-                                try { maBanCuaHd = _context.Entry(hd).Property("MaBan").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                            }
-                            if (string.IsNullOrEmpty(maBanCuaHd))
-                            {
-                                try { maBanCuaHd = _context.Entry(hd).Property("BAN_NHA_HANGMaBan").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                            }
-
-                            if (propMb != null) propMb.SetValue(hdMoi, maBanCuaHd);
-                            _context.HOA_DON_NHA_HANG.Add(hdMoi);
-                            try { _context.Entry(hdMoi).Property("MaBan").CurrentValue = maBanCuaHd; } catch { }
-                            try { _context.Entry(hdMoi).Property("BAN_NHA_HANGMaBan").CurrentValue = maBanCuaHd; } catch { }
-
-                            try
-                            {
-                                string jsonMon = string.Empty;
-                                var propJson = hd.GetType().GetProperty("DanhSachMonJson");
-                                if (propJson != null) jsonMon = propJson.GetValue(hd)?.ToString() ?? string.Empty;
-                                else jsonMon = _context.Entry(hd).Property("DanhSachMonJson").CurrentValue?.ToString() ?? string.Empty;
-
-                                if (!string.IsNullOrEmpty(jsonMon))
-                                {
-                                    if (propJson != null) propJson.SetValue(hdMoi, jsonMon);
-                                    else _context.Entry(hdMoi).Property("DanhSachMonJson").CurrentValue = jsonMon;
-                                }
-                            }
-                            catch { }
-
-                            // Cập nhật toàn bộ CHI_TIET_DICH_VU con sang mã hóa đơn mới
-                            foreach (var ct in dsChiTiet)
-                            {
-                                string maHdCt = string.Empty;
-                                try { maHdCt = _context.Entry(ct).Property("MaHoaDonNhaHang").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                                if (string.IsNullOrEmpty(maHdCt))
-                                {
-                                    try { maHdCt = _context.Entry(ct).Property("HOA_DON_NHA_HANGMaHoaDonNhaHang").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                                }
-
-                                if (maHdCt.Trim() == oldId)
-                                {
-                                    try { _context.Entry(ct).Property("MaHoaDonNhaHang").CurrentValue = newId; } catch { }
-                                    try { _context.Entry(ct).Property("HOA_DON_NHA_HANGMaHoaDonNhaHang").CurrentValue = newId; } catch { }
-                                }
-                            }
-
-                            // Đồng bộ trạng thái KDS từ mã cũ sang mã mới
-                            if (TrangThaiOrderBepStore.TrangThaiDict.ContainsKey(oldId))
-                            {
-                                TrangThaiOrderBepStore.TrangThaiDict[newId] = TrangThaiOrderBepStore.TrangThaiDict[oldId];
-                                TrangThaiOrderBepStore.TrangThaiDict.Remove(oldId);
-                            }
-
-                            // Xóa bản ghi hóa đơn mang định dạng cũ
-                            _context.HOA_DON_NHA_HANG.Remove(hd);
-                            hasChanges = true;
-                        }
-                    }
-                }
-
-                if (hasChanges)
-                {
-                    await _context.SaveChangesAsync();
-                    TrangThaiOrderBepStore.Save();
-                }
+                var nv = await _context.NHAN_VIEN.AsNoTracking().FirstOrDefaultAsync(n => n.MaNV == maNv);
+                if (nv != null && !string.IsNullOrWhiteSpace(nv.HoTen))
+                    return nv.HoTen.Trim();
             }
-            catch { /* Đảm bảo an toàn không làm gián đoạn luồng tải trang nếu có ràng buộc FK cứng */ }
+
+            return User.Identity?.Name ?? "Nhân viên Bếp";
         }
 
         public async Task<IActionResult> OnGetAsync()
         {
-            var (vaiTro, hoTen) = await LayThongTinNguoiDungAsync();
+            LaQuanLy = KiemTraLaQuanLy();
+            LaDauBep = KiemTraLaDauBep();
 
-            // 1. Nếu chưa đăng nhập -> Tự động chuyển về trang Đăng nhập
-            if (string.IsNullOrEmpty(vaiTro))
-            {
-                return Redirect(TimDuongDanTrang("DangNhap", "/TaiKhoan/DangNhap"));
-            }
-
-            // 2. Tự động điều hướng thẳng về màn hình chuyên môn nếu nhân viên bộ phận khác truy cập vào:
-            if (vaiTro.Contains("Phục vụ", StringComparison.OrdinalIgnoreCase) ||
-                vaiTro.Contains("PhucVu", StringComparison.OrdinalIgnoreCase))
-            {
-                return Redirect(TimDuongDanTrang("SoDoBan", "/NhaHang/PhucVu/SoDoBan"));
-            }
-
-            if (vaiTro.Contains("Thu ngân", StringComparison.OrdinalIgnoreCase) ||
-                vaiTro.Contains("ThuNgan", StringComparison.OrdinalIgnoreCase) ||
-                vaiTro.Contains("Kế toán", StringComparison.OrdinalIgnoreCase))
-            {
-                return Redirect(TimDuongDanTrang("QuayThuNgan", "/NhaHang/ThuNgan/QuayThuNgan"));
-            }
-
-            LaQuanLy = KiemTraLaQuanLy(vaiTro);
-            LaDauBep = KiemTraLaDauBep(vaiTro);
-
-            // Chỉ cho phép Đầu bếp và Quản lý truy cập màn hình Quản lý Order (KDS)
             if (!LaQuanLy && !LaDauBep)
             {
-                return Redirect(TimDuongDanTrang("DangNhap", "/TaiKhoan/DangNhap"));
+                return RedirectToPage("/Auth/DangNhap");
             }
 
-            TenNhanVienHienThi = hoTen;
+            TenNhanVienHienThi = await LayTenNhanVienHienThiAsync();
             VaiTroHienThi = LaQuanLy ? "Quản Lý" : "Đầu Bếp";
 
             try
             {
-                // Tự động chạy làm sạch và chuẩn hóa mã hóa đơn cũ sang YYMMDD + STT
-                await ChuanHoaDuLieuCuAsync();
-
-                TrangThaiMonStore.LoadData();
                 TrangThaiOrderBepStore.Load();
 
+                // Truy vấn danh mục món ăn và cảnh báo dị ứng trực tiếp từ SQL Server (bảng DICH_VU)
                 var dsDichVuDb = await _context.DICH_VU.AsNoTracking().ToListAsync();
                 var dictDichVu = dsDichVuDb.ToDictionary(d => d.MaDichVu.Trim(), d => d.TenDichVu ?? "Món ăn");
+                var dictDiUng = dsDichVuDb.ToDictionary(d => d.MaDichVu.Trim(), d => d.CanhBaoDiUng ?? string.Empty);
 
-                var dsHoaDonActive = await _context.HOA_DON_NHA_HANG
-                    .Where(h => h.HinhThucThanhToan != "Đã Thanh Toán")
+                // Lấy toàn bộ hóa đơn nhà hàng đang phục vụ / chờ thanh toán bằng LINQ
+                var dsHoaDonActive = await _context.HOA_DON_NHA_HANG.AsNoTracking()
+                    .Where(h => h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
+                             || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan
+                             || (string.IsNullOrEmpty(h.TrangThaiThanhToan) && h.HinhThucThanhToan != "Đã Thanh Toán"))
                     .OrderByDescending(h => h.ThoiGianTao)
                     .ToListAsync();
 
                 var dsBanDb = await _context.BAN_NHA_HANG.AsNoTracking().ToListAsync();
-                var dsChiTietDb = await _context.CHI_TIET_DICH_VU.AsNoTracking().ToListAsync();
+                var maHdList = dsHoaDonActive.Select(h => h.MaHoaDonNhaHang).ToList();
+                var dsChiTietDb = await _context.CHI_TIET_DICH_VU.AsNoTracking()
+                    .Where(c => c.HOA_DON_NHA_HANGMaHoaDonNhaHang != null && maHdList.Contains(c.HOA_DON_NHA_HANGMaHoaDonNhaHang))
+                    .ToListAsync();
 
                 var tatCaOrder = new List<OrderBepViewModel>();
 
@@ -417,18 +183,7 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                     string maHd = (hd.MaHoaDonNhaHang ?? string.Empty).Trim();
                     if (string.IsNullOrEmpty(maHd)) continue;
 
-                    string maBan = string.Empty;
-                    var prop = hd.GetType().GetProperty("MaBan") ?? hd.GetType().GetProperty("BAN_NHA_HANGMaBan");
-                    if (prop != null) maBan = prop.GetValue(hd)?.ToString() ?? string.Empty;
-                    if (string.IsNullOrEmpty(maBan))
-                    {
-                        try { maBan = _context.Entry(hd).Property("MaBan").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                    }
-                    if (string.IsNullOrEmpty(maBan))
-                    {
-                        try { maBan = _context.Entry(hd).Property("BAN_NHA_HANGMaBan").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                    }
-
+                    string maBan = (hd.BAN_NHA_HANGMaBan ?? string.Empty).Trim();
                     var cacMaBan = maBan.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToList();
                     var cacBan = dsBanDb.Where(b => cacMaBan.Contains(b.MaBan.Trim())).ToList();
                     string tenBanHienThi = cacBan.Any()
@@ -441,21 +196,13 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                         : maBan;
                     if (string.IsNullOrEmpty(tenBanHienThi)) tenBanHienThi = "01";
 
-                    string jsonMon = "[]";
-                    try
-                    {
-                        var propJson = hd.GetType().GetProperty("DanhSachMonJson");
-                        if (propJson != null) jsonMon = propJson.GetValue(hd)?.ToString() ?? "[]";
-                        else jsonMon = _context.Entry(hd).Property("DanhSachMonJson").CurrentValue?.ToString() ?? "[]";
-                    }
-                    catch { }
-
+                    string jsonMon = hd.DanhSachMonJson ?? "[]";
                     var items = new List<MonOrderBepItem>();
                     string? trangThaiTrongJson = null;
 
                     try
                     {
-                        if (!string.IsNullOrEmpty(jsonMon) && jsonMon != "[]")
+                        if (!string.IsNullOrWhiteSpace(jsonMon) && jsonMon != "[]")
                         {
                             using var doc = JsonDocument.Parse(jsonMon);
                             foreach (var el in doc.RootElement.EnumerateArray())
@@ -468,9 +215,9 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                                 if (el.TryGetProperty("TenMon", out var t1)) tenMon = t1.GetString() ?? string.Empty;
                                 else if (el.TryGetProperty("tenDichVu", out var t2)) tenMon = t2.GetString() ?? string.Empty;
 
-                                if (string.IsNullOrEmpty(tenMon) && !string.IsNullOrEmpty(maDv) && dictDichVu.ContainsKey(maDv))
+                                if (string.IsNullOrEmpty(tenMon) && !string.IsNullOrEmpty(maDv) && dictDichVu.TryGetValue(maDv, out var tenDb))
                                 {
-                                    tenMon = dictDichVu[maDv];
+                                    tenMon = tenDb;
                                 }
 
                                 if (string.IsNullOrEmpty(maDv) && !string.IsNullOrEmpty(tenMon))
@@ -492,26 +239,20 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                                     trangThaiTrongJson = ttb.GetString();
                                 }
 
-                                string diUng = string.Empty;
-                                if (!string.IsNullOrEmpty(maDv) && TrangThaiMonStore.DiUngDict.ContainsKey(maDv))
-                                {
-                                    diUng = TrangThaiMonStore.DiUngDict[maDv];
-                                }
+                                string diUng = (!string.IsNullOrEmpty(maDv) && dictDiUng.TryGetValue(maDv, out var du))
+                                    ? du
+                                    : string.Empty;
 
                                 if (string.IsNullOrEmpty(diUng) && !string.IsNullOrEmpty(gc) &&
                                     gc.Contains("dị ứng", StringComparison.OrdinalIgnoreCase))
                                 {
                                     diUng = gc.ToUpper();
                                 }
-                                bool laMonGoiThem = false;
-                                if (el.TryGetProperty("LaMonGoiThem", out var gt1) && gt1.ValueKind == JsonValueKind.True)
-                                {
-                                    laMonGoiThem = true;
-                                }
-                                else if (el.TryGetProperty("laMonGoiThem", out var gt2) && gt2.ValueKind == JsonValueKind.True)
-                                {
-                                    laMonGoiThem = true;
-                                }
+
+                                bool laMonGoiThem =
+                                    (el.TryGetProperty("LaMonGoiThem", out var gt1) && gt1.ValueKind == JsonValueKind.True) ||
+                                    (el.TryGetProperty("laMonGoiThem", out var gt2) && gt2.ValueKind == JsonValueKind.True);
+
                                 items.Add(new MonOrderBepItem
                                 {
                                     MaDichVu = maDv,
@@ -526,52 +267,37 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                     }
                     catch { }
 
+                    // Dự phòng đọc từ CHI_TIET_DICH_VU nếu hóa đơn không có JSON món ăn
                     if (!items.Any())
                     {
-                        foreach (var ct in dsChiTietDb)
+                        foreach (var ct in dsChiTietDb.Where(c => c.HOA_DON_NHA_HANGMaHoaDonNhaHang == maHd))
                         {
-                            string maHdCt = string.Empty;
-                            try { maHdCt = _context.Entry(ct).Property("MaHoaDonNhaHang").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                            if (string.IsNullOrEmpty(maHdCt))
-                            {
-                                try { maHdCt = _context.Entry(ct).Property("HOA_DON_NHA_HANGMaHoaDonNhaHang").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                            }
+                            string maDvCt = (ct.DICH_VUMaDichVu ?? string.Empty).Trim();
+                            string tenMonCt = (!string.IsNullOrEmpty(maDvCt) && dictDichVu.TryGetValue(maDvCt, out var t)) ? t : "Món ăn";
+                            string diUngCt = (!string.IsNullOrEmpty(maDvCt) && dictDiUng.TryGetValue(maDvCt, out var d)) ? d : string.Empty;
+                            int slCt = ct.SoLuong ?? 1;
 
-                            if (maHdCt.Trim() == maHd)
+                            items.Add(new MonOrderBepItem
                             {
-                                string maDvCt = string.Empty;
-                                try { maDvCt = _context.Entry(ct).Property("MaDichVu").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                                if (string.IsNullOrEmpty(maDvCt))
-                                {
-                                    try { maDvCt = _context.Entry(ct).Property("DICH_VUMaDichVu").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                                }
-
-                                string tenMonCt = (!string.IsNullOrEmpty(maDvCt) && dictDichVu.ContainsKey(maDvCt)) ? dictDichVu[maDvCt] : "Món ăn";
-                                string diUngCt = (!string.IsNullOrEmpty(maDvCt) && TrangThaiMonStore.DiUngDict.ContainsKey(maDvCt)) ? TrangThaiMonStore.DiUngDict[maDvCt] : string.Empty;
-                                int.TryParse(ct.SoLuong?.ToString(), out int slCt);
-                                items.Add(new MonOrderBepItem
-                                {
-                                    MaDichVu = maDvCt,
-                                    TenMon = tenMonCt,
-                                    SoLuong = slCt > 0 ? slCt : 1,
-                                    GhiChu = string.Empty,
-                                    CanhBaoDiUng = diUngCt,
-                                });
-                            }
+                                MaDichVu = maDvCt,
+                                TenMon = tenMonCt,
+                                SoLuong = slCt > 0 ? slCt : 1,
+                                GhiChu = string.Empty,
+                                CanhBaoDiUng = diUngCt
+                            });
                         }
                     }
 
                     if (!items.Any()) continue;
 
                     string trangThaiBep = "Mới";
-                    if (TrangThaiOrderBepStore.TrangThaiDict.ContainsKey(maHd))
+                    if (TrangThaiOrderBepStore.TrangThaiDict.TryGetValue(maHd, out var ttStore))
                     {
-                        trangThaiBep = TrangThaiOrderBepStore.TrangThaiDict[maHd];
+                        trangThaiBep = ttStore;
                     }
-                    else if (!string.IsNullOrEmpty(trangThaiTrongJson))
+                    else if (trangThaiTrongJson == "Đang nấu" || trangThaiTrongJson == "Hoàn tất")
                     {
-                        if (trangThaiTrongJson == "Đang nấu" || trangThaiTrongJson == "Hoàn tất")
-                            trangThaiBep = trangThaiTrongJson;
+                        trangThaiBep = trangThaiTrongJson;
                     }
 
                     DateTime tgTao = hd.ThoiGianTao ?? DateTime.Now;
@@ -589,7 +315,6 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 
                     tatCaOrder.Add(new OrderBepViewModel
                     {
-                        // Hiển thị ĐẦY ĐỦ mã hóa đơn trùng khớp 100% với Sơ đồ bàn và Quầy Thu Ngân
                         MaHoaDonNhaHang = maHd,
                         TenBan = tenBanHienThi,
                         ThoiGianTao = tgTao,
@@ -614,7 +339,7 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                         filtered = filtered.Where(o => o.TrangThaiBep == TrangThaiLoc);
                 }
 
-                if (!string.IsNullOrEmpty(TuKhoaTimKiem))
+                if (!string.IsNullOrWhiteSpace(TuKhoaTimKiem))
                 {
                     string kw = TuKhoaTimKiem.Trim();
                     filtered = filtered.Where(o =>
@@ -628,22 +353,16 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Lỗi tải màn hình Quản lý Order: " + ex.Message);
+                _logger.LogError(ex, "Lỗi tải màn hình Quản lý Order (KDS).");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi hệ thống khi tải danh sách đơn bếp.");
                 return Page();
             }
         }
 
-        // XỬ LÝ CHẾ BIẾN MÓN ĂN: CHỈ ĐẦU BẾP MỚI ĐƯỢC THAO TÁC (Quản lý bị chặn tuyệt đối)
+        // Xử lý chế biến món ăn: Chỉ Đầu bếp được phép bấm chuyển trạng thái chế biến
         public async Task<IActionResult> OnPostChuyenTrangThaiOrderAsync(string maHoaDon, string trangThaiMoi)
         {
-            var (vaiTro, _) = await LayThongTinNguoiDungAsync();
-            if (string.IsNullOrEmpty(vaiTro))
-            {
-                return Redirect(TimDuongDanTrang("DangNhap", "/TaiKhoan/DangNhap"));
-            }
-
-            // RÀNG BUỘC PHÂN QUYỀN: Quản lý tuyệt đối không được thao tác bấm các nút xử lý chế biến
-            if (KiemTraLaQuanLy(vaiTro) || !KiemTraLaDauBep(vaiTro))
+            if (!KiemTraLaDauBep())
             {
                 TempData["ErrorMessage"] = "Phân quyền hệ thống: Tài khoản Quản lý chỉ giám sát và quản trị, quyền bấm nút xử lý chế biến dành riêng cho Đầu bếp!";
                 return RedirectToPage(new { TrangThaiLoc, TuKhoaTimKiem });
@@ -651,54 +370,71 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
 
             try
             {
-                if (!string.IsNullOrEmpty(maHoaDon) && !string.IsNullOrEmpty(trangThaiMoi))
+                if (!string.IsNullOrWhiteSpace(maHoaDon) && !string.IsNullOrWhiteSpace(trangThaiMoi))
                 {
-                    TrangThaiOrderBepStore.Load();
-                    TrangThaiOrderBepStore.TrangThaiDict[maHoaDon.Trim()] = trangThaiMoi.Trim();
-                    TrangThaiOrderBepStore.Save();
+                    await Task.Run(() =>
+                    {
+                        TrangThaiOrderBepStore.Load();
+                        TrangThaiOrderBepStore.TrangThaiDict[maHoaDon.Trim()] = trangThaiMoi.Trim();
+                        TrangThaiOrderBepStore.Save();
+                    });
                 }
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Lỗi cập nhật trạng thái chế biến: " + ex.Message;
+                _logger.LogError(ex, "Lỗi cập nhật trạng thái chế biến đơn {MaHD}", maHoaDon);
+                TempData["ErrorMessage"] = "Đã xảy ra lỗi khi cập nhật trạng thái chế biến.";
             }
 
             return RedirectToPage(new { TrangThaiLoc, TuKhoaTimKiem });
         }
 
-        // CHỨC NĂNG DÀNH RIÊNG CHO QUẢN LÝ: Xóa đơn lỗi hoặc Làm sạch dữ liệu cũ trên KDS
+        // Chức năng dành riêng cho Quản lý: Xóa đơn lỗi trên KDS và giải phóng đồng loạt bàn liên quan
         public async Task<IActionResult> OnPostXoaOrderQuanLyAsync(string maHoaDon)
         {
-            var (vaiTro, _) = await LayThongTinNguoiDungAsync();
-            if (!KiemTraLaQuanLy(vaiTro))
+            if (!KiemTraLaQuanLy())
             {
                 TempData["ErrorMessage"] = "Truy cập bị từ chối: Chỉ Quản lý mới có quyền xóa dữ liệu đơn hàng!";
                 return RedirectToPage(new { TrangThaiLoc, TuKhoaTimKiem });
             }
 
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var hd = await _context.HOA_DON_NHA_HANG.FirstOrDefaultAsync(h => h.MaHoaDonNhaHang == maHoaDon);
                 if (hd != null)
                 {
-                    // Giải phóng bàn liên quan về trạng thái Trống
-                    string maBan = string.Empty;
-                    var prop = hd.GetType().GetProperty("MaBan") ?? hd.GetType().GetProperty("BAN_NHA_HANGMaBan");
-                    if (prop != null) maBan = prop.GetValue(hd)?.ToString() ?? string.Empty;
-                    if (string.IsNullOrEmpty(maBan))
+                    // Giải phóng toàn bộ các bàn liên quan (hỗ trợ cả bàn gộp) về trạng thái Trống
+                    if (!string.IsNullOrWhiteSpace(hd.BAN_NHA_HANGMaBan))
                     {
-                        try { maBan = _context.Entry(hd).Property("MaBan").CurrentValue?.ToString() ?? string.Empty; } catch { }
-                    }
-                    if (string.IsNullOrEmpty(maBan))
-                    {
-                        try { maBan = _context.Entry(hd).Property("BAN_NHA_HANGMaBan").CurrentValue?.ToString() ?? string.Empty; } catch { }
+                        var dsMaBan = hd.BAN_NHA_HANGMaBan
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => x.Trim())
+                            .ToList();
+
+                        var cacBan = await _context.BAN_NHA_HANG
+                            .Where(b => dsMaBan.Contains(b.MaBan))
+                            .ToListAsync();
+
+                        foreach (var ban in cacBan)
+                        {
+                            ban.TrangThai = "Trống";
+                            ban.TenKhachDat = null;
+                        }
                     }
 
-                    var ban = await _context.BAN_NHA_HANG.FirstOrDefaultAsync(b => b.MaBan == maBan.Trim());
-                    if (ban != null) ban.TrangThai = "Trống";
+                    // Xóa các chi tiết dịch vụ liên quan trước khi xóa hóa đơn để đảm bảo toàn vẹn khóa ngoại
+                    var chiTiets = await _context.CHI_TIET_DICH_VU
+                        .Where(c => c.HOA_DON_NHA_HANGMaHoaDonNhaHang == maHoaDon)
+                        .ToListAsync();
+                    if (chiTiets.Any())
+                    {
+                        _context.CHI_TIET_DICH_VU.RemoveRange(chiTiets);
+                    }
 
                     _context.HOA_DON_NHA_HANG.Remove(hd);
                     await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
 
                     TrangThaiOrderBepStore.Load();
                     if (TrangThaiOrderBepStore.TrangThaiDict.ContainsKey(maHoaDon))
@@ -712,7 +448,9 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Lỗi khi xóa đơn: " + ex.Message;
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Lỗi xóa đơn hàng KDS {MaHD}", maHoaDon);
+                TempData["ErrorMessage"] = "Đã xảy ra lỗi hệ thống khi xóa đơn hàng.";
             }
 
             return RedirectToPage(new { TrangThaiLoc, TuKhoaTimKiem });

@@ -34,7 +34,7 @@ namespace HotelManager.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("TenKhachDat")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("TrangThai")
                         .HasColumnType("nvarchar(50)");
@@ -42,6 +42,43 @@ namespace HotelManager.Migrations
                     b.HasKey("MaBan");
 
                     b.ToTable("BAN_NHA_HANG");
+                });
+
+            modelBuilder.Entity("HotelManager.Models.BIEN_BAN_KIEM_KE", b =>
+                {
+                    b.Property<string>("MaBienBan")
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("GhiChu")
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("GiaTriChenhLech")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("KyKiemKe")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("NguoiKiemKe")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PhamViKho")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SoMatHangLech")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ThoiGian")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TongMatHang")
+                        .HasColumnType("int");
+
+                    b.HasKey("MaBienBan");
+
+                    b.ToTable("BIEN_BAN_KIEM_KE");
                 });
 
             modelBuilder.Entity("HotelManager.Models.CHI_TIET_DAT_PHONG", b =>
@@ -63,6 +100,8 @@ namespace HotelManager.Migrations
 
                     b.HasKey("MaChiTietDatPhong");
 
+                    b.HasIndex("PHONGMaPhong");
+
                     b.ToTable("CHI_TIET_DAT_PHONG");
                 });
 
@@ -71,11 +110,17 @@ namespace HotelManager.Migrations
                     b.Property<string>("MaChiTietDichVu")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("DAT_PHONGMaDatPhong")
+                        .HasColumnType("varchar(20)");
+
                     b.Property<string>("DICH_VUMaDichVu")
                         .HasColumnType("varchar(20)");
 
                     b.Property<decimal?>("DonGia")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("HOA_DON_NHA_HANGMaHoaDonNhaHang")
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("KHACH_HANGMaKH")
                         .HasColumnType("varchar(20)");
@@ -220,6 +265,8 @@ namespace HotelManager.Migrations
 
                     b.HasKey("MaDatPhong");
 
+                    b.HasIndex("TrangThaiDatPhong");
+
                     b.ToTable("DAT_PHONG");
                 });
 
@@ -227,6 +274,12 @@ namespace HotelManager.Migrations
                 {
                     b.Property<string>("MaDichVu")
                         .HasColumnType("varchar(20)");
+
+                    b.Property<string>("CanhBaoDiUng")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("ConMon")
+                        .HasColumnType("bit");
 
                     b.Property<decimal?>("DonGia")
                         .HasColumnType("decimal(12,2)");
@@ -239,6 +292,9 @@ namespace HotelManager.Migrations
 
                     b.Property<string>("LoaiDichVu")
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("MoTa")
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("TenDichVu")
                         .HasColumnType("nvarchar(100)");
@@ -280,6 +336,56 @@ namespace HotelManager.Migrations
                     b.HasKey("MaDoiTac");
 
                     b.ToTable("DOI_TAC");
+                });
+
+            modelBuilder.Entity("HotelManager.Models.DON_XIN_NGHI", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ChucVu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("DenNgay")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsReadByEmployee")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LyDo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("NHAN_VIENMaNV")
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NguoiDuyet")
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SoNgay")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TenNhanVien")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TrangThai")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("TuNgay")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DON_XIN_NGHI");
                 });
 
             modelBuilder.Entity("HotelManager.Models.HOA_DON", b =>
@@ -351,14 +457,23 @@ namespace HotelManager.Migrations
                     b.Property<string>("NHAN_VIENMaNV")
                         .HasColumnType("varchar(20)");
 
+                    b.Property<decimal?>("PhiPhucVu")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal?>("ThanhTien")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("ThoiGianTao")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("TienThueVAT")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal?>("TongTienMonAn")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TrangThaiThanhToan")
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("MaHoaDonNhaHang");
 
@@ -402,6 +517,10 @@ namespace HotelManager.Migrations
 
                     b.HasKey("MaKH");
 
+                    b.HasIndex("SoCCCD")
+                        .IsUnique()
+                        .HasFilter("[SoCCCD] IS NOT NULL");
+
                     b.ToTable("KHACH_HANG");
                 });
 
@@ -441,6 +560,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("CaLamViec")
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("ChucVu")
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("GhiChu")
                         .HasColumnType("nvarchar(255)");
 
@@ -450,13 +572,21 @@ namespace HotelManager.Migrations
                     b.Property<DateTime?>("GioCheckOut")
                         .HasColumnType("datetime");
 
+                    b.Property<string>("NHAN_VIENMaNV")
+                        .HasColumnType("varchar(20)");
+
                     b.Property<DateTime?>("NgayLamViec")
                         .HasColumnType("datetime");
+
+                    b.Property<string>("TieuDe")
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("TrangThai")
                         .HasColumnType("nvarchar(20)");
 
                     b.HasKey("MaLich");
+
+                    b.HasIndex("NHAN_VIENMaNV");
 
                     b.ToTable("LICH_LAM_VIEC");
                 });
@@ -478,6 +608,9 @@ namespace HotelManager.Migrations
                     b.Property<string>("HoTen")
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal?>("LuongCoBan")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime?>("NgaySinh")
                         .HasColumnType("date");
 
@@ -491,6 +624,10 @@ namespace HotelManager.Migrations
                         .HasColumnType("varchar(12)");
 
                     b.HasKey("MaNV");
+
+                    b.HasIndex("SoCCCD")
+                        .IsUnique()
+                        .HasFilter("[SoCCCD] IS NOT NULL");
 
                     b.ToTable("NHAN_VIEN");
                 });
@@ -619,7 +756,68 @@ namespace HotelManager.Migrations
 
                     b.HasKey("MaPhieuLuuTru");
 
+                    b.HasIndex("PHONGMaPhong", "TrangThaiLuuTru");
+
                     b.ToTable("PHIEU_LUU_TRU");
+                });
+
+            modelBuilder.Entity("HotelManager.Models.PHIEU_NHAP_XUAT_KHO", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DoiTacHoacBoPhan")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<decimal>("DonGia")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("DonViTinh")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("GhiChu")
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("KHO_VAT_TUMaVatTu")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("LoaiGiaoDich")
+                        .IsRequired()
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("LoaiKho")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("MaPhieu")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("MaThamChieu")
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("NguoiThucHien")
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("SoLuong")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TenVatTu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("ThoiGian")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PHIEU_NHAP_XUAT_KHO");
                 });
 
             modelBuilder.Entity("HotelManager.Models.PHONG", b =>
@@ -658,6 +856,10 @@ namespace HotelManager.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("MaPhong");
+
+                    b.HasIndex("SoPhong")
+                        .IsUnique()
+                        .HasFilter("[SoPhong] IS NOT NULL");
 
                     b.ToTable("PHONG");
                 });
@@ -703,13 +905,16 @@ namespace HotelManager.Migrations
 
                     b.HasKey("MaTaiKhoan");
 
+                    b.HasIndex("TenDangNhap")
+                        .IsUnique();
+
                     b.ToTable("TAI_KHOAN");
 
                     b.HasData(
                         new
                         {
                             MaTaiKhoan = "TK_ADMIN_001",
-                            MatKhau = "123456",
+                            MatKhau = "jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI=",
                             TenDangNhap = "admin",
                             TrangThai = "Hoạt động",
                             VaiTro = "Quản trị viên"

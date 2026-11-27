@@ -45,7 +45,9 @@
 @section Scripts {
     <script>
         function toggleDatTruocFields() {
-            var status = document.getElementById("trangThaiSelect").value;
+            var trangThaiElem = document.getElementById("trangThaiSelect");
+            if (!trangThaiElem) return;
+            var status = trangThaiElem.value;
             var datTruocFields = document.getElementById("datTruocFields");
             var tenKhachInput = document.getElementById("tenKhachInput");
 

@@ -478,7 +478,15 @@
                                         foreach (var req in Model.PendingRequests)
                                         {
                                             <li>
-                                                <a class="dropdown-item py-3 border-bottom" href="#" onclick="showDuyetDonModal(@req.Id, '@req.TenNhanVien', '@req.ChucVu', '@req.TuNgay.ToString("yyyy-MM-dd")', '@req.DenNgay.ToString("yyyy-MM-dd")', @req.SoNgay, '@Html.Raw((req.LyDo ?? "").Replace("'", "\\'").Replace("\r\n", " "))')">
+                                                <a class="dropdown-item py-3 border-bottom" href="#"
+                                                   data-id="@req.Id"
+                                                   data-ten="@req.TenNhanVien"
+                                                   data-chucvu="@req.ChucVu"
+                                                   data-tungay="@req.TuNgay.ToString("yyyy-MM-dd")"
+                                                   data-denngay="@req.DenNgay.ToString("yyyy-MM-dd")"
+                                                   data-songay="@req.SoNgay"
+                                                   data-lydo="@req.LyDo"
+                                                   onclick="showDuyetDonModalFromEl(this); return false;">
                                                     <div class="d-flex align-items-start">
                                                         <i class="bi bi-envelope-paper fs-4 text-warning me-3"></i>
                                                         <div>
@@ -595,7 +603,15 @@
                                                                 else { spanClass = "shift-span-end"; displayTime = $"➔ {s.ThoiGianKetThuc:HH:mm}"; }
                                                             }
 
-                                                            <div class="shift-block @colorClass @spanClass" data-department="@s.ChucVu" onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
+                                                            <div class="shift-block @colorClass @spanClass"
+                                                                 data-department="@s.ChucVu"
+                                                                 data-malich="@s.MaLich"
+                                                                 data-emp="@s.TenNhanVien"
+                                                                 data-ca="@s.CaLamViec"
+                                                                 data-start="@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")"
+                                                                 data-end="@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")"
+                                                                 data-notes="@s.GhiChu"
+                                                                 onclick="showQuickViewFromEl(event, this)">
                                                                 <div class="fw-bold"><i class="bi bi-clock me-1"></i> @s.CaLamViec</div>
                                                                 <div class="text-truncate" style="font-size: 0.75rem;">@s.TenNhanVien</div>
                                                                 <div style="font-size: 0.65rem; opacity: 0.8">@displayTime</div>
@@ -655,7 +671,15 @@
                                                                 else { spanClass = "shift-span-end"; displayTime = $"➔ {s.ThoiGianKetThuc:HH:mm}"; }
                                                             }
 
-                                                            <div class="shift-block @colorClass @spanClass mb-1" data-department="@s.ChucVu" onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
+                                                            <div class="shift-block @colorClass @spanClass mb-1"
+                                                                 data-department="@s.ChucVu"
+                                                                 data-malich="@s.MaLich"
+                                                                 data-emp="@s.TenNhanVien"
+                                                                 data-ca="@s.CaLamViec"
+                                                                 data-start="@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")"
+                                                                 data-end="@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")"
+                                                                 data-notes="@s.GhiChu"
+                                                                 onclick="showQuickViewFromEl(event, this)">
                                                                 <div class="fw-bold"><i class="bi bi-clock me-1"></i> @s.CaLamViec</div>
                                                                 <div class="text-truncate" style="font-size: 0.75rem;">@s.TenNhanVien</div>
                                                                 <div style="font-size: 0.65rem; opacity: 0.8">@displayTime</div>
@@ -719,7 +743,16 @@
                                                 string widthStr = widthPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
                                                 string tColor = s.ChucVu == "Lễ tân" ? "bg-letan" : s.ChucVu == "Buồng phòng" ? "bg-buongphong" : s.ChucVu == "Nhân viên Kỹ thuật" ? "bg-baotri" : s.ChucVu == "Thu ngân Nhà hàng" ? "bg-thungan" : s.ChucVu == "Phục vụ" ? "bg-phucvu" : s.ChucVu == "Đầu bếp" ? "bg-daubep" : s.ChucVu == "Thủ kho" ? "bg-thukho" : s.ChucVu == "Sales" ? "bg-sales" : s.ChucVu == "Kế toán" ? "bg-ketoan" : "bg-default";
 
-                                                <div class="tl-event-block @tColor" data-department="@s.ChucVu" style="left: @(leftStr)%; width: @(widthStr)%; top: @(topPos)px;" onclick="showQuickView(event, '@s.MaLich', '@s.TenNhanVien', '@s.CaLamViec', '@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")', '@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")', '@Html.Raw((s.GhiChu ?? "").Replace("'", "\\'"))')">
+                                                <div class="tl-event-block @tColor"
+                                                     data-department="@s.ChucVu"
+                                                     data-malich="@s.MaLich"
+                                                     data-emp="@s.TenNhanVien"
+                                                     data-ca="@s.CaLamViec"
+                                                     data-start="@s.ThoiGianBatDau.ToString("yyyy-MM-ddTHH:mm")"
+                                                     data-end="@s.ThoiGianKetThuc.ToString("yyyy-MM-ddTHH:mm")"
+                                                     data-notes="@s.GhiChu"
+                                                     style="left: @(leftStr)%; width: @(widthStr)%; top: @(topPos)px;"
+                                                     onclick="showQuickViewFromEl(event, this)">
                                                     <div class="tl-event-title">@s.TieuDe</div>
                                                     <div class="tl-event-time">@s.ThoiGianBatDau.ToString("HH:mm") – @s.ThoiGianKetThuc.ToString("HH:mm")</div>
                                                 </div>
@@ -993,6 +1026,14 @@
 
         function datePickerChanged(val) { window.location.href = `?SelectedDate=${val}&ActiveTab=${currentActiveTab}`; }
 
+        function showQuickViewFromEl(event, el) {
+            showQuickView(event, el.dataset.malich || '', el.dataset.emp || '', el.dataset.ca || '', el.dataset.start || '', el.dataset.end || '', el.dataset.notes || '');
+        }
+
+        function showDuyetDonModalFromEl(el) {
+            showDuyetDonModal(el.dataset.id || '', el.dataset.ten || '', el.dataset.chucvu || '', el.dataset.tungay || '', el.dataset.denngay || '', el.dataset.songay || '', el.dataset.lydo || '');
+        }
+
         function showQuickView(event, maLich, empName, caLam, start, end, notes) {
             event.stopPropagation();
             document.getElementById('qvTitle').innerText = caLam;
@@ -1097,9 +1138,9 @@
         document.addEventListener("DOMContentLoaded", function () {
             changeTabDOM(currentActiveTab);
             @if (!string.IsNullOrEmpty(Model.AlertMessage))
-                {
-                    @:alert('@Html.Raw(Model.AlertMessage.Replace("'", "\\'"))');
+            {
+                @:alert(@Json.Serialize(Model.AlertMessage));
             }
-                        });
+        });
     </script>
 }

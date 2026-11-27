@@ -34,5 +34,9 @@ namespace HotelManager.Models
 
         [Column(TypeName = "varchar(20)")]
         public string? CHUC_VUMaChucVu { get; set; }
+
+        // Mức lương cơ bản của nhân viên (đồng bộ từ file meta vào SQL Server)
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? LuongCoBan { get; set; }
     }
 }

@@ -18,7 +18,8 @@ namespace HotelManager.Models
         [Column(TypeName = "nvarchar(50)")]
         public string? TrangThai { get; set; }
 
-        // Thêm vào trong class BAN_NHA_HANG
+        // Tên khách hàng đặt bàn trước
+        [Column(TypeName = "nvarchar(100)")]
         public string? TenKhachDat { get; set; }
     }
 }
