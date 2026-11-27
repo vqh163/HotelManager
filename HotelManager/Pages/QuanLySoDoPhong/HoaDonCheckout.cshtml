@@ -1,0 +1,212 @@
+@page
+@model HotelManager.Pages.QuanLySoDoPhong.HoaDonCheckoutModel
+@{
+    ViewData["Title"] = "Hóa đơn Tất toán Check-out";
+}
+
+<div class="container py-4 mb-5">
+    <!-- Thanh tiêu đề & Nút điều hướng (Ẩn khi in hóa đơn) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+        <div>
+            <h3 class="fw-bold text-primary mb-0">
+                <i class="bi bi-receipt-cutoff me-2"></i>HÓA ĐƠN TẤT TOÁN CHECK-OUT
+            </h3>
+            <small class="text-muted">Mã đặt phòng: <strong>@Model.DatPhong.MaDatPhong</strong></small>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-dark fw-bold rounded-pill px-4" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> In hóa đơn
+            </button>
+            @if (User.IsInRole("Khách hàng"))
+            {
+                <a asp-page="/QuanLySoDoPhong/LichSuDatPhong" class="btn btn-secondary fw-bold rounded-pill px-4">
+                    <i class="bi bi-arrow-left me-1"></i> Quay lại Lịch sử
+                </a>
+            }
+            else
+            {
+                <a asp-page="/QuanLySoDoPhong/SoDoPhong" class="btn btn-secondary fw-bold rounded-pill px-4">
+                    <i class="bi bi-arrow-left me-1"></i> Về Sơ đồ phòng
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Thông báo kết quả thao tác -->
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success fw-bold shadow-sm d-print-none">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.ThongBao
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger fw-bold shadow-sm d-print-none">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ThongBaoLoi
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- CỘT TRÁI: BẢNG KÊ CHI TIẾT HÓA ĐƠN -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4 p-4">
+                <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+                    <div>
+                        <h4 class="fw-bold text-dark mb-1">GRAND HORIZON HOTEL</h4>
+                        <p class="text-muted small mb-0">Biên lai thanh toán lưu trú & dịch vụ</p>
+                    </div>
+                    <div class="text-end">
+                        @if (Model.HoaDonDaChot != null)
+                        {
+                            <span class="badge bg-success fs-6 px-3 py-2 mb-1">ĐÃ THANH TOÁN</span>
+                            <div class="small text-muted">Mã HĐ: <strong>@Model.HoaDonDaChot.MaHoaDon</strong></div>
+                            <div class="small text-muted">Ngày lập: @Model.HoaDonDaChot.NgayLap?.ToString("dd/MM/yyyy HH:mm")</div>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark fs-6 px-3 py-2 mb-1">TẠM TÍNH CHỜ CHỐT</span>
+                            <div class="small text-muted">Thời điểm lập: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Thông tin khách hàng & phòng lưu trú -->
+                <div class="row bg-light rounded-3 p-3 mb-4 g-2">
+                    <div class="col-md-6">
+                        <div class="small text-muted">Khách hàng đại diện</div>
+                        <div class="fw-bold">@(Model.KhachHang.HoTen ?? "Khách lưu trú")</div>
+                        <div class="small text-muted">SĐT: @(Model.KhachHang.SDT ?? "—") | CCCD: @(Model.KhachHang.SoCCCD ?? "—")</div>
+                        <div class="small">Hạng thành viên: <span class="badge bg-primary">@(Model.KhachHang.HangThanhVien ?? "Thành viên mới")</span> (@(Model.KhachHang.DiemThuong ?? 0) điểm)</div>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <div class="small text-muted">Thông tin phòng</div>
+                        <div class="fw-bold">Phòng @Model.Phong.SoPhong — @Model.Phong.LoaiPhong</div>
+                        <div class="small text-muted">Số đêm tính tiền: <strong>@Model.SoDemO đêm</strong></div>
+                        <div class="small text-muted">Trạng thái đơn: <strong>@Model.DatPhong.TrangThaiDatPhong</strong></div>
+                    </div>
+                </div>
+
+                <!-- Bảng kê các hạng mục -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Hạng mục</th>
+                                <th>Diễn giải</th>
+                                <th class="text-center">SL</th>
+                                <th class="text-end">Đơn giá</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.DanhSachChiTiet)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-secondary bg-opacity-10 text-dark">@item.HangMuc</span></td>
+                                    <td>@item.MoTa</td>
+                                    <td class="text-center fw-bold">@item.SoLuong</td>
+                                    <td class="text-end">@item.DonGia.ToString("N0") đ</td>
+                                    <td class="text-end fw-bold">@item.ThanhTien.ToString("N0") đ</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tổng kết tài chính -->
+                <div class="row justify-content-end mt-3">
+                    <div class="col-md-7">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Tiền phòng (@Model.SoDemO đêm):</span>
+                            <span class="fw-semibold">@Model.TienPhong.ToString("N0") đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Dịch vụ / Minibar / Đền bù:</span>
+                            <span class="fw-semibold">@Model.TienDichVu.ToString("N0") đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Hóa đơn Nhà hàng ghi nợ:</span>
+                            <span class="fw-semibold">@Model.TienNhaHang.ToString("N0") đ</span>
+                        </div>
+                        @if (Model.TienGiamGia > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-2 text-success">
+                                <span>Giảm giá hạng thành viên (@(Model.TyLeGiamGia * 100)% tiền phòng):</span>
+                                <span class="fw-bold">-@Model.TienGiamGia.ToString("N0") đ</span>
+                            </div>
+                        }
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Thuế VAT (10% phòng & dịch vụ):</span>
+                            <span class="fw-semibold">@Model.TienThueVAT.ToString("N0") đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-info">
+                            <span>Tiền cọc đã khấu trừ:</span>
+                            <span class="fw-bold">-@Model.TienCocDaTru.ToString("N0") đ</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fs-5 fw-bold text-dark">TỔNG THANH TOÁN:</span>
+                            <span class="fs-3 fw-bold text-danger">@Model.TongTienThanhToan.ToString("N0") đ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: KHUNG XÁC NHẬN THANH TOÁN CHO LỄ TÂN (Ẩn khi in) -->
+        <div class="col-lg-4 d-print-none">
+            @if (Model.CoTheChotThanhToan)
+            {
+                <div class="card shadow-sm border-0 rounded-4 p-4 border-top border-primary border-4">
+                    <h5 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-credit-card-2-front me-2"></i>Xác nhận Thu tiền & Check-out
+                    </h5>
+
+                    <form method="post" asp-page-handler="XacNhanThanhToan">
+                        <input type="hidden" asp-for="MaDatPhong" />
+
+                        <div class="mb-3">
+                            <label asp-for="PhuongThucThanhToan" class="form-label fw-bold small text-uppercase">Phương thức thanh toán</label>
+                            <select asp-for="PhuongThucThanhToan" class="form-select fw-semibold">
+                                <option value="Tiền mặt">Tiền mặt</option>
+                                <option value="Chuyển khoản">Chuyển khoản / VietQR</option>
+                                <option value="Thẻ tín dụng / POS">Thẻ tín dụng / POS</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="MaGiaoDichNgoai" class="form-label fw-bold small text-uppercase">Mã giao dịch (nếu chuyển khoản/thẻ)</label>
+                            <input asp-for="MaGiaoDichNgoai" class="form-control" placeholder="VD: FT26112700123" maxlength="50" />
+                        </div>
+
+                        <div class="alert alert-info small mb-4">
+                            <i class="bi bi-award-fill me-1"></i>
+                            Khách sẽ được tích lũy thêm <strong>+@Model.DiemThuongDuKien điểm thưởng</strong> sau khi hoàn tất thanh toán.
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold rounded-3 shadow-sm"
+                                onclick="return confirm('Xác nhận đã thu đủ tiền và hoàn tất Check-out cho phòng @Model.Phong.SoPhong?');">
+                            <i class="bi bi-check-circle-fill me-2"></i>CHỐT HÓA ĐƠN & CHECK-OUT
+                        </button>
+                    </form>
+                </div>
+            }
+            else if (Model.ThanhToanDaChot != null)
+            {
+                <div class="card shadow-sm border-0 rounded-4 p-4 bg-light">
+                    <h5 class="fw-bold text-success mb-3">
+                        <i class="bi bi-patch-check-fill me-2"></i>Thông tin Giao dịch
+                    </h5>
+                    <div class="mb-2"><span class="text-muted">Mã thanh toán:</span> <strong>@Model.ThanhToanDaChot.MaThanhToan</strong></div>
+                    <div class="mb-2"><span class="text-muted">Phương thức:</span> <strong>@Model.ThanhToanDaChot.PhuongThucThanhToan</strong></div>
+                    @if (!string.IsNullOrWhiteSpace(Model.ThanhToanDaChot.MaGiaoDichNgoai))
+                    {
+                        <div class="mb-2"><span class="text-muted">Mã tham chiếu:</span> <strong>@Model.ThanhToanDaChot.MaGiaoDichNgoai</strong></div>
+                    }
+                    <div class="mb-2"><span class="text-muted">Thời gian:</span> <strong>@Model.ThanhToanDaChot.ThoiGianGiaoDich?.ToString("dd/MM/yyyy HH:mm")</strong></div>
+                    <div><span class="text-muted">Trạng thái:</span> <span class="badge bg-success">@Model.ThanhToanDaChot.TrangThaiGiaoDich</span></div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

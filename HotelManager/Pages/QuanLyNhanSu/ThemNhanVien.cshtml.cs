@@ -2,30 +2,34 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authorization; // Bắt buộc thêm thư viện này để dùng [Authorize]
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using System.IO;
 
 namespace HotelManager.Pages.QuanLyNhanSu
 {
-    // YÊU CẦU 2: Phân quyền - Chỉ tài khoản có Role "Quản lý" mới được truy cập Page này
-    [Authorize(Roles = "Quản lý, Quản trị viên")]
+    [Authorize(Policy = HangSoHeThong.PolicyNhanSu)]
     public class ThemNhanVienModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<ThemNhanVienModel> _logger;
 
-        public ThemNhanVienModel(ApplicationDbContext context) => _context = context;
+        public ThemNhanVienModel(ApplicationDbContext context, ILogger<ThemNhanVienModel> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
 
         [BindProperty]
         public NhanVienInputModel Input { get; set; } = new NhanVienInputModel();
 
         public SelectList DanhSachChucVu { get; set; } = default!;
-
         public string ThongBaoLoi { get; set; } = string.Empty;
 
         public class NhanVienInputModel
@@ -34,7 +38,7 @@ namespace HotelManager.Pages.QuanLyNhanSu
             public string HoTen { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "Vui lòng nhập CCCD.")]
-            [RegularExpression(@"^\d{12}$", ErrorMessage = "CCCD phải đúng 12 số.")]
+            [RegularExpression(@"^\d{12}$", ErrorMessage = "CCCD phải đúng 12 chữ số.")]
             public string SoCCCD { get; set; } = string.Empty;
 
             public string GioiTinh { get; set; } = "Nam";
@@ -43,7 +47,7 @@ namespace HotelManager.Pages.QuanLyNhanSu
             public DateTime NgaySinh { get; set; } = DateTime.Now.AddYears(-20);
 
             [Required]
-            [RegularExpression(@"^\d{10}$", ErrorMessage = "SDT phải đúng 10 số.")]
+            [RegularExpression(@"^\d{10}$", ErrorMessage = "SĐT phải đúng 10 chữ số.")]
             public string SDT { get; set; } = string.Empty;
 
             [Required, EmailAddress(ErrorMessage = "Email không hợp lệ.")]
@@ -60,10 +64,9 @@ namespace HotelManager.Pages.QuanLyNhanSu
 
         private async Task LoadDropdownChucVuAsync()
         {
-            // YÊU CẦU 1: Bỏ mảng vaiTroLoaiBo cũ, chỉ loại bỏ vai trò "Khách hàng"
-            // Giữ lại Quản trị viên hệ thống, Giám đốc, Quản lý để nạp vào Dropdown
-            var chucVus = await _context.CHUC_VU
-                .Where(cv => cv.TenChucVu != "Khách hàng")
+            var chucVus = await _context.CHUC_VU.AsNoTracking()
+                .Where(cv => cv.TenChucVu != HangSoHeThong.VaiTroKhachHang)
+                .OrderBy(cv => cv.MaChucVu)
                 .ToListAsync();
 
             DanhSachChucVu = new SelectList(chucVus, "MaChucVu", "TenChucVu");
@@ -82,54 +85,52 @@ namespace HotelManager.Pages.QuanLyNhanSu
                     return Page();
                 }
 
-                string chuoiTienTe = Input.LuongCoBan.Replace(",", "").Replace(".", "");
-                if (!decimal.TryParse(chuoiTienTe, out decimal luongChuan))
+                string chuoiTienTe = Input.LuongCoBan.Replace(",", "").Replace(".", "").Trim();
+                if (!decimal.TryParse(chuoiTienTe, out decimal luongChuan) || luongChuan <= 0)
                 {
-                    ThongBaoLoi = "Định dạng mức lương không hợp lệ.";
+                    ThongBaoLoi = "Mức lương cơ bản phải là số dương hợp lệ!";
                     await LoadDropdownChucVuAsync();
                     return Page();
                 }
 
-                bool isDuplicate = await _context.NHAN_VIEN.AnyAsync(n => n.SoCCCD == Input.SoCCCD || n.SDT == Input.SDT || n.Email == Input.Email);
+                string cccd = Input.SoCCCD.Trim();
+                string sdt = Input.SDT.Trim();
+                string email = Input.Email.Trim();
+
+                bool isDuplicate = await _context.NHAN_VIEN.AsNoTracking()
+                    .AnyAsync(n => n.SoCCCD == cccd || n.SDT == sdt || n.Email == email);
                 if (isDuplicate)
                 {
-                    ThongBaoLoi = "CCCD, SĐT hoặc Email đã được đăng ký!";
+                    ThongBaoLoi = "CCCD, SĐT hoặc Email đã được đăng ký cho nhân viên khác!";
                     await LoadDropdownChucVuAsync();
                     return Page();
                 }
 
+                // Lưu đồng bộ CHUC_VUMaChucVu và LuongCoBan thẳng vào SQL Server (bỏ file nhanvien_meta.txt)
                 var nhanVienMoi = new NHAN_VIEN
                 {
-                    MaNV = "NV" + DateTime.Now.ToString("yyyyMMddHHmmss"),
-                    HoTen = Input.HoTen,
-                    SoCCCD = Input.SoCCCD,
+                    MaNV = BaoMatHelper.SinhMaNgauNhien("NV"),
+                    HoTen = Input.HoTen.Trim(),
+                    SoCCCD = cccd,
                     GioiTinh = Input.GioiTinh,
                     NgaySinh = Input.NgaySinh,
-                    SDT = Input.SDT,
-                    Email = Input.Email,
-                    NgayVaoLam = Input.NgayVaoLam
+                    SDT = sdt,
+                    Email = email,
+                    NgayVaoLam = Input.NgayVaoLam,
+                    CHUC_VUMaChucVu = Input.MaChucVu,
+                    LuongCoBan = luongChuan
                 };
 
                 _context.NHAN_VIEN.Add(nhanVienMoi);
                 await _context.SaveChangesAsync();
 
-                var chucVu = await _context.CHUC_VU.FirstOrDefaultAsync(c => c.MaChucVu == Input.MaChucVu);
-                string tenChucVuThucTe = chucVu != null ? chucVu.TenChucVu : "Nhân viên";
-
-                try
-                {
-                    string filePath = Path.Combine(Directory.GetCurrentDirectory(), "nhanvien_meta.txt");
-                    string dataLine = $"{nhanVienMoi.MaNV}|{tenChucVuThucTe}|{luongChuan}\n";
-                    System.IO.File.AppendAllText(filePath, dataLine);
-                }
-                catch { }
-
-                TempData["ThongBao"] = $"Thêm mới nhân viên '{Input.HoTen}' thành công!";
+                TempData["ThongBao"] = $"Thêm mới nhân viên '{nhanVienMoi.HoTen}' thành công!";
                 return RedirectToPage("./QuanLyDanhSachNhanVien");
             }
             catch (Exception ex)
             {
-                ThongBaoLoi = "Lỗi hệ thống: " + ex.Message;
+                _logger.LogError(ex, "Lỗi thêm mới nhân viên.");
+                ThongBaoLoi = "Đã xảy ra lỗi hệ thống khi thêm mới nhân viên.";
                 await LoadDropdownChucVuAsync();
                 return Page();
             }

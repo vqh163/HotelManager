@@ -99,17 +99,21 @@
                                 <span class="fw-bold fs-4 text-dark">Phòng @phong.SoPhong</span>
                             </div>
                             
-                            <!-- Nhóm nút Quản trị: Sửa, Khóa/Mở khóa, Xóa -->
+                            <!-- Nhóm nút Quản trị: Sửa, Khóa/Mở khóa (POST chống CSRF), Xóa (POST chống CSRF) -->
                             <div class="d-flex gap-1">
                                 <a asp-page="./SuaPhong" asp-route-id="@phong.MaPhong" class="action-icon text-primary" title="Chỉnh sửa">
                                     <i class="fa-regular fa-pen-to-square"></i>
                                 </a>
-                                <a asp-page-handler="Khoa" asp-route-id="@phong.MaPhong" class="action-icon @(isLocked ? "text-danger bg-light" : "text-warning")" title="@(isLocked ? "Mở khóa phòng" : "Khóa phòng")">
-                                    <i class="fa-solid @(isLocked ? "fa-lock-open" : "fa-lock")"></i>
-                                </a>
-                                <a asp-page-handler="Xoa" asp-route-id="@phong.MaPhong" class="action-icon text-danger" title="Xóa phòng" onclick="return confirm('Bạn có chắc chắn muốn xóa phòng này không?');">
-                                    <i class="fa-regular fa-trash-can"></i>
-                                </a>
+                                <form method="post" asp-page-handler="Khoa" asp-route-id="@phong.MaPhong" class="d-inline m-0">
+                                    <button type="submit" class="action-icon @(isLocked ? "text-danger bg-light" : "text-warning")" title="@(isLocked ? "Mở khóa phòng" : "Khóa bảo trì phòng")">
+                                        <i class="fa-solid @(isLocked ? "fa-lock-open" : "fa-lock")"></i>
+                                    </button>
+                                </form>
+                                <form method="post" asp-page-handler="Xoa" asp-route-id="@phong.MaPhong" class="d-inline m-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng này không?');">
+                                    <button type="submit" class="action-icon text-danger" title="Xóa phòng">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
 

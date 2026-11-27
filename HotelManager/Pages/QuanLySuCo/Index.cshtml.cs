@@ -28,10 +28,6 @@ namespace HotelManager.Pages.QuanLySuCo
             _env = env;
         }
 
-        // =========================================================================
-        // CÁC CLASS DTO PHỤC VỤ HIỂN THỊ & NHẬN DỮ LIỆU FORM (PascalCase)
-        // =========================================================================
-
         // Thông tin 1 dòng vật tư đã xuất kho lưu trong DanhSachVatTuJson
         public class VatTuTieuHaoDto
         {
@@ -90,9 +86,7 @@ namespace HotelManager.Pages.QuanLySuCo
             public string ThoiGianHoanThanhStr { get; set; } = string.Empty;
         }
 
-        // =========================================================================
-        // BỘ LỌC TÌM KIẾM (GET)
-        // =========================================================================
+        // === BỘ LỌC TÌM KIẾM (GET) ===
         [BindProperty(SupportsGet = true)]
         public string? TrangThaiLoc { get; set; }
 
@@ -105,11 +99,9 @@ namespace HotelManager.Pages.QuanLySuCo
         [BindProperty(SupportsGet = true)]
         public string? TuKhoa { get; set; }
 
-        // =========================================================================
-        // THUỘC TÍNH BINDING CHO FORM TẠO PHIẾU SỰ CỐ MỚI
-        // =========================================================================
+        // === THUỘC TÍNH BINDING FORM TẠO PHIẾU SỰ CỐ MỚI ===
         [BindProperty]
-        public string LoaiViTriMoi { get; set; } = "Phong"; // "Phong" hoặc "KhuVucChung"
+        public string LoaiViTriMoi { get; set; } = "Phong";
 
         [BindProperty]
         public string? MaPhongMoi { get; set; }
@@ -132,14 +124,12 @@ namespace HotelManager.Pages.QuanLySuCo
         [BindProperty]
         public IFormFile? AnhHienTruongMoi { get; set; }
 
-        // =========================================================================
-        // THUỘC TÍNH BINDING CHO KỸ THUẬT TIẾP NHẬN, CẬP NHẬT TIẾN ĐỘ & VẬT TƯ
-        // =========================================================================
+        // === THUỘC TÍNH BINDING KỸ THUẬT TIẾP NHẬN, CẬP NHẬT & XUẤT VẬT TƯ ===
         [BindProperty]
         public string MaPhieuThaoTac { get; set; } = string.Empty;
 
         [BindProperty]
-        public string HanhDongKyThuat { get; set; } = "LuuTam"; // "LuuTam" hoặc "GuiNghiemThu"
+        public string HanhDongKyThuat { get; set; } = "LuuTam";
 
         [BindProperty]
         public string? GhiChuXuLyKT { get; set; }
@@ -159,18 +149,14 @@ namespace HotelManager.Pages.QuanLySuCo
         [BindProperty]
         public List<VatTuChonInputModel> VatTuXuatThem { get; set; } = new List<VatTuChonInputModel>();
 
-        // =========================================================================
-        // THUỘC TÍNH BINDING CHO QUẢN LÝ NGHIỆM THU (ĐẠT / TRẢ LẠI)
-        // =========================================================================
+        // === THUỘC TÍNH BINDING QUẢN LÝ NGHIỆM THU ===
         [BindProperty]
-        public string KetQuaNghiemThu { get; set; } = "Dat"; // "Dat" hoặc "KhongDat"
+        public string KetQuaNghiemThu { get; set; } = "Dat";
 
         [BindProperty]
         public string? LyDoTuChoiQL { get; set; }
 
-        // =========================================================================
-        // DỮ LIỆU ĐẨY RA VIEW
-        // =========================================================================
+        // === DỮ LIỆU ĐẨY RA VIEW ===
         public List<SuCoViewModel> DanhSachSuCo { get; set; } = new List<SuCoViewModel>();
         public List<PHONG> DanhSachPhong { get; set; } = new List<PHONG>();
         public List<KhoVatTuOptionDto> DanhSachVatTuKho { get; set; } = new List<KhoVatTuOptionDto>();
@@ -178,19 +164,18 @@ namespace HotelManager.Pages.QuanLySuCo
         public string DanhSachSuCoJson { get; set; } = "[]";
         public string DanhSachVatTuKhoJson { get; set; } = "[]";
 
-        // Chỉ số KPI thống kê trên đầu Dashboard
         public int TongSoPhieu { get; set; }
         public int SoChoTiepNhan { get; set; }
         public int SoDangSuaChua { get; set; }
         public int SoChoNghiemThu { get; set; }
         public int SoHoanThanh { get; set; }
 
-        // Cờ phân quyền rõ ràng cho từng vai trò
+        // Cờ phân quyền theo vai trò
         public bool IsKyThuat => User.IsInRole("Nhân viên Kỹ thuật") || User.IsInRole("Kỹ thuật");
         public bool IsQuanLy => User.IsInRole("Quản lý") || User.IsInRole("Giám đốc") || User.IsInRole("Quản trị viên");
         public bool CanCreateTicket => IsKyThuat || IsQuanLy || User.IsInRole("Lễ tân") || User.IsInRole("Nhân viên Buồng phòng") || User.IsInRole("Buồng phòng");
 
-        // Hàm phụ trợ: Lấy thông tin (MaNV, HoTen) của người đang đăng nhập
+        // Lấy thông tin (MaNV, HoTen) của người đang đăng nhập từ Cookie
         private async Task<(string? MaNV, string HoTen)> LayThongTinNguoiDungHienTaiAsync()
         {
             string username = User.Identity?.Name ?? "Hệ thống";
@@ -207,32 +192,22 @@ namespace HotelManager.Pages.QuanLySuCo
             return (null, username);
         }
 
-        // Hàm phụ trợ: Lưu hình ảnh hiện trường (Trước sửa / Sau sửa) vào wwwroot/uploads/suco
+        // Lưu hình ảnh hiện trường (Trước sửa / Sau sửa) an toàn qua BaoMatHelper
         private async Task<string> SaveIncidentImageAsync(IFormFile? file, string prefix)
         {
             if (file == null || file.Length == 0) return string.Empty;
 
             string uploadFolder = Path.Combine(_env.WebRootPath, "uploads", "suco");
-            if (!Directory.Exists(uploadFolder))
+            var (ok, ketQua) = await HotelManager.Helpers.BaoMatHelper.LuuAnhAnToanAsync(file, uploadFolder, prefix);
+            if (!ok)
             {
-                Directory.CreateDirectory(uploadFolder);
+                throw new InvalidOperationException(ketQua);
             }
 
-            string ext = Path.GetExtension(file.FileName);
-            if (string.IsNullOrEmpty(ext)) ext = ".jpg";
-
-            string fileName = $"{prefix}_{DateTime.Now:yyMMddHHmmss}_{Guid.NewGuid().ToString("N").Substring(0, 6)}{ext}";
-            string filePath = Path.Combine(uploadFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            return $"/uploads/suco/{fileName}";
+            return $"/uploads/suco/{ketQua}";
         }
 
-        // Hàm phụ trợ: Đảm bảo mỗi phòng có 1 bản ghi TRANG_THAI_PHONG độc lập (đồng bộ 100% với SoDoPhong)
+        // Đảm bảo mỗi phòng có 1 bản ghi TRANG_THAI_PHONG độc lập (đồng bộ với SoDoPhong)
         private async Task<TRANG_THAI_PHONG> EnsureRoomStatusRecordAsync(PHONG phong)
         {
             string maTTRieng = "TTP_" + (phong.SoPhong ?? phong.MaPhong).Trim();
@@ -267,7 +242,7 @@ namespace HotelManager.Pages.QuanLySuCo
             return ttRieng;
         }
 
-        // Hàm phụ trợ: Ghi thông báo liên phòng ban vào NHAT_KY_HE_THONG để đẩy lên Chuông thông báo
+        // Ghi thông báo liên phòng ban vào NHAT_KY_HE_THONG
         private void ThemThongBaoHeThong(string hanhDong, string chiTiet)
         {
             string suffix = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
@@ -281,14 +256,11 @@ namespace HotelManager.Pages.QuanLySuCo
             });
         }
 
-        // =========================================================================
-        // 1. ONGET: TẢI DASHBOARD QUẢN LÝ SỰ CỐ & KỸ THUẬT
-        // =========================================================================
+        // 1. ONGET: Tải danh sách sự cố, phòng và vật tư kho bằng LINQ
         public async Task<IActionResult> OnGetAsync()
         {
             try
             {
-                // 1. Tải danh sách phòng & vật tư kho bằng LINQ
                 DanhSachPhong = await _context.PHONG.AsNoTracking()
                     .OrderBy(p => p.SoPhong)
                     .ToListAsync();
@@ -309,14 +281,12 @@ namespace HotelManager.Pages.QuanLySuCo
 
                 DanhSachVatTuKhoJson = JsonSerializer.Serialize(DanhSachVatTuKho);
 
-                // Từ điển tra cứu nhanh Tên Nhân Viên & Số Phòng
                 var nvDict = await _context.NHAN_VIEN.AsNoTracking()
                     .Where(n => n.MaNV != null)
                     .ToDictionaryAsync(n => n.MaNV, n => n.HoTen ?? n.MaNV);
 
                 var phongDict = DanhSachPhong.ToDictionary(p => p.MaPhong, p => p.SoPhong ?? p.MaPhong);
 
-                // 2. Truy vấn toàn bộ phiếu sự cố từ CSDL bằng LINQ
                 var ticketsDb = await _context.PHIEU_BAO_CAO_SU_CO.AsNoTracking()
                     .OrderByDescending(p => p.ThoiGianTao)
                     .ToListAsync();
@@ -325,7 +295,6 @@ namespace HotelManager.Pages.QuanLySuCo
 
                 foreach (var t in ticketsDb)
                 {
-                    // Tương thích dữ liệu cũ tạo từ SoDoPhong trước khi thêm cột TrangThai / ViTriSuCo
                     string trangThai = string.IsNullOrWhiteSpace(t.TrangThai) ? "Chờ tiếp nhận" : t.TrangThai.Trim();
                     string viTri = t.ViTriSuCo ?? string.Empty;
 
@@ -400,25 +369,21 @@ namespace HotelManager.Pages.QuanLySuCo
                     });
                 }
 
-                // 3. Thống kê KPI trước khi lọc
+                // Tính các chỉ số KPI
                 TongSoPhieu = allViewModels.Count;
                 SoChoTiepNhan = allViewModels.Count(x => x.TrangThai == "Chờ tiếp nhận");
                 SoDangSuaChua = allViewModels.Count(x => x.TrangThai == "Đang sửa chữa");
                 SoChoNghiemThu = allViewModels.Count(x => x.TrangThai == "Chờ nghiệm thu");
                 SoHoanThanh = allViewModels.Count(x => x.TrangThai == "Hoàn thành");
 
-                // 4. Áp dụng bộ lọc trên Dashboard
+                // Lọc theo điều kiện người dùng chọn
                 var filtered = allViewModels.AsEnumerable();
 
                 if (!string.IsNullOrWhiteSpace(TrangThaiLoc) && TrangThaiLoc != "TatCa")
-                {
                     filtered = filtered.Where(x => x.TrangThai == TrangThaiLoc);
-                }
 
                 if (!string.IsNullOrWhiteSpace(UuTienLoc) && UuTienLoc != "TatCa")
-                {
                     filtered = filtered.Where(x => x.MucDoUuTien == UuTienLoc);
-                }
 
                 if (!string.IsNullOrWhiteSpace(LoaiViTriLoc) && LoaiViTriLoc != "TatCa")
                 {
@@ -437,7 +402,6 @@ namespace HotelManager.Pages.QuanLySuCo
                         x.NguoiXuLy.ToLower().Contains(kw));
                 }
 
-                // Sắp xếp ưu tiên phiếu chưa hoàn thành & khẩn cấp lên đầu
                 DanhSachSuCo = filtered
                     .OrderBy(x => x.TrangThai == "Hoàn thành" ? 1 : 0)
                     .ThenByDescending(x => x.MucDoUuTien == "Khẩn cấp")
@@ -454,9 +418,7 @@ namespace HotelManager.Pages.QuanLySuCo
             }
         }
 
-        // =========================================================================
-        // 2. BƯỚC 1: TẠO PHIẾU BÁO CÁO SỰ CỐ MỚI (Lễ tân, Buồng phòng, Quản lý, Kỹ thuật)
-        // =========================================================================
+        // 2. BƯỚC 1: Tạo phiếu báo cáo sự cố mới
         public async Task<IActionResult> OnPostTaoPhieuSuCoAsync()
         {
             if (!CanCreateTicket)
@@ -509,10 +471,8 @@ namespace HotelManager.Pages.QuanLySuCo
                 string suffix = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
                 var (maNVTao, tenNguoiTao) = await LayThongTinNguoiDungHienTaiAsync();
 
-                // Lưu hình ảnh hiện trường đính kèm (nếu có)
                 string anhHienTruongUrl = await SaveIncidentImageAsync(AnhHienTruongMoi, "BEFORE");
 
-                // Quy tắc 3.2: Tự động khóa phòng sang "Bảo trì" nếu là Phòng lưu trú và (Ưu tiên Khẩn cấp/Cao HOẶC có tích chọn Khóa phòng)
                 bool canKhoaPhong = phongChon != null &&
                                     (KhoaPhongDeSuaMoi || MucDoUuTienMoi == "Khẩn cấp" || MucDoUuTienMoi == "Cao");
 
@@ -521,7 +481,6 @@ namespace HotelManager.Pages.QuanLySuCo
 
                 if (canKhoaPhong && phongChon != null)
                 {
-                    // Kiểm tra xem phòng hiện có khách đang lưu trú (DANG_O) hay không
                     bool phongDangCoKhach = await (from ct in _context.CHI_TIET_DAT_PHONG.AsNoTracking()
                                                    join dp in _context.DAT_PHONG.AsNoTracking() on ct.DAT_PHONGMaDatPhong equals dp.MaDatPhong
                                                    where ct.PHONGMaPhong == phongChon.MaPhong && dp.TrangThaiDatPhong == "DANG_O"
@@ -532,14 +491,9 @@ namespace HotelManager.Pages.QuanLySuCo
                     _context.TRANG_THAI_PHONG.Update(trangThaiPhong);
                     daThucHienKhoa = true;
 
-                    if (phongDangCoKhach)
-                    {
-                        ghiChuKhoaPhongMsg = $" (Lưu ý: {viTriChot} hiện đang có khách lưu trú, Lễ tân cần thực hiện nghiệp vụ Đổi phòng cho khách trên Sơ đồ phòng!)";
-                    }
-                    else
-                    {
-                        ghiChuKhoaPhongMsg = $" Đã tự động chuyển {viTriChot} sang trạng thái 'Bảo trì' trên Sơ đồ phòng.";
-                    }
+                    ghiChuKhoaPhongMsg = phongDangCoKhach
+                        ? $" (Lưu ý: {viTriChot} hiện đang có khách lưu trú, Lễ tân cần thực hiện nghiệp vụ Đổi phòng cho khách trên Sơ đồ phòng!)"
+                        : $" Đã tự động chuyển {viTriChot} sang trạng thái 'Bảo trì' trên Sơ đồ phòng.";
                 }
 
                 var phieuMoi = new PHIEU_BAO_CAO_SU_CO
@@ -562,14 +516,12 @@ namespace HotelManager.Pages.QuanLySuCo
 
                 _context.PHIEU_BAO_CAO_SU_CO.Add(phieuMoi);
 
-                // Gửi thông báo đến Nhân viên Kỹ thuật (và Lễ tân nếu có khóa phòng)
                 ThemThongBaoHeThong(
                     "Yêu cầu Kỹ thuật",
                     $"[Nhân viên Kỹ thuật] Phiếu sự cố mới {phieuMoi.MaPhieuBaoCao} tại {viTriChot} (Mức độ: {MucDoUuTienMoi}): {MoTaSuCoMoi.Trim()}"
                 );
 
                 await _context.SaveChangesAsync();
-
                 TempData["SuccessMessage"] = $"Đã tạo Phiếu sự cố {phieuMoi.MaPhieuBaoCao} tại {viTriChot} thành công!{ghiChuKhoaPhongMsg}";
             }
             catch (Exception ex)
@@ -580,12 +532,9 @@ namespace HotelManager.Pages.QuanLySuCo
             return RedirectToPage();
         }
 
-        // =========================================================================
-        // 3. BƯỚC 2: TIẾP NHẬN PHIẾU SỬA CHỮA (CHỈ NHÂN VIÊN KỸ THUẬT ĐƯỢC PHÉP)
-        // =========================================================================
+        // 3. BƯỚC 2: Nhân viên Kỹ thuật tiếp nhận phiếu sửa chữa
         public async Task<IActionResult> OnPostTiepNhanPhieuAsync()
         {
-            // Chặn cứng ở tầng Backend: Quản lý KHÔNG được nhận phiếu như nhân viên kỹ thuật
             if (!IsKyThuat)
             {
                 TempData["ErrorMessage"] = "Chỉ Nhân viên Kỹ thuật mới có quyền tiếp nhận xử lý phiếu sự cố!";
@@ -618,7 +567,6 @@ namespace HotelManager.Pages.QuanLySuCo
                 phieu.ThoiGianTiepNhan = DateTime.Now;
                 _context.PHIEU_BAO_CAO_SU_CO.Update(phieu);
 
-                // Gửi thông báo đến Quản lý / Người tạo phiếu biết đã có Kỹ thuật tiếp nhận
                 ThemThongBaoHeThong(
                     "Thông báo Kỹ thuật",
                     $"[Quản lý] Kỹ thuật viên {tenNVKT} đã tiếp nhận sửa chữa phiếu {phieu.MaPhieuBaoCao} tại {phieu.ViTriSuCo ?? "Khách sạn"}."
@@ -635,10 +583,7 @@ namespace HotelManager.Pages.QuanLySuCo
             return RedirectToPage();
         }
 
-        // =========================================================================
-        // 4. BƯỚC 3: CẬP NHẬT TIẾN ĐỘ, XUẤT NHIỀU VẬT TƯ (TRỪ KHO) & BÁO SỬA XONG
-        // (CHỈ NHÂN VIÊN KỸ THUẬT ĐƯỢC PHÉP)
-        // =========================================================================
+        // 4. BƯỚC 3: Kỹ thuật cập nhật tiến độ, xuất nhiều vật tư (trừ kho) & gửi nghiệm thu
         public async Task<IActionResult> OnPostCapNhatSuaChuaAsync()
         {
             if (!IsKyThuat)
@@ -665,9 +610,17 @@ namespace HotelManager.Pages.QuanLySuCo
                     return RedirectToPage();
                 }
 
+                // Kiểm tra đúng kỹ thuật viên đã tiếp nhận phiếu (hoặc Quản lý) mới được cập nhật
+                var (maNVHienTai, _) = await LayThongTinNguoiDungHienTaiAsync();
+                if (!IsQuanLy && !string.IsNullOrWhiteSpace(phieu.MaNVKyThuat) && !string.IsNullOrWhiteSpace(maNVHienTai) && phieu.MaNVKyThuat != maNVHienTai)
+                {
+                    TempData["ErrorMessage"] = "Phiếu sự cố này đang do nhân viên kỹ thuật khác phụ trách xử lý!";
+                    return RedirectToPage();
+                }
+
                 DateTime now = DateTime.Now;
 
-                // 1. Đọc lại danh sách vật tư đã xuất ở các lần lưu trước (để KHÔNG trừ kho lặp lại)
+                // Đọc danh sách vật tư đã xuất trước đó để không trừ kho lặp lại
                 var dsVatTuDaXuat = new List<VatTuTieuHaoDto>();
                 if (!string.IsNullOrWhiteSpace(phieu.DanhSachVatTuJson))
                 {
@@ -678,7 +631,7 @@ namespace HotelManager.Pages.QuanLySuCo
                     catch { dsVatTuDaXuat = new List<VatTuTieuHaoDto>(); }
                 }
 
-                // 2. Xử lý danh sách nhiều vật tư mới xuất thêm -> Kiểm tra tồn kho & trừ trực tiếp KHO_VAT_TU
+                // Kiểm tra tồn kho & trừ trực tiếp KHO_VAT_TU cho danh sách vật tư mới xuất
                 var dsMoiHopLe = VatTuXuatThem?
                     .Where(x => !string.IsNullOrWhiteSpace(x.MaVatTu) && x.SoLuong > 0)
                     .GroupBy(x => x.MaVatTu)
@@ -715,12 +668,39 @@ namespace HotelManager.Pages.QuanLySuCo
                             return RedirectToPage();
                         }
 
-                        // Trừ trực tiếp số lượng tồn kho
+                        // Trừ kho nguyên tử chống âm kho khi đa luồng
+                        int affected = await _context.KHO_VAT_TU
+                            .Where(v => v.MaVatTu == vatTuDb.MaVatTu && (v.SoLuongTon ?? 0) >= item.SoLuong)
+                            .ExecuteUpdateAsync(s => s.SetProperty(v => v.SoLuongTon, v => (v.SoLuongTon ?? 0) - item.SoLuong));
+
+                        if (affected == 0)
+                        {
+                            await transaction.RollbackAsync();
+                            TempData["ErrorMessage"] = $"Không đủ tồn kho cho vật tư '{vatTuDb.TenVatTu}'!";
+                            return RedirectToPage();
+                        }
+
                         int tonSauKhiTru = tonHienTai - item.SoLuong;
                         vatTuDb.SoLuongTon = tonSauKhiTru;
-                        _context.KHO_VAT_TU.Update(vatTuDb);
 
-                        // Ghi nhận vào danh sách JSON của phiếu
+                        // Ghi đồng bộ phiếu xuất kho vào bảng PHIEU_NHAP_XUAT_KHO
+                        _context.PHIEU_NHAP_XUAT_KHO.Add(new PHIEU_NHAP_XUAT_KHO
+                        {
+                            MaPhieu = HotelManager.Helpers.BaoMatHelper.SinhMaNgauNhien("PX"),
+                            LoaiGiaoDich = "XUAT",
+                            KHO_VAT_TUMaVatTu = vatTuDb.MaVatTu,
+                            TenVatTu = vatTuDb.TenVatTu ?? vatTuDb.MaVatTu,
+                            LoaiKho = vatTuDb.LoaiVatTu ?? "Kho kỹ thuật",
+                            DonViTinh = vatTuDb.DonViTinh ?? "Cái",
+                            SoLuong = item.SoLuong,
+                            DonGia = donGiaVatTu,
+                            DoiTacHoacBoPhan = "Bộ phận Kỹ thuật",
+                            GhiChu = $"Xuất vật tư sửa chữa phiếu sự cố {phieu.MaPhieuBaoCao} ({phieu.ViTriSuCo})",
+                            NguoiThucHien = User.Identity?.Name,
+                            MaThamChieu = phieu.MaPhieuBaoCao,
+                            ThoiGian = now
+                        });
+
                         dsVatTuDaXuat.Add(new VatTuTieuHaoDto
                         {
                             MaVatTu = vatTuDb.MaVatTu,
@@ -732,13 +712,11 @@ namespace HotelManager.Pages.QuanLySuCo
                             ThoiGianXuat = now.ToString("dd/MM/yyyy HH:mm")
                         });
 
-                        // Gắn vật tư chính đầu tiên vào khóa ngoại KHO_VAT_TUMaVatTu (đúng ERD mục 2.3.2)
                         if (string.IsNullOrWhiteSpace(phieu.KHO_VAT_TUMaVatTu))
                         {
                             phieu.KHO_VAT_TUMaVatTu = vatTuDb.MaVatTu;
                         }
 
-                        // Nếu tồn kho rơi xuống mức tối thiểu -> Tạo cảnh báo cho Thủ kho (UC_09)
                         if (tonSauKhiTru <= tonToiThieu)
                         {
                             canhBaoTonThap.Add($"{vatTuDb.TenVatTu} (còn {tonSauKhiTru} {vatTuDb.DonViTinh})");
@@ -750,13 +728,12 @@ namespace HotelManager.Pages.QuanLySuCo
                     }
                 }
 
-                // 3. Lưu ảnh sau sửa chữa nếu Kỹ thuật có tải lên / chụp mới
+                // Lưu ảnh sau sửa chữa nếu có tải lên
                 if (AnhSauSuaChuaKT != null && AnhSauSuaChuaKT.Length > 0)
                 {
                     phieu.AnhSauSuaChua = await SaveIncidentImageAsync(AnhSauSuaChuaKT, "AFTER");
                 }
 
-                // Nếu Kỹ thuật bấm "Hoàn tất & Gửi nghiệm thu" thì bắt buộc phải có ảnh sau sửa chữa
                 if (HanhDongKyThuat == "GuiNghiemThu" && string.IsNullOrWhiteSpace(phieu.AnhSauSuaChua))
                 {
                     await transaction.RollbackAsync();
@@ -764,7 +741,6 @@ namespace HotelManager.Pages.QuanLySuCo
                     return RedirectToPage();
                 }
 
-                // 4. Tính lại tổng chi phí bảo trì & lưu thông tin xử lý
                 decimal tongTienVatTu = dsVatTuDaXuat.Sum(x => x.ThanhTien);
                 decimal chiPhiPhatSinh = ChiPhiPhatSinhKT < 0 ? 0 : ChiPhiPhatSinhKT;
 
@@ -778,33 +754,69 @@ namespace HotelManager.Pages.QuanLySuCo
                     phieu.GhiChuXuLy = GhiChuXuLyKT.Trim();
                 }
 
-                // 5. Nếu sự cố do khách làm hỏng và Kỹ thuật tích chọn cộng phí vào hóa đơn phòng đang lưu trú
+                // Cộng phí đền bù vào hóa đơn phòng theo cơ chế UPSERT (1 mã duy nhất theo phiếu sự cố, chống cộng lặp)
+                string maChiTietDenBu = ("DB" + (phieu.MaPhieuBaoCao.Length > 2 ? phieu.MaPhieuBaoCao.Substring(2) : phieu.MaPhieuBaoCao));
+                if (maChiTietDenBu.Length > 20) maChiTietDenBu = maChiTietDenBu.Substring(0, 20);
+
+                var denBuHienCo = await _context.CHI_TIET_DICH_VU.FirstOrDefaultAsync(c => c.MaChiTietDichVu == maChiTietDenBu);
+
                 if (DoKhachLamHongKT && CongPhiVaoHoaDonPhongKT && !string.IsNullOrWhiteSpace(phieu.MaPhong) && (phieu.TongChiPhi ?? 0) > 0)
                 {
                     var datPhongDangO = await (from ct in _context.CHI_TIET_DAT_PHONG.AsNoTracking()
                                                join dp in _context.DAT_PHONG.AsNoTracking() on ct.DAT_PHONGMaDatPhong equals dp.MaDatPhong
-                                               where ct.PHONGMaPhong == phieu.MaPhong && dp.TrangThaiDatPhong == "DANG_O"
+                                               where ct.PHONGMaPhong == phieu.MaPhong && dp.TrangThaiDatPhong == HotelManager.Helpers.HangSoHeThong.DatPhongDangO
                                                select dp).FirstOrDefaultAsync();
 
-                    var dvMacDinh = await _context.DICH_VU.AsNoTracking().FirstOrDefaultAsync();
-                    if (datPhongDangO != null && dvMacDinh != null)
+                    if (datPhongDangO != null)
                     {
-                        string suffix = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
-                        _context.CHI_TIET_DICH_VU.Add(new CHI_TIET_DICH_VU
+                        // Đảm bảo tồn tại dịch vụ chuẩn riêng cho Phí đền bù sự cố (không lấy nhầm món ăn nhà hàng)
+                        var dvDenBu = await _context.DICH_VU.FirstOrDefaultAsync(d => d.MaDichVu == "DV_DENBU_SUCO");
+                        if (dvDenBu == null)
                         {
-                            MaChiTietDichVu = $"SC{now:yyMMddHHmmss}{suffix}",
-                            DICH_VUMaDichVu = dvMacDinh.MaDichVu,
-                            KHACH_HANGMaKH = datPhongDangO.KHACH_HANGMaKH,
-                            PHONGMaPhong = phieu.MaPhong,
-                            SoLuong = 1,
-                            DonGia = phieu.TongChiPhi,
-                            ThanhTien = phieu.TongChiPhi,
-                            ThoiGianSuDung = now
-                        });
+                            dvDenBu = new DICH_VU
+                            {
+                                MaDichVu = "DV_DENBU_SUCO",
+                                TenDichVu = "Phí đền bù hư hỏng thiết bị / sự cố",
+                                LoaiDichVu = "Đền bù",
+                                DonGia = 0,
+                                DonViTinh = "Lần",
+                                ConMon = false
+                            };
+                            _context.DICH_VU.Add(dvDenBu);
+                        }
+
+                        if (denBuHienCo == null)
+                        {
+                            _context.CHI_TIET_DICH_VU.Add(new CHI_TIET_DICH_VU
+                            {
+                                MaChiTietDichVu = maChiTietDenBu,
+                                DICH_VUMaDichVu = dvDenBu.MaDichVu,
+                                DAT_PHONGMaDatPhong = datPhongDangO.MaDatPhong,
+                                KHACH_HANGMaKH = datPhongDangO.KHACH_HANGMaKH,
+                                PHONGMaPhong = phieu.MaPhong,
+                                SoLuong = 1,
+                                DonGia = phieu.TongChiPhi,
+                                ThanhTien = phieu.TongChiPhi,
+                                ThoiGianSuDung = now
+                            });
+                        }
+                        else
+                        {
+                            // Cập nhật số tiền mới nhất thay vì chèn thêm dòng trùng lặp
+                            denBuHienCo.DonGia = phieu.TongChiPhi;
+                            denBuHienCo.ThanhTien = phieu.TongChiPhi;
+                            denBuHienCo.DAT_PHONGMaDatPhong = datPhongDangO.MaDatPhong;
+                            denBuHienCo.ThoiGianSuDung = now;
+                            _context.CHI_TIET_DICH_VU.Update(denBuHienCo);
+                        }
                     }
                 }
+                else if (denBuHienCo != null)
+                {
+                    // Nếu kỹ thuật bỏ tích chọn đền bù thì gỡ bỏ dòng phí cũ
+                    _context.CHI_TIET_DICH_VU.Remove(denBuHienCo);
+                }
 
-                // 6. Chuyển trạng thái sang "Chờ nghiệm thu" nếu bấm Gửi nghiệm thu
                 if (HanhDongKyThuat == "GuiNghiemThu")
                 {
                     phieu.TrangThai = "Chờ nghiệm thu";
@@ -835,13 +847,9 @@ namespace HotelManager.Pages.QuanLySuCo
             return RedirectToPage();
         }
 
-        // =========================================================================
-        // 5. BƯỚC 4: QUẢN LÝ NGHIỆM THU (BÁO XANH HOÀN THÀNH HOẶC TRẢ LẠI SỬA LẠI)
-        // (CHỈ QUẢN LÝ ĐƯỢC PHÉP)
-        // =========================================================================
+        // 5. BƯỚC 4: Quản lý nghiệm thu (Báo xanh hoàn thành hoặc trả lại sửa lại)
         public async Task<IActionResult> OnPostNghiemThuAsync()
         {
-            // Chặn cứng ở tầng Backend: Chỉ Quản lý được phép nghiệm thu
             if (!IsQuanLy)
             {
                 TempData["ErrorMessage"] = "Chỉ Quản lý mới có quyền nghiệm thu và báo xanh phiếu sự cố!";
@@ -869,20 +877,18 @@ namespace HotelManager.Pages.QuanLySuCo
 
                 if (KetQuaNghiemThu == "Dat")
                 {
-                    // NGHIỆM THU ĐẠT -> BÁO XANH (HOÀN THÀNH)
                     phieu.TrangThai = "Hoàn thành";
                     phieu.ThoiGianHoanThanh = now;
                     _context.PHIEU_BAO_CAO_SU_CO.Update(phieu);
 
                     string thongBaoMoPhong = "";
 
-                    // Quy tắc 3.3: Nếu phiếu gắn với Phòng lưu trú đang bị khóa Bảo trì -> Tự động mở khóa về "Trống" + Vệ sinh "Bẩn"
+                    // Mở khóa phòng Bảo trì về Trống + Vệ sinh Bẩn để Buồng phòng dọn dẹp
                     if (!string.IsNullOrWhiteSpace(phieu.MaPhong))
                     {
                         var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == phieu.MaPhong);
                         if (phong != null)
                         {
-                            // Kiểm tra xem phòng còn phiếu sự cố nào KHÁC chưa hoàn thành và đang khóa phòng hay không
                             bool conSuCoKhacDangKhoa = await _context.PHIEU_BAO_CAO_SU_CO
                                 .AnyAsync(x => x.MaPhong == phong.MaPhong
                                             && x.MaPhieuBaoCao != phieu.MaPhieuBaoCao
@@ -901,7 +907,6 @@ namespace HotelManager.Pages.QuanLySuCo
 
                                     thongBaoMoPhong = $" Phòng {phong.SoPhong} đã tự động chuyển từ 'Bảo trì' về 'Trống' (Vệ sinh: Bẩn) và gửi thông báo cho Buồng phòng vào dọn dẹp!";
 
-                                    // Gửi thông báo cho Buồng phòng & Lễ tân
                                     ThemThongBaoHeThong(
                                         "Thông báo Buồng phòng",
                                         $"[Nhân viên Buồng phòng] Phòng {phong.SoPhong} đã sửa chữa & nghiệm thu xong (Báo xanh). Trạng thái chuyển sang Trống - Bẩn, vui lòng dọn dẹp lại phòng!"
@@ -915,7 +920,6 @@ namespace HotelManager.Pages.QuanLySuCo
                         }
                     }
 
-                    // Thông báo kết quả nghiệm thu đạt cho Nhân viên Kỹ thuật
                     ThemThongBaoHeThong(
                         "Thông báo Kỹ thuật",
                         $"[Nhân viên Kỹ thuật] Phiếu {phieu.MaPhieuBaoCao} tại {phieu.ViTriSuCo} đã được Quản lý nghiệm thu ĐẠT (Báo xanh)."
@@ -926,7 +930,6 @@ namespace HotelManager.Pages.QuanLySuCo
                 }
                 else
                 {
-                    // NGHIỆM THU KHÔNG ĐẠT -> TRẢ LẠI QUAY VỀ "ĐANG SỬA CHỮA"
                     if (string.IsNullOrWhiteSpace(LyDoTuChoiQL))
                     {
                         TempData["ErrorMessage"] = "Vui lòng nhập rõ lý do không đạt khi trả lại phiếu cho Nhân viên Kỹ thuật sửa lại!";

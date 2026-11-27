@@ -31,5 +31,13 @@ namespace HotelManager.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal? ThanhTien { get; set; }
         public DateTime? ThoiGianSuDung { get; set; }
+
+        // Khóa ngoại liên kết trực tiếp với đơn đặt phòng để tổng hợp hóa đơn Check-out
+        [Column(TypeName = "varchar(20)")]
+        public string? DAT_PHONGMaDatPhong { get; set; }
+
+        // Khóa ngoại liên kết với hóa đơn nhà hàng (khi gọi món tại nhà hàng)
+        [Column(TypeName = "varchar(20)")]
+        public string? HOA_DON_NHA_HANGMaHoaDonNhaHang { get; set; }
     }
 }

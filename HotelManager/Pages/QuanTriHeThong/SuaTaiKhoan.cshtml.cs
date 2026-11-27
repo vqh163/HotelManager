@@ -115,29 +115,7 @@ namespace HotelManager.Pages.QuanTriHeThong
                 }
             }
 
-            // 4. Fallback đọc từ file nhanvien_meta.txt nếu cột trong DB đang trống
-            if (string.IsNullOrWhiteSpace(tenChucVu))
-            {
-                string metaFilePath = Path.Combine(_env.ContentRootPath, "nhanvien_meta.txt");
-                if (System.IO.File.Exists(metaFilePath))
-                {
-                    var lines = await System.IO.File.ReadAllLinesAsync(metaFilePath);
-                    foreach (var line in lines)
-                    {
-                        if (string.IsNullOrWhiteSpace(line)) continue;
-                        if (line.Contains(nv.MaNV))
-                        {
-                            var parts = line.Split(new[] { '|', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
-                            if (parts.Length >= 2)
-                            {
-                                tenChucVu = parts.Skip(1).FirstOrDefault(p => !p.Contains("@") && !p.All(char.IsDigit))?.Trim() ?? "";
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
+            // Đọc chức vụ trực tiếp từ SQL Server (dữ liệu từ file meta đã được đồng bộ vào CSDL)
             return tenChucVu;
         }
 

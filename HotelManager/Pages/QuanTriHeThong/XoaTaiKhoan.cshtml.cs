@@ -1,27 +1,32 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace HotelManager.Pages.QuanTriHeThong
 {
     public class XoaTaiKhoanModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<XoaTaiKhoanModel> _logger;
 
-        public XoaTaiKhoanModel(ApplicationDbContext context)
+        public XoaTaiKhoanModel(ApplicationDbContext context, ILogger<XoaTaiKhoanModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
-        // Dữ liệu tài khoản cần xóa hiển thị ra màn hình để Admin xác nhận lại
         [BindProperty]
         public TAI_KHOAN TaiKhoanXoa { get; set; } = default!;
 
-        public string ThongBaoLoi { get; set; } = "";
+        public string ThongBaoLoi { get; set; } = string.Empty;
 
-        // Hàm chạy khi trang load, lấy thông tin tài khoản dựa vào Mã TK trên URL
         public async Task<IActionResult> OnGetAsync(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -31,8 +36,7 @@ namespace HotelManager.Pages.QuanTriHeThong
 
             try
             {
-                // Dùng LINQ tìm tài khoản
-                var tk = await _context.TAI_KHOAN.FirstOrDefaultAsync(t => t.MaTaiKhoan == id);
+                var tk = await _context.TAI_KHOAN.AsNoTracking().FirstOrDefaultAsync(t => t.MaTaiKhoan == id);
                 if (tk == null)
                 {
                     return RedirectToPage("./QuanLyTaiKhoan");
@@ -42,13 +46,13 @@ namespace HotelManager.Pages.QuanTriHeThong
             }
             catch (Exception ex)
             {
-                ThongBaoLoi = "Lỗi khi truy xuất dữ liệu: " + ex.Message;
+                _logger.LogError(ex, "Lỗi truy xuất dữ liệu tài khoản cần xóa.");
+                ThongBaoLoi = "Đã xảy ra lỗi khi truy xuất thông tin tài khoản.";
             }
 
             return Page();
         }
 
-        // Hàm xử lý thao tác xóa khi Admin bấm nút Xác nhận Xóa
         public async Task<IActionResult> OnPostAsync(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -58,28 +62,51 @@ namespace HotelManager.Pages.QuanTriHeThong
 
             try
             {
-                // Tìm lại tài khoản một lần nữa trước khi xóa để đảm bảo an toàn
                 var tk = await _context.TAI_KHOAN.FirstOrDefaultAsync(t => t.MaTaiKhoan == id);
-
-                if (tk != null)
+                if (tk == null)
                 {
-                    // Xóa vĩnh viễn khỏi CSDL
-                    _context.TAI_KHOAN.Remove(tk);
-                    await _context.SaveChangesAsync();
+                    return RedirectToPage("./QuanLyTaiKhoan");
                 }
 
-                // Quay về trang danh sách sau khi xóa thành công
+                string maTaiKhoanDangNhap = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                if (tk.MaTaiKhoan == maTaiKhoanDangNhap)
+                {
+                    ThongBaoLoi = "Không thể tự xóa tài khoản Quản trị viên đang đăng nhập!";
+                    TaiKhoanXoa = tk;
+                    return Page();
+                }
+
+                if (tk.VaiTro == HangSoHeThong.VaiTroQuanTri)
+                {
+                    int soAdminHoatDong = await _context.TAI_KHOAN.CountAsync(t =>
+                        t.VaiTro == HangSoHeThong.VaiTroQuanTri && t.TrangThai == "Hoạt động");
+                    if (soAdminHoatDong <= 1)
+                    {
+                        ThongBaoLoi = "Không thể xóa tài khoản Quản trị viên hoạt động cuối cùng của hệ thống!";
+                        TaiKhoanXoa = tk;
+                        return Page();
+                    }
+                }
+
+                _context.TAI_KHOAN.Remove(tk);
+                _context.NHAT_KY_HE_THONG.Add(new NHAT_KY_HE_THONG
+                {
+                    MaNhatKy = BaoMatHelper.SinhMaNgauNhien("LG"),
+                    TenDangNhap = User.Identity?.Name ?? "Admin",
+                    HanhDong = "Xóa tài khoản",
+                    ChiTiet = $"Đã xóa tài khoản '{tk.TenDangNhap}' ({tk.MaTaiKhoan}, Vai trò: {tk.VaiTro}).",
+                    ThoiGian = DateTime.Now
+                });
+
+                await _context.SaveChangesAsync();
                 return RedirectToPage("./QuanLyTaiKhoan");
             }
             catch (Exception ex)
             {
-                // Bắt lỗi an toàn, đặc biệt hữu ích nếu sau này có ràng buộc khóa ngoại (Foreign Key)
-                ThongBaoLoi = "Không thể xóa tài khoản này. Có thể do lỗi ràng buộc dữ liệu: " + ex.Message;
-
-                // Load lại dữ liệu để hiển thị trang lỗi
-                var tk = await _context.TAI_KHOAN.FirstOrDefaultAsync(t => t.MaTaiKhoan == id);
+                _logger.LogError(ex, "Lỗi khi xóa tài khoản {Id}", id);
+                ThongBaoLoi = "Không thể xóa tài khoản này do lỗi ràng buộc dữ liệu hoặc lỗi hệ thống.";
+                var tk = await _context.TAI_KHOAN.AsNoTracking().FirstOrDefaultAsync(t => t.MaTaiKhoan == id);
                 if (tk != null) TaiKhoanXoa = tk;
-
                 return Page();
             }
         }

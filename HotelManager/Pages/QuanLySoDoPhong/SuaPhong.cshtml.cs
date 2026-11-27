@@ -4,32 +4,33 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-// Khai báo đúng namespace chứa DbContext và Models của Nhóm 4
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
 
 namespace HotelManager.Pages.QuanLySoDoPhong
 {
-    // Bắt buộc phân quyền: Chỉ tài khoản có VaiTro "Quản lý" mới được phép sửa phòng
-    [Authorize(Roles = "Quản lý")]
+    [Authorize(Policy = HangSoHeThong.PolicyQuanLyCap)]
     public class SuaPhongModel : PageModel
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<SuaPhongModel> _logger;
 
-        public SuaPhongModel(ApplicationDbContext context, IWebHostEnvironment environment)
+        public SuaPhongModel(ApplicationDbContext context, IWebHostEnvironment environment, ILogger<SuaPhongModel> logger)
         {
             _context = context;
             _environment = environment;
+            _logger = logger;
         }
 
         [BindProperty]
         public PHONG InputPhong { get; set; } = default!;
 
-        // Khai báo cho phép null (CS8618) vì khi sửa, người dùng có thể không đổi ảnh mới
         [BindProperty]
         public IFormFile? HinhAnhUpload { get; set; }
 
@@ -37,7 +38,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
         {
             if (string.IsNullOrEmpty(id))
             {
-                // SỬA LỖI: Trỏ đúng về file QuanLyDSPhong
                 return RedirectToPage("/QuanLySoDoPhong/QuanLyDSPhong");
             }
 
@@ -46,7 +46,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 var phong = await _context.PHONG.AsNoTracking().FirstOrDefaultAsync(p => p.MaPhong == id);
                 if (phong == null)
                 {
-                    // SỬA LỖI: Trỏ đúng về file QuanLyDSPhong
                     return RedirectToPage("/QuanLySoDoPhong/QuanLyDSPhong");
                 }
 
@@ -55,7 +54,8 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, $"Lỗi hệ thống khi tải dữ liệu: {ex.Message}");
+                _logger.LogError(ex, "Lỗi tải thông tin phòng {Id}", id);
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi tải thông tin phòng.");
                 return Page();
             }
         }
@@ -76,7 +76,15 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                     return Page();
                 }
 
-                phongInDb.SoPhong = InputPhong.SoPhong;
+                string soPhongMoi = (InputPhong.SoPhong ?? string.Empty).Trim();
+                if (!string.IsNullOrEmpty(soPhongMoi) &&
+                    await _context.PHONG.AnyAsync(p => p.MaPhong != phongInDb.MaPhong && p.SoPhong == soPhongMoi))
+                {
+                    ModelState.AddModelError("InputPhong.SoPhong", "Số phòng này đã được sử dụng cho phòng khác!");
+                    return Page();
+                }
+
+                phongInDb.SoPhong = soPhongMoi;
                 phongInDb.LoaiPhong = InputPhong.LoaiPhong;
                 phongInDb.SoGiuong = InputPhong.SoGiuong;
                 phongInDb.SucChuaToiDa = InputPhong.SucChuaToiDa;
@@ -85,27 +93,23 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
                 if (HinhAnhUpload != null && HinhAnhUpload.Length > 0)
                 {
-                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(HinhAnhUpload.FileName);
                     var uploadsFolder = Path.Combine(_environment.WebRootPath, "images", "rooms");
-                    Directory.CreateDirectory(uploadsFolder);
-
-                    var filePath = Path.Combine(uploadsFolder, fileName);
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    var (ok, ketQua) = await BaoMatHelper.LuuAnhAnToanAsync(HinhAnhUpload, uploadsFolder, "ROOM");
+                    if (!ok)
                     {
-                        await HinhAnhUpload.CopyToAsync(fileStream);
+                        ModelState.AddModelError("HinhAnhUpload", ketQua);
+                        return Page();
                     }
-
-                    phongInDb.HinhAnh = "/images/rooms/" + fileName;
+                    phongInDb.HinhAnh = "/images/rooms/" + ketQua;
                 }
 
                 await _context.SaveChangesAsync();
-
-                // SỬA LỖI CHÍNH Ở ĐÂY: Trỏ đúng về file QuanLyDSPhong sau khi lưu thành công
                 return RedirectToPage("/QuanLySoDoPhong/QuanLyDSPhong");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, $"Lỗi hệ thống khi lưu thay đổi: {ex.Message}");
+                _logger.LogError(ex, "Lỗi cập nhật phòng {MaPhong}", InputPhong.MaPhong);
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi hệ thống khi lưu thay đổi phòng.");
                 return Page();
             }
         }

@@ -1,26 +1,34 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using System.Threading.Tasks;
 using System.Text.Json;
+using System.Threading.Tasks;
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
-using System.IO;
 
 namespace HotelManager.Pages.QuanLyLichCaNhan
 {
+    [Authorize(Policy = HangSoHeThong.PolicyNoiBo)]
     public class QuanLyLichCaNhanModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-        public QuanLyLichCaNhanModel(ApplicationDbContext context) { _context = context; }
+        private readonly ILogger<QuanLyLichCaNhanModel> _logger;
 
-        public string EmployeeName { get; set; } = "";
-        public string EmployeeRole { get; set; } = "";
+        public QuanLyLichCaNhanModel(ApplicationDbContext context, ILogger<QuanLyLichCaNhanModel> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        public string EmployeeName { get; set; } = string.Empty;
+        public string EmployeeRole { get; set; } = string.Empty;
         public bool IsManager { get; set; } = false;
         public int ShiftCountToday { get; set; } = 0;
 
@@ -32,16 +40,14 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
 
         public DateTime CurrentDate { get; set; }
 
-        public static List<DON_XIN_NGHI> DatabaseDonNghi = new List<DON_XIN_NGHI>();
-
         public List<ScheduleViewModel> MySchedules { get; set; } = new List<ScheduleViewModel>();
         public List<DON_XIN_NGHI> PendingRequests { get; set; } = new List<DON_XIN_NGHI>();
         public List<DON_XIN_NGHI> EmployeeNotifications { get; set; } = new List<DON_XIN_NGHI>();
 
         public int DaysInMonth { get; set; }
         public int StartDayOfWeek { get; set; }
-
         public List<string> DanhSachChucVu { get; set; } = new List<string>();
+
         public class ScheduleViewModel
         {
             public string MaLich { get; set; } = string.Empty;
@@ -75,14 +81,33 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
         public DON_XIN_NGHI DonNghiData { get; set; } = new DON_XIN_NGHI();
 
         [TempData]
-        public string AlertMessage { get; set; }
+        public string? AlertMessage { get; set; }
 
         public string EmployeeDataJson { get; set; } = "{}";
 
-        public async Task<IActionResult> OnGetLogout()
+        private bool LaCapQuanLy => User.IsInRole(HangSoHeThong.VaiTroQuanLy) || User.IsInRole(HangSoHeThong.VaiTroGiamDoc);
+
+        // Lấy chính xác (MaNV, HoTen) của nhân viên đang đăng nhập từ Cookie Claim & SQL Server
+        private async Task<(string? MaNV, string HoTen)> LayNhanVienDangNhapAsync()
         {
-            await HttpContext.SignOutAsync();
-            return RedirectToPage("/Index");
+            string username = User.Identity?.Name ?? string.Empty;
+            string? maNV = User.FindFirst("MaNV")?.Value;
+
+            if (string.IsNullOrWhiteSpace(maNV))
+            {
+                var tk = await _context.TAI_KHOAN.AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.TenDangNhap == username);
+                maNV = tk?.NHAN_VIENMaNV;
+            }
+
+            if (!string.IsNullOrWhiteSpace(maNV))
+            {
+                var nv = await _context.NHAN_VIEN.AsNoTracking().FirstOrDefaultAsync(n => n.MaNV == maNV);
+                if (nv != null && !string.IsNullOrWhiteSpace(nv.HoTen))
+                    return (maNV, nv.HoTen);
+            }
+
+            return (maNV, username);
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -90,72 +115,104 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             try
             {
                 if (User.Identity == null || !User.Identity.IsAuthenticated)
-                {
                     return RedirectToPage("/Auth/DangNhap");
-                }
 
-                EmployeeName = User.Identity.Name ?? "Tài khoản ẩn danh";
+                var (maNVHienTai, hoTenHienTai) = await LayNhanVienDangNhapAsync();
+                EmployeeName = hoTenHienTai;
 
-                var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
+                var roleClaim = User.FindFirst(ClaimTypes.Role);
                 EmployeeRole = roleClaim != null ? roleClaim.Value : "Nhân viên";
 
-                if (EmployeeRole == "Quản trị viên")
+                if (EmployeeRole == HangSoHeThong.VaiTroQuanTri)
                 {
                     TempData["ThongBaoLoi"] = "Quản trị viên hệ thống không tham gia vào lịch vận hành.";
                     return RedirectToPage("/QuanTriHeThong/QuanLyTaiKhoan");
                 }
 
-                IsManager = (EmployeeRole == "Quản lý" || EmployeeRole == "Trưởng bộ phận" || User.IsInRole("Quản lý"));
+                IsManager = LaCapQuanLy;
 
                 DateTime refDate = SelectedDate ?? DateTime.Today;
                 SelectedDate = refDate;
                 CurrentDate = new DateTime(refDate.Year, refDate.Month, 1);
 
+                // 1. Tải đơn xin nghỉ phép trực tiếp từ bảng SQL DON_XIN_NGHI (bỏ danh sách static trên RAM)
                 if (IsManager)
                 {
-                    PendingRequests = DatabaseDonNghi.Where(x => x.TrangThai == "Chờ duyệt").OrderByDescending(x => x.NgayTao).ToList();
+                    PendingRequests = await _context.DON_XIN_NGHI.AsNoTracking()
+                        .Where(x => x.TrangThai == "Chờ duyệt")
+                        .OrderByDescending(x => x.NgayTao)
+                        .ToListAsync();
                 }
                 else
                 {
-                    EmployeeNotifications = DatabaseDonNghi.Where(x => x.TenNhanVien == EmployeeName && x.TrangThai != "Chờ duyệt" && !x.IsReadByEmployee).OrderByDescending(x => x.NgayTao).ToList();
+                    EmployeeNotifications = await _context.DON_XIN_NGHI.AsNoTracking()
+                        .Where(x => ((!string.IsNullOrEmpty(maNVHienTai) && x.NHAN_VIENMaNV == maNVHienTai)
+                                     || x.TenNhanVien == hoTenHienTai
+                                     || x.TenNhanVien == User.Identity.Name)
+                                    && x.TrangThai != "Chờ duyệt"
+                                    && !x.IsReadByEmployee)
+                        .OrderByDescending(x => x.NgayTao)
+                        .ToListAsync();
                 }
 
-                var rawSchedules = await _context.LICH_LAM_VIEC.AsNoTracking().ToListAsync();
+                // 2. Tải danh sách nhân viên và chức vụ trực tiếp từ SQL Server bằng LINQ
+                var chucVuDict = await _context.CHUC_VU.AsNoTracking()
+                    .ToDictionaryAsync(c => c.MaChucVu, c => c.TenChucVu ?? string.Empty);
+
+                var danhSachNhanVienDB = await _context.NHAN_VIEN.AsNoTracking().ToListAsync();
+                var nvHoTenDict = danhSachNhanVienDB.ToDictionary(n => n.MaNV, n => n.HoTen ?? n.MaNV);
+
+                // 3. Tải lịch làm việc: Lọc chính xác theo NHAN_VIENMaNV (khắc phục lỗi lệch TenDangNhap vs HoTen)
+                var lichQuery = _context.LICH_LAM_VIEC.AsNoTracking().AsQueryable();
+                if (!IsManager && !string.IsNullOrWhiteSpace(maNVHienTai))
+                {
+                    lichQuery = lichQuery.Where(l =>
+                        l.NHAN_VIENMaNV == maNVHienTai
+                        || (string.IsNullOrEmpty(l.NHAN_VIENMaNV) && l.GhiChu != null && l.GhiChu.Contains(hoTenHienTai)));
+                }
+
+                var rawSchedules = await lichQuery.ToListAsync();
                 foreach (var item in rawSchedules)
                 {
                     var vm = new ScheduleViewModel
                     {
                         MaLich = item.MaLich,
                         CaLamViec = item.CaLamViec ?? "Chưa rõ",
-                        GhiChu = item.GhiChu ?? "",
+                        GhiChu = item.GhiChu ?? string.Empty,
                         ThoiGianBatDau = item.GioCheckIn ?? item.NgayLamViec?.AddHours(6) ?? DateTime.Today.AddHours(6),
                         ThoiGianKetThuc = item.GioCheckOut ?? item.NgayLamViec?.AddHours(14) ?? DateTime.Today.AddHours(14),
-                        TenNhanVien = "Nhân viên",
-                        ChucVu = "Lễ tân",
-                        TieuDe = "Lịch làm việc"
+                        TenNhanVien = (!string.IsNullOrEmpty(item.NHAN_VIENMaNV) && nvHoTenDict.TryGetValue(item.NHAN_VIENMaNV, out var ten))
+                            ? ten : "Nhân viên",
+                        ChucVu = !string.IsNullOrWhiteSpace(item.ChucVu) ? item.ChucVu : "Lễ tân",
+                        TieuDe = !string.IsNullOrWhiteSpace(item.TieuDe) ? item.TieuDe : "Lịch làm việc"
                     };
 
+                    // Tương thích ngược với các bản ghi lịch cũ lưu metadata trong GhiChu
                     if (!string.IsNullOrEmpty(item.GhiChu) && item.GhiChu.StartsWith("["))
                     {
                         try
                         {
                             int endTitle = item.GhiChu.IndexOf("]");
-                            if (endTitle > 0) vm.TieuDe = item.GhiChu.Substring(1, endTitle - 1);
+                            if (endTitle > 0 && string.IsNullOrWhiteSpace(item.TieuDe))
+                                vm.TieuDe = item.GhiChu.Substring(1, endTitle - 1);
 
                             int startNV = item.GhiChu.IndexOf("NV: ") + 4;
                             int endNV = item.GhiChu.IndexOf(" (");
-                            if (startNV > 3 && endNV > startNV)
+                            if (startNV > 3 && endNV > startNV && vm.TenNhanVien == "Nhân viên")
                                 vm.TenNhanVien = item.GhiChu.Substring(startNV, endNV - startNV);
 
                             int startCV = item.GhiChu.IndexOf("- CV: ") + 6;
                             int endCV = item.GhiChu.IndexOf(". Ghi chú:");
-                            if (startCV > 5 && endCV > startCV)
+                            if (startCV > 5 && endCV > startCV && string.IsNullOrWhiteSpace(item.ChucVu))
                                 vm.ChucVu = item.GhiChu.Substring(startCV, endCV - startCV);
                         }
                         catch { }
                     }
 
-                    if (IsManager || vm.TenNhanVien == EmployeeName)
+                    if (IsManager
+                        || (!string.IsNullOrEmpty(maNVHienTai) && item.NHAN_VIENMaNV == maNVHienTai)
+                        || vm.TenNhanVien == hoTenHienTai
+                        || vm.TenNhanVien == User.Identity.Name)
                     {
                         MySchedules.Add(vm);
                     }
@@ -173,28 +230,12 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
                 DaysInMonth = DateTime.DaysInMonth(CurrentDate.Year, CurrentDate.Month);
                 StartDayOfWeek = CurrentDate.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)CurrentDate.DayOfWeek - 1;
 
-                var danhSachNhanVienDB = await _context.NHAN_VIEN.AsNoTracking().ToListAsync();
-
-                var cacheChucVu = new Dictionary<string, string>();
-                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "nhanvien_meta.txt");
-                if (System.IO.File.Exists(filePath))
-                {
-                    var lines = System.IO.File.ReadAllLines(filePath);
-                    foreach (var line in lines)
-                    {
-                        var parts = line.Split('|');
-                        if (parts.Length >= 2)
-                        {
-                            cacheChucVu[parts[0]] = parts[1];
-                        }
-                    }
-                }
-
                 var employeeList = danhSachNhanVienDB.Select(nv => new
                 {
                     MaNV = nv.MaNV,
-                    HoTen = nv.HoTen,
-                    ChucVu = cacheChucVu.ContainsKey(nv.MaNV) ? cacheChucVu[nv.MaNV] : "Nhân viên (Mặc định)"
+                    HoTen = nv.HoTen ?? nv.MaNV,
+                    ChucVu = (!string.IsNullOrWhiteSpace(nv.CHUC_VUMaChucVu) && chucVuDict.TryGetValue(nv.CHUC_VUMaChucVu, out var tenCV) && !string.IsNullOrWhiteSpace(tenCV))
+                        ? tenCV : (nv.CHUC_VUMaChucVu ?? "Nhân viên")
                 }).ToList();
 
                 var groupedEmployees = employeeList
@@ -206,13 +247,17 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             }
             catch (Exception ex)
             {
-                AlertMessage = $"Lỗi tải dữ liệu: {ex.Message}";
+                _logger.LogError(ex, "Lỗi tải trang Quản lý lịch cá nhân.");
+                AlertMessage = "Đã xảy ra lỗi khi tải dữ liệu lịch làm việc.";
                 return Page();
             }
         }
 
+        // Chỉ Quản lý / Giám đốc được phân công ca làm việc
         public async Task<IActionResult> OnPostCreateAsync()
         {
+            if (!LaCapQuanLy) return Forbid();
+
             try
             {
                 string finalCaLamViec = InputData.CaLamViec;
@@ -221,24 +266,42 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
                     finalCaLamViec = $"Khac|{InputData.TuChonBatDau}|{InputData.TuChonKetThuc}";
                 }
 
-                string noiDungGom = $"[{InputData.TieuDe}] NV: {InputData.TenNhanVien} ({InputData.MaNhanVien}) - CV: {InputData.ChucVu}. Ghi chú: {InputData.GhiChu}. Checklist: {InputData.Checklist}";
-
-                DateTime gioCheckIn = InputData.NgayLamViec.AddHours(6);
-                DateTime gioCheckOut = InputData.NgayLamViec.AddHours(14);
-                if (InputData.CaLamViec == "CaChieu") { gioCheckIn = InputData.NgayLamViec.AddHours(14); gioCheckOut = InputData.NgayLamViec.AddHours(22); }
-                else if (InputData.CaLamViec == "CaDem") { gioCheckIn = InputData.NgayLamViec.AddHours(22); gioCheckOut = InputData.NgayLamViec.AddDays(1).AddHours(6); }
+                DateTime gioCheckIn = InputData.NgayLamViec.Date.AddHours(6);
+                DateTime gioCheckOut = InputData.NgayLamViec.Date.AddHours(14);
+                if (InputData.CaLamViec == "CaChieu") { gioCheckIn = InputData.NgayLamViec.Date.AddHours(14); gioCheckOut = InputData.NgayLamViec.Date.AddHours(22); }
+                else if (InputData.CaLamViec == "CaDem") { gioCheckIn = InputData.NgayLamViec.Date.AddHours(22); gioCheckOut = InputData.NgayLamViec.Date.AddDays(1).AddHours(6); }
                 else if (InputData.CaLamViec == "Khac" && TimeSpan.TryParse(InputData.TuChonBatDau, out var start) && TimeSpan.TryParse(InputData.TuChonKetThuc, out var end))
                 {
-                    gioCheckIn = InputData.NgayLamViec.Add(start);
-                    gioCheckOut = InputData.NgayLamViec.Add(end);
+                    gioCheckIn = InputData.NgayLamViec.Date.Add(start);
+                    gioCheckOut = InputData.NgayLamViec.Date.Add(end);
                     if (gioCheckOut <= gioCheckIn) gioCheckOut = gioCheckOut.AddDays(1);
                 }
 
+                // Kiểm tra trùng ca làm việc của cùng nhân viên
+                if (!string.IsNullOrWhiteSpace(InputData.MaNhanVien))
+                {
+                    bool trungCa = await _context.LICH_LAM_VIEC.AsNoTracking()
+                        .AnyAsync(l => l.NHAN_VIENMaNV == InputData.MaNhanVien
+                            && l.GioCheckIn < gioCheckOut
+                            && l.GioCheckOut > gioCheckIn);
+                    if (trungCa)
+                    {
+                        AlertMessage = $"Nhân viên {InputData.TenNhanVien} đã có ca làm việc trùng khung giờ này!";
+                        return RedirectToPage(new { SelectedDate = InputData.NgayLamViec.ToString("yyyy-MM-dd"), ActiveTab });
+                    }
+                }
+
+                string noiDungGom = $"[{InputData.TieuDe}] NV: {InputData.TenNhanVien} ({InputData.MaNhanVien}) - CV: {InputData.ChucVu}. Ghi chú: {InputData.GhiChu}. Checklist: {InputData.Checklist}";
+                if (noiDungGom.Length > 255) noiDungGom = noiDungGom.Substring(0, 255);
+
                 var newSchedule = new LICH_LAM_VIEC
                 {
-                    MaLich = "LLV" + DateTime.Now.Ticks.ToString().Substring(10),
-                    NgayLamViec = InputData.NgayLamViec,
-                    CaLamViec = finalCaLamViec,
+                    MaLich = BaoMatHelper.SinhMaNgauNhien("LLV"),
+                    NHAN_VIENMaNV = InputData.MaNhanVien?.Trim(),
+                    TieuDe = string.IsNullOrWhiteSpace(InputData.TieuDe) ? "Ca trực" : InputData.TieuDe.Trim(),
+                    ChucVu = InputData.ChucVu?.Trim(),
+                    NgayLamViec = InputData.NgayLamViec.Date,
+                    CaLamViec = finalCaLamViec.Length > 20 ? finalCaLamViec.Substring(0, 20) : finalCaLamViec,
                     GioCheckIn = gioCheckIn,
                     GioCheckOut = gioCheckOut,
                     GhiChu = noiDungGom,
@@ -248,18 +311,22 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
                 _context.LICH_LAM_VIEC.Add(newSchedule);
                 await _context.SaveChangesAsync();
 
-                AlertMessage = "✅ Đã phân công ca làm việc thành công!";
+                AlertMessage = "Đã phân công ca làm việc thành công!";
             }
             catch (Exception ex)
             {
-                AlertMessage = $"Lỗi khi lưu: {ex.Message}";
+                _logger.LogError(ex, "Lỗi phân công ca làm việc.");
+                AlertMessage = "Đã xảy ra lỗi hệ thống khi phân công ca làm việc.";
             }
 
-            return RedirectToPage(new { SelectedDate = InputData.NgayLamViec.ToString("yyyy-MM-dd"), ActiveTab = ActiveTab });
+            return RedirectToPage(new { SelectedDate = InputData.NgayLamViec.ToString("yyyy-MM-dd"), ActiveTab });
         }
 
+        // Chỉ Quản lý / Giám đốc được xóa lịch làm việc
         public async Task<IActionResult> OnPostDeleteAsync(string deleteId, string selectedDate, string activeTab)
         {
+            if (!LaCapQuanLy) return Forbid();
+
             try
             {
                 var schedule = await _context.LICH_LAM_VIEC.FirstOrDefaultAsync(x => x.MaLich == deleteId);
@@ -276,68 +343,107 @@ namespace HotelManager.Pages.QuanLyLichCaNhan
             }
             catch (Exception ex)
             {
-                AlertMessage = $"Lỗi khi xóa: {ex.Message}";
+                _logger.LogError(ex, "Lỗi xóa lịch làm việc {Id}", deleteId);
+                AlertMessage = "Đã xảy ra lỗi hệ thống khi xóa lịch làm việc.";
             }
             return RedirectToPage(new { SelectedDate = selectedDate, ActiveTab = activeTab });
         }
 
-        public IActionResult OnPostCreateDonNghi()
+        // Nhân viên gửi đơn xin nghỉ phép lưu bền vững vào bảng SQL DON_XIN_NGHI
+        public async Task<IActionResult> OnPostCreateDonNghiAsync()
         {
-            DonNghiData.Id = DatabaseDonNghi.Any() ? DatabaseDonNghi.Max(x => x.Id) + 1 : 1;
-            DonNghiData.TrangThai = "Chờ duyệt";
-            DonNghiData.NgayTao = DateTime.Now;
-            DonNghiData.TenNhanVien = User.Identity?.Name ?? "Tài khoản ẩn danh";
-            var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
-            DonNghiData.ChucVu = roleClaim != null ? roleClaim.Value : "Nhân viên";
+            try
+            {
+                var (maNV, hoTen) = await LayNhanVienDangNhapAsync();
+                string role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Nhân viên";
 
-            DatabaseDonNghi.Add(DonNghiData);
-            AlertMessage = "✅ Đã gửi đơn xin nghỉ phép thành công. Vui lòng chờ quản lý duyệt!";
+                var donMoi = new DON_XIN_NGHI
+                {
+                    NHAN_VIENMaNV = maNV,
+                    TenNhanVien = hoTen,
+                    ChucVu = role,
+                    TuNgay = DonNghiData.TuNgay.Date,
+                    DenNgay = DonNghiData.DenNgay < DonNghiData.TuNgay ? DonNghiData.TuNgay.Date : DonNghiData.DenNgay.Date,
+                    SoNgay = Math.Max(1, (DonNghiData.DenNgay.Date - DonNghiData.TuNgay.Date).Days + 1),
+                    LyDo = (DonNghiData.LyDo ?? string.Empty).Trim(),
+                    TrangThai = "Chờ duyệt",
+                    NgayTao = DateTime.Now,
+                    IsReadByEmployee = false
+                };
 
-            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"], ActiveTab = Request.Form["ActiveTab"] });
+                _context.DON_XIN_NGHI.Add(donMoi);
+                await _context.SaveChangesAsync();
+
+                AlertMessage = "Đã gửi đơn xin nghỉ phép thành công. Vui lòng chờ quản lý duyệt!";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi gửi đơn xin nghỉ phép.");
+                AlertMessage = "Đã xảy ra lỗi hệ thống khi gửi đơn xin nghỉ phép.";
+            }
+
+            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"].ToString(), ActiveTab = Request.Form["ActiveTab"].ToString() });
         }
 
-        public IActionResult OnPostDuyetDon(int donId, string actionType)
+        // Chỉ Quản lý / Giám đốc được duyệt đơn nghỉ phép (chặn tự duyệt đơn của chính mình)
+        public async Task<IActionResult> OnPostDuyetDonAsync(int donId, string actionType)
         {
-            var don = DatabaseDonNghi.FirstOrDefault(x => x.Id == donId);
-            if (don != null)
+            if (!LaCapQuanLy) return Forbid();
+
+            try
             {
-                if (actionType == "Approve")
+                var don = await _context.DON_XIN_NGHI.FirstOrDefaultAsync(x => x.Id == donId);
+                if (don != null)
                 {
-                    don.TrangThai = "Đã duyệt";
-                    AlertMessage = $"✅ Đã DUYỆT đơn xin nghỉ của nhân viên {don.TenNhanVien}!";
-                }
-                else if (actionType == "Reject")
-                {
-                    don.TrangThai = "Từ chối";
-                    AlertMessage = $"❌ Đã TỪ CHỐI đơn xin nghỉ của {don.TenNhanVien}!";
+                    var (maNVNguoiDuyet, hoTenNguoiDuyet) = await LayNhanVienDangNhapAsync();
+                    if (!string.IsNullOrEmpty(maNVNguoiDuyet) && don.NHAN_VIENMaNV == maNVNguoiDuyet)
+                    {
+                        AlertMessage = "Bạn không thể tự duyệt đơn xin nghỉ phép của chính mình!";
+                        return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"].ToString(), ActiveTab = Request.Form["ActiveTab"].ToString() });
+                    }
+
+                    if (actionType == "Approve")
+                    {
+                        don.TrangThai = "Đã duyệt";
+                        don.NguoiDuyet = hoTenNguoiDuyet;
+                        AlertMessage = $"Đã DUYỆT đơn xin nghỉ của nhân viên {don.TenNhanVien}!";
+                    }
+                    else if (actionType == "Reject")
+                    {
+                        don.TrangThai = "Từ chối";
+                        don.NguoiDuyet = hoTenNguoiDuyet;
+                        AlertMessage = $"Đã TỪ CHỐI đơn xin nghỉ của {don.TenNhanVien}!";
+                    }
+
+                    await _context.SaveChangesAsync();
                 }
             }
-            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"], ActiveTab = Request.Form["ActiveTab"] });
-        }
-
-        public IActionResult OnPostMarkNotificationRead(int notifId)
-        {
-            var don = DatabaseDonNghi.FirstOrDefault(x => x.Id == notifId);
-            if (don != null)
+            catch (Exception ex)
             {
-                don.IsReadByEmployee = true;
+                _logger.LogError(ex, "Lỗi duyệt đơn nghỉ phép {DonId}", donId);
+                AlertMessage = "Đã xảy ra lỗi hệ thống khi xử lý đơn nghỉ phép.";
             }
-            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"], ActiveTab = Request.Form["ActiveTab"] });
+            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"].ToString(), ActiveTab = Request.Form["ActiveTab"].ToString() });
         }
-    }
 
-    public class DON_XIN_NGHI
-    {
-        public int Id { get; set; }
-        public string MaNhanVien { get; set; } = string.Empty;
-        public string TenNhanVien { get; set; } = string.Empty;
-        public string ChucVu { get; set; } = string.Empty;
-        public int SoNgay { get; set; } = 1;
-        public DateTime TuNgay { get; set; } = DateTime.Today;
-        public DateTime DenNgay { get; set; } = DateTime.Today;
-        public string LyDo { get; set; } = string.Empty;
-        public string TrangThai { get; set; } = "Chờ duyệt";
-        public DateTime NgayTao { get; set; } = DateTime.Now;
-        public bool IsReadByEmployee { get; set; } = false;
+        public async Task<IActionResult> OnPostMarkNotificationReadAsync(int notifId)
+        {
+            try
+            {
+                var (maNV, hoTen) = await LayNhanVienDangNhapAsync();
+                var don = await _context.DON_XIN_NGHI.FirstOrDefaultAsync(x => x.Id == notifId);
+                if (don != null && ((!string.IsNullOrEmpty(maNV) && don.NHAN_VIENMaNV == maNV)
+                    || don.TenNhanVien == hoTen || don.TenNhanVien == User.Identity?.Name))
+                {
+                    don.IsReadByEmployee = true;
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi đánh dấu đã đọc thông báo {Id}", notifId);
+            }
+            return RedirectToPage(new { SelectedDate = Request.Form["SelectedDate"].ToString(), ActiveTab = Request.Form["ActiveTab"].ToString() });
+        }
     }
 }

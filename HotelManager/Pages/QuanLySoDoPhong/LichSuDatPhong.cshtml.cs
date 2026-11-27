@@ -1,19 +1,28 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HotelManager.Pages.QuanLySoDoPhong
 {
+    [Authorize]
     public class LichSuDatPhongModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<LichSuDatPhongModel> _logger;
 
-        public LichSuDatPhongModel(ApplicationDbContext context)
+        public LichSuDatPhongModel(ApplicationDbContext context, ILogger<LichSuDatPhongModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public class ThongTinLichSu
@@ -49,34 +58,60 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
                     var tatCaLichSu = await query.AsNoTracking().ToListAsync();
 
-                    DanhSachSapToi = tatCaLichSu.Where(x => x.DatPhong.TrangThaiDatPhong == "Chờ xác nhận" || x.DatPhong.TrangThaiDatPhong == "Đã xác nhận" || x.DatPhong.TrangThaiDatPhong == "Chờ nhận phòng").ToList();
-                    DanhSachDaHoanTat = tatCaLichSu.Where(x => x.DatPhong.TrangThaiDatPhong == "Đã hoàn tất" || x.DatPhong.TrangThaiDatPhong == "Đã hủy" || x.DatPhong.TrangThaiDatPhong == "Đã check-out").ToList();
+                    // Bao gồm cả đơn đang lưu trú (DANG_O) trong danh sách hiện tại/sắp tới
+                    DanhSachSapToi = tatCaLichSu.Where(x =>
+                        HangSoHeThong.TrangThaiChoCheckIn.Contains(x.DatPhong.TrangThaiDatPhong ?? "")
+                        || x.DatPhong.TrangThaiDatPhong == HangSoHeThong.DatPhongDangO).ToList();
+
+                    DanhSachDaHoanTat = tatCaLichSu.Where(x =>
+                        HangSoHeThong.TrangThaiDaKetThuc.Contains(x.DatPhong.TrangThaiDatPhong ?? "")).ToList();
                 }
                 return Page();
             }
             catch (Exception ex)
             {
-                ThongBao = "❌ Lỗi hệ thống: " + ex.Message;
+                _logger.LogError(ex, "Lỗi tải lịch sử đặt phòng.");
+                ThongBao = "Đã xảy ra lỗi hệ thống khi tải lịch sử đặt phòng.";
                 return Page();
             }
         }
 
+        // Hủy đơn đặt phòng: Bắt buộc kiểm tra đăng nhập, kiểm tra quyền sở hữu (chống IDOR) và trạng thái hợp lệ
         public async Task<IActionResult> OnPostHuyPhongAsync(string maDatPhong)
         {
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+                return RedirectToPage("/Auth/DangNhap");
+
             try
             {
+                var taiKhoan = await _context.TAI_KHOAN.AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.TenDangNhap == User.Identity.Name);
+
                 var datPhong = await _context.DAT_PHONG.FirstOrDefaultAsync(d => d.MaDatPhong == maDatPhong);
                 if (datPhong == null || !datPhong.NgayNhan.HasValue)
                 {
-                    ThongBao = "❌ Lỗi dữ liệu đặt phòng!";
+                    ThongBao = "Không tìm thấy dữ liệu đơn đặt phòng hợp lệ!";
                     return RedirectToPage();
                 }
 
-                // Thuật toán tính ngày và hoàn cọc
-                double soNgayConLai = (datPhong.NgayNhan.Value.Date - DateTime.Now.Date).TotalDays;
+                // 1. Chống IDOR: Chỉ chủ sở hữu đơn đặt phòng mới được phép tự hủy
+                if (taiKhoan == null || string.IsNullOrEmpty(taiKhoan.KHACH_HANGMaKH) || datPhong.KHACH_HANGMaKH != taiKhoan.KHACH_HANGMaKH)
+                {
+                    return Forbid();
+                }
+
+                // 2. Chỉ cho phép hủy các đơn ở trạng thái chờ nhận phòng (chặn hủy đơn đang ở hoặc đã check-out)
+                if (!HangSoHeThong.TrangThaiChoCheckIn.Contains(datPhong.TrangThaiDatPhong ?? ""))
+                {
+                    ThongBao = $"Không thể hủy đơn đặt phòng đang ở trạng thái '{datPhong.TrangThaiDatPhong}'!";
+                    return RedirectToPage();
+                }
+
+                // 3. Tính số ngày còn lại và chính sách hoàn cọc
+                int soNgayConLai = (datPhong.NgayNhan.Value.Date - DateTime.Now.Date).Days;
                 decimal tienCoc = datPhong.TienCoc.GetValueOrDefault(0m);
                 decimal tienHoan = 0m;
-                string ghiChuHoanTien = "";
+                string ghiChuHoanTien;
 
                 if (soNgayConLai >= 7)
                 {
@@ -90,31 +125,22 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 }
                 else
                 {
-                    ghiChuHoanTien = $"Không hoàn cọc (Hủy dưới 5 ngày).";
+                    ghiChuHoanTien = "Không hoàn cọc (Hủy dưới 5 ngày).";
                 }
 
-                datPhong.TrangThaiDatPhong = "Đã hủy";
-                datPhong.GhiChu = string.IsNullOrEmpty(datPhong.GhiChu) ? ghiChuHoanTien : $"{datPhong.GhiChu} | {ghiChuHoanTien}";
+                datPhong.TrangThaiDatPhong = HangSoHeThong.DatPhongDaHuy;
+                string ghiChuCapNhat = string.IsNullOrEmpty(datPhong.GhiChu) ? ghiChuHoanTien : $"{datPhong.GhiChu} | {ghiChuHoanTien}";
+                datPhong.GhiChu = ghiChuCapNhat.Length > 255 ? ghiChuCapNhat.Substring(ghiChuCapNhat.Length - 255) : ghiChuCapNhat;
                 _context.DAT_PHONG.Update(datPhong);
 
-                var chiTiet = await _context.CHI_TIET_DAT_PHONG.FirstOrDefaultAsync(c => c.DAT_PHONGMaDatPhong == maDatPhong);
-                if (chiTiet != null && !string.IsNullOrEmpty(chiTiet.PHONGMaPhong))
-                {
-                    var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == chiTiet.PHONGMaPhong);
-                    if (phong != null)
-                    {
-                        // Giả định cập nhật trạng thái phòng Trống tại đây (bạn có thể thay đổi thuộc tính tương ứng)
-                        _context.PHONG.Update(phong);
-                    }
-                }
-
                 await _context.SaveChangesAsync();
-                ThongBao = "✅ Hủy phòng thành công! " + ghiChuHoanTien;
+                ThongBao = "Hủy phòng thành công! " + ghiChuHoanTien;
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
-                ThongBao = "❌ Lỗi khi hủy phòng: " + ex.Message;
+                _logger.LogError(ex, "Lỗi hủy đơn đặt phòng {MaDP}", maDatPhong);
+                ThongBao = "Đã xảy ra lỗi hệ thống khi hủy phòng.";
                 return RedirectToPage();
             }
         }

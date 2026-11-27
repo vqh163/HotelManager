@@ -1,17 +1,19 @@
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace HotelManagement.Pages.NhaHang.PhucVu
 {
-    // DTO hiển thị dữ liệu món ăn
     public class DichVuViewModel
     {
         public string MaDichVu { get; set; } = string.Empty;
@@ -24,7 +26,6 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         public bool HetMon { get; set; }
     }
 
-    // DTO nhận dữ liệu từ Giỏ hàng (Client-side)
     public class CartItemDTO
     {
         public string MaDichVu { get; set; } = string.Empty;
@@ -34,13 +35,25 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         public bool CoDiUng { get; set; }
     }
 
+    public class MonTrongHoaDonDto
+    {
+        public string MaDichVu { get; set; } = string.Empty;
+        public string TenMon { get; set; } = string.Empty;
+        public string GhiChu { get; set; } = string.Empty;
+        public decimal DonGia { get; set; }
+        public int SoLuong { get; set; }
+        public decimal ThanhTien { get; set; }
+    }
+
     public class GoiMonModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<GoiMonModel> _logger;
 
-        public GoiMonModel(ApplicationDbContext context)
+        public GoiMonModel(ApplicationDbContext context, ILogger<GoiMonModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public BAN_NHA_HANG BanNhaHang { get; set; } = new BAN_NHA_HANG();
@@ -59,18 +72,18 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         {
             try
             {
-                // NẠP DỮ LIỆU TỪ Ổ CỨNG LÊN RAM TRƯỚC KHI HIỂN THỊ ĐỂ KHÔNG BỊ MẤT MÔ TẢ/DỊ ỨNG
-                HotelManagement.Pages.NhaHang.NhaBep.TrangThaiMonStore.LoadData();
+                var ban = await _context.BAN_NHA_HANG.AsNoTracking().FirstOrDefaultAsync(b => b.MaBan == id);
+                if (ban == null) return RedirectToPage("./SoDoBan");
+                BanNhaHang = ban;
 
-                BanNhaHang = await _context.BAN_NHA_HANG.FirstOrDefaultAsync(b => b.MaBan == id);
-                if (BanNhaHang == null) return RedirectToPage("./SoDoBan");
+                // Truy vấn danh sách món ăn trực tiếp từ bảng DICH_VU (loại trừ dịch vụ nội bộ minibar/đền bù)
+                var query = _context.DICH_VU.AsNoTracking()
+                    .Where(d => d.LoaiDichVu != "Minibar" && d.LoaiDichVu != "Đền bù");
 
-                // Truy vấn danh sách món ăn bằng LINQ
-                var query = _context.DICH_VU.AsQueryable();
-
-                if (!string.IsNullOrEmpty(TuKhoaTimKiem))
+                if (!string.IsNullOrWhiteSpace(TuKhoaTimKiem))
                 {
-                    query = query.Where(d => d.TenDichVu.Contains(TuKhoaTimKiem) || d.MaDichVu.Contains(TuKhoaTimKiem));
+                    string kw = TuKhoaTimKiem.Trim();
+                    query = query.Where(d => (d.TenDichVu != null && d.TenDichVu.Contains(kw)) || d.MaDichVu.Contains(kw));
                 }
 
                 if (!string.IsNullOrEmpty(DanhMucLoc) && DanhMucLoc != "Tất cả")
@@ -78,135 +91,184 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
                     query = query.Where(d => d.LoaiDichVu == DanhMucLoc);
                 }
 
-                var dsDichVu = await query.ToListAsync();
+                var dsDichVu = await query.OrderBy(d => d.TenDichVu).ToListAsync();
 
-                string[] foodImages = {
+                string[] foodImages =
+                {
                     "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&q=80",
                     "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&q=80",
                     "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300&q=80"
                 };
 
-                DanhSachMonAn = dsDichVu.Select((d, index) =>
+                DanhSachMonAn = dsDichVu.Select((d, index) => new DichVuViewModel
                 {
-                    bool isConMon = true;
-                    if (HotelManagement.Pages.NhaHang.NhaBep.TrangThaiMonStore.DuLieu.ContainsKey(d.MaDichVu))
-                        isConMon = HotelManagement.Pages.NhaHang.NhaBep.TrangThaiMonStore.DuLieu[d.MaDichVu];
-
-                    string moTa = HotelManagement.Pages.NhaHang.NhaBep.TrangThaiMonStore.MoTaDict.ContainsKey(d.MaDichVu)
-                        ? HotelManagement.Pages.NhaHang.NhaBep.TrangThaiMonStore.MoTaDict[d.MaDichVu]
-                        : "";
-
-                    string diUng = HotelManagement.Pages.NhaHang.NhaBep.TrangThaiMonStore.DiUngDict.ContainsKey(d.MaDichVu)
-                        ? HotelManagement.Pages.NhaHang.NhaBep.TrangThaiMonStore.DiUngDict[d.MaDichVu]
-                        : "";
-
-                    return new DichVuViewModel
-                    {
-                        MaDichVu = d.MaDichVu,
-                        TenDichVu = d.TenDichVu,
-                        LoaiDichVu = string.IsNullOrEmpty(d.LoaiDichVu) ? "Món chính" : d.LoaiDichVu,
-                        DonGia = d.DonGia ?? 0m,
-                        HinhAnh = !string.IsNullOrEmpty(d.HinhAnh) ? d.HinhAnh : foodImages[index % foodImages.Length],
-                        MoTa = moTa,
-                        CanhBaoDiUng = diUng,
-                        HetMon = !isConMon
-                    };
+                    MaDichVu = d.MaDichVu,
+                    TenDichVu = d.TenDichVu ?? string.Empty,
+                    LoaiDichVu = string.IsNullOrEmpty(d.LoaiDichVu) ? "Món chính" : d.LoaiDichVu,
+                    DonGia = d.DonGia ?? 0m,
+                    HinhAnh = !string.IsNullOrEmpty(d.HinhAnh) ? d.HinhAnh : foodImages[index % foodImages.Length],
+                    MoTa = d.MoTa ?? string.Empty,
+                    CanhBaoDiUng = d.CanhBaoDiUng ?? string.Empty,
+                    HetMon = !d.ConMon
                 }).ToList();
 
                 return Page();
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Lỗi tải dữ liệu: " + ex.Message);
+                _logger.LogError(ex, "Lỗi tải giao diện gọi món cho bàn {MaBan}", id);
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi tải danh sách món ăn.");
                 return Page();
             }
         }
 
         public async Task<IActionResult> OnPostAsync(string id)
         {
+            if (string.IsNullOrWhiteSpace(id)) return RedirectToPage("./SoDoBan");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                if (string.IsNullOrEmpty(CartDataJson))
+                var ban = await _context.BAN_NHA_HANG.FirstOrDefaultAsync(b => b.MaBan == id);
+                if (ban == null) return RedirectToPage("./SoDoBan");
+
+                if (string.IsNullOrWhiteSpace(CartDataJson))
                 {
                     ModelState.AddModelError(string.Empty, "Giỏ hàng đang trống!");
                     return await OnGetAsync(id);
                 }
 
-                // Bật tùy chọn đọc JSON không phân biệt hoa thường để JS gửi lên đúng dữ liệu
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var cartItems = JsonSerializer.Deserialize<List<CartItemDTO>>(CartDataJson, options);
 
-                if (cartItems == null || !cartItems.Any()) return await OnGetAsync(id);
-
-                decimal tongTienMonAn = cartItems.Sum(x => x.DonGia * x.SoLuong);
-                decimal vat = tongTienMonAn * 0.1m;
-
-                var hoaDon = new HOA_DON_NHA_HANG
+                if (cartItems == null || !cartItems.Any())
                 {
-                    MaHoaDonNhaHang = "HD" + DateTime.Now.ToString("yyMMddHHmm"),
-                    ThoiGianTao = DateTime.Now,
-                    TongTienMonAn = tongTienMonAn,
-                    GiamGia = 0,
-                    ThanhTien = tongTienMonAn + vat,
-                    HinhThucThanhToan = "Chưa thanh toán"
-                };
-
-                // ---- LƯU JSON ĐỂ ĐỒNG BỘ UI THU NGÂN ----
-                try
-                {
-                    var maDichVus = cartItems.Select(c => c.MaDichVu).ToList();
-                    var dictTenMon = _context.DICH_VU.Where(d => maDichVus.Contains(d.MaDichVu))
-                                                     .ToDictionary(d => d.MaDichVu, d => d.TenDichVu);
-
-                    var dsThuNgan = cartItems.Select(item => new {
-                        TenMon = dictTenMon.ContainsKey(item.MaDichVu) ? dictTenMon[item.MaDichVu] : "Món ăn",
-                        GhiChu = item.GhiChu,
-                        DonGia = item.DonGia,
-                        SoLuong = item.SoLuong,
-                        ThanhTien = item.DonGia * item.SoLuong
-                    }).ToList();
-
-                    string jsonChuan = JsonSerializer.Serialize(dsThuNgan);
-
-                    var propJson = hoaDon.GetType().GetProperty("DanhSachMonJson");
-                    if (propJson != null) propJson.SetValue(hoaDon, jsonChuan);
-                    else _context.Entry(hoaDon).Property("DanhSachMonJson").CurrentValue = jsonChuan;
+                    ModelState.AddModelError(string.Empty, "Giỏ hàng không có món hợp lệ!");
+                    return await OnGetAsync(id);
                 }
-                catch { }
 
-                _context.HOA_DON_NHA_HANG.Add(hoaDon);
+                // 1. Bảo mật chống sửa giá/số lượng từ Client: Truy vấn đơn giá và trạng thái còn món trực tiếp từ DB
+                var maDichVus = cartItems.Select(c => c.MaDichVu).Distinct().ToList();
+                var dictMonDb = await _context.DICH_VU.AsNoTracking()
+                    .Where(d => maDichVus.Contains(d.MaDichVu))
+                    .ToDictionaryAsync(d => d.MaDichVu);
 
+                var dsMonMoiHopLe = new List<MonTrongHoaDonDto>();
                 foreach (var item in cartItems)
                 {
-                    var chiTiet = new CHI_TIET_DICH_VU
+                    if (item.SoLuong <= 0 || item.SoLuong > 99)
                     {
-                        MaChiTietDichVu = Guid.NewGuid().ToString().Substring(0, 8),
-                        // ĐÃ SỬA LỖI CS0029: Bỏ .ToString() để khớp với kiểu int? của Entity C#
+                        ModelState.AddModelError(string.Empty, "Số lượng mỗi món phải nằm trong khoảng từ 1 đến 99.");
+                        return await OnGetAsync(id);
+                    }
+
+                    if (!dictMonDb.TryGetValue(item.MaDichVu, out var monDb))
+                    {
+                        ModelState.AddModelError(string.Empty, $"Món mã '{item.MaDichVu}' không tồn tại trong thực đơn!");
+                        return await OnGetAsync(id);
+                    }
+
+                    if (!monDb.ConMon)
+                    {
+                        ModelState.AddModelError(string.Empty, $"Món '{monDb.TenDichVu}' hiện đã hết món, không thể đặt!");
+                        return await OnGetAsync(id);
+                    }
+
+                    decimal donGiaChuan = monDb.DonGia ?? 0m;
+                    dsMonMoiHopLe.Add(new MonTrongHoaDonDto
+                    {
+                        MaDichVu = monDb.MaDichVu,
+                        TenMon = monDb.TenDichVu ?? "Món ăn",
+                        GhiChu = (item.GhiChu ?? string.Empty).Trim(),
+                        DonGia = donGiaChuan,
                         SoLuong = item.SoLuong,
-                        DonGia = item.DonGia,
-                        ThanhTien = item.DonGia * item.SoLuong,
-                        ThoiGianSuDung = DateTime.Now
-                    };
-
-                    // ---- GẮN KHÓA NGOẠI XUỐNG DB ----
-                    try { _context.Entry(chiTiet).Property("MaHoaDonNhaHang").CurrentValue = hoaDon.MaHoaDonNhaHang; } catch { }
-                    try { _context.Entry(chiTiet).Property("MaDichVu").CurrentValue = item.MaDichVu; } catch { }
-                    try { _context.Entry(chiTiet).Property("HOA_DON_NHA_HANGMaHoaDonNhaHang").CurrentValue = hoaDon.MaHoaDonNhaHang; } catch { }
-                    try { _context.Entry(chiTiet).Property("DICH_VUMaDichVu").CurrentValue = item.MaDichVu; } catch { }
-
-                    _context.CHI_TIET_DICH_VU.Add(chiTiet);
+                        ThanhTien = donGiaChuan * item.SoLuong
+                    });
                 }
 
-                // Cập nhật trạng thái bàn sang "Đang có khách"
-                var ban = await _context.BAN_NHA_HANG.FirstOrDefaultAsync(b => b.MaBan == id);
-                if (ban != null) ban.TrangThai = "Đang có khách";
+                // 2. Kiểm tra bàn đã có hóa đơn đang mở hay chưa; nếu có thì gộp món vào hóa đơn hiện tại
+                var hoaDon = await _context.HOA_DON_NHA_HANG
+                    .OrderByDescending(h => h.ThoiGianTao)
+                    .FirstOrDefaultAsync(h => h.BAN_NHA_HANGMaBan == ban.MaBan
+                        && (h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
+                            || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan));
+
+                var dsMonTongHop = new List<MonTrongHoaDonDto>();
+                bool laHoaDonMoi = (hoaDon == null);
+
+                if (laHoaDonMoi)
+                {
+                    hoaDon = new HOA_DON_NHA_HANG
+                    {
+                        MaHoaDonNhaHang = BaoMatHelper.SinhMaNgauNhien("HD"),
+                        BAN_NHA_HANGMaBan = ban.MaBan, // SỬA LỖI ĐỨT LUỒNG: Bắt buộc gán khóa ngoại mã bàn
+                        NHAN_VIENMaNV = User.FindFirst("MaNV")?.Value,
+                        ThoiGianTao = DateTime.Now,
+                        GiamGia = 0,
+                        TrangThaiThanhToan = HangSoHeThong.HoaDonNHDangPhucVu,
+                        HinhThucThanhToan = "Đang phục vụ"
+                    };
+                }
+                else if (!string.IsNullOrWhiteSpace(hoaDon!.DanhSachMonJson))
+                {
+                    try
+                    {
+                        dsMonTongHop = JsonSerializer.Deserialize<List<MonTrongHoaDonDto>>(hoaDon.DanhSachMonJson, options)
+                            ?? new List<MonTrongHoaDonDto>();
+                    }
+                    catch { }
+                }
+
+                dsMonTongHop.AddRange(dsMonMoiHopLe);
+
+                // 3. Thống nhất công thức tính tiền giữa Gọi món & Quầy thu ngân (5% Phí phục vụ + 10% VAT)
+                decimal tongTienMonAn = dsMonTongHop.Sum(x => x.ThanhTien);
+                decimal phiPhucVu = Math.Round(tongTienMonAn * HangSoHeThong.TyLePhiPhucVuNhaHang, 0);
+                decimal thueVAT = Math.Round(tongTienMonAn * HangSoHeThong.TyLeThueVAT, 0);
+                decimal giamGia = hoaDon!.GiamGia ?? 0m;
+
+                hoaDon.TongTienMonAn = tongTienMonAn;
+                hoaDon.PhiPhucVu = phiPhucVu;
+                hoaDon.TienThueVAT = thueVAT;
+                hoaDon.ThanhTien = Math.Max(0, tongTienMonAn + phiPhucVu + thueVAT - giamGia);
+                hoaDon.DanhSachMonJson = JsonSerializer.Serialize(dsMonTongHop);
+
+                if (laHoaDonMoi)
+                    _context.HOA_DON_NHA_HANG.Add(hoaDon);
+                else
+                    _context.HOA_DON_NHA_HANG.Update(hoaDon);
+
+                // 4. Lưu từng dòng chi tiết món mới gọi vào CHI_TIET_DICH_VU (liên kết khóa ngoại rõ ràng)
+                DateTime now = DateTime.Now;
+                foreach (var mon in dsMonMoiHopLe)
+                {
+                    _context.CHI_TIET_DICH_VU.Add(new CHI_TIET_DICH_VU
+                    {
+                        MaChiTietDichVu = BaoMatHelper.SinhMaNgauNhien("CD"),
+                        DICH_VUMaDichVu = mon.MaDichVu,
+                        HOA_DON_NHA_HANGMaHoaDonNhaHang = hoaDon.MaHoaDonNhaHang,
+                        SoLuong = mon.SoLuong,
+                        DonGia = mon.DonGia,
+                        ThanhTien = mon.ThanhTien,
+                        ThoiGianSuDung = now
+                    });
+                }
+
+                // 5. Cập nhật trạng thái bàn sang "Đang có khách"
+                ban.TrangThai = "Đang có khách";
+                _context.BAN_NHA_HANG.Update(ban);
 
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["SuccessMessage"] = $"Đã ghi nhận đơn gọi món vào hóa đơn {hoaDon.MaHoaDonNhaHang} cho {ban.TenBan}!";
                 return RedirectToPage("./SoDoBan");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Lỗi lưu Order: " + ex.Message);
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Lỗi lưu đơn gọi món cho bàn {MaBan}", id);
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi hệ thống khi lưu đơn gọi món.");
                 return await OnGetAsync(id);
             }
         }

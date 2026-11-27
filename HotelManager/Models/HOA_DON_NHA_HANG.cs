@@ -36,5 +36,17 @@ namespace HotelManager.Models
 
         // Thêm vào class HOA_DON_NHA_HANG
         public string? DanhSachMonJson { get; set; }
+
+        // Phí phục vụ nhà hàng (5%)
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? PhiPhucVu { get; set; }
+
+        // Thuế giá trị gia tăng VAT (10%)
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? TienThueVAT { get; set; }
+
+        // Trạng thái hóa đơn tách biệt với hình thức thanh toán
+        [Column(TypeName = "nvarchar(50)")]
+        public string? TrangThaiThanhToan { get; set; }
     }
 }

@@ -1,7 +1,9 @@
 using HotelManager.Data;
+using HotelManager.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,10 +24,12 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
     public class SoDoBanModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<SoDoBanModel> _logger;
 
-        public SoDoBanModel(ApplicationDbContext context)
+        public SoDoBanModel(ApplicationDbContext context, ILogger<SoDoBanModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -40,32 +44,30 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         {
             try
             {
-                var query = _context.BAN_NHA_HANG.AsQueryable();
+                var query = _context.BAN_NHA_HANG.AsNoTracking().AsQueryable();
 
-                if (!string.IsNullOrEmpty(TuKhoaTimKiem))
-                    query = query.Where(b => b.TenBan.Contains(TuKhoaTimKiem) || b.MaBan.Contains(TuKhoaTimKiem));
+                if (!string.IsNullOrWhiteSpace(TuKhoaTimKiem))
+                {
+                    string kw = TuKhoaTimKiem.Trim();
+                    query = query.Where(b => (b.TenBan != null && b.TenBan.Contains(kw)) || b.MaBan.Contains(kw));
+                }
 
                 if (!string.IsNullOrEmpty(TrangThaiLoc) && TrangThaiLoc != "Tất cả bàn")
                     query = query.Where(b => b.TrangThai == TrangThaiLoc);
 
                 var dsBanDb = await query.OrderBy(b => b.TenBan).ToListAsync();
 
-                // Chỉ lấy các hóa đơn thật chưa thanh toán
-                var dsHoaDonActive = await _context.HOA_DON_NHA_HANG
-                    .Where(h => h.HinhThucThanhToan != "Đã Thanh Toán")
+                // Truy vấn thuần LINQ các hóa đơn đang mở (chưa thanh toán / chưa ghi nợ phòng)
+                var dsHoaDonActive = await _context.HOA_DON_NHA_HANG.AsNoTracking()
+                    .Where(h => h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
+                             || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan
+                             || (string.IsNullOrEmpty(h.TrangThaiThanhToan) && h.HinhThucThanhToan != "Đã Thanh Toán"))
+                    .OrderByDescending(h => h.ThoiGianTao)
                     .ToListAsync();
 
                 DanhSachBan = dsBanDb.Select(b =>
                 {
-                    // Map mã hóa đơn thật vào đúng bàn
-                    string maBanCuaHoaDon = "";
-                    var hoaDonCuaBan = dsHoaDonActive.OrderByDescending(x => x.ThoiGianTao).FirstOrDefault(x =>
-                    {
-                        var prop = x.GetType().GetProperty("MaBan") ?? x.GetType().GetProperty("BAN_NHA_HANGMaBan");
-                        return prop != null && prop.GetValue(x)?.ToString() == b.MaBan;
-                    });
-
-                    string tenKhach = b.GetType().GetProperty("TenKhachDat")?.GetValue(b)?.ToString() ?? string.Empty;
+                    var hoaDonCuaBan = dsHoaDonActive.FirstOrDefault(h => h.BAN_NHA_HANGMaBan == b.MaBan);
 
                     return new BanNhaHangViewModel
                     {
@@ -73,16 +75,15 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
                         TenBan = b.TenBan ?? string.Empty,
                         SucChua = b.SucChua?.ToString() ?? "0",
                         TrangThai = b.TrangThai ?? "Trống",
-
-                        // Lấy đúng mã thật sinh ra từ form Thêm Bàn
                         MaHoaDonNhaHang = (b.TrangThai == "Đang có khách" && hoaDonCuaBan != null) ? hoaDonCuaBan.MaHoaDonNhaHang : null,
-                        TenKhachDat = (b.TrangThai == "Đã đặt trước") ? tenKhach : string.Empty
+                        TenKhachDat = (b.TrangThai == "Đã đặt trước") ? (b.TenKhachDat ?? string.Empty) : string.Empty
                     };
                 }).ToList();
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Lỗi tải sơ đồ bàn: " + ex.Message);
+                _logger.LogError(ex, "Lỗi tải sơ đồ bàn nhà hàng.");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi tải sơ đồ bàn.");
             }
         }
 
@@ -94,12 +95,14 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
                 if (ban != null)
                 {
                     ban.TrangThai = "Trống";
+                    ban.TenKhachDat = null;
                     await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Lỗi khi cập nhật trạng thái bàn: " + ex.Message);
+                _logger.LogError(ex, "Lỗi xác nhận bàn sạch {MaBan}", maBan);
+                TempData["ErrorMessage"] = "Lỗi khi cập nhật trạng thái bàn.";
             }
             return RedirectToPage();
         }
@@ -108,19 +111,31 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         {
             try
             {
+                // Chặn xóa bàn nếu đang có hóa đơn chưa thanh toán
+                bool conHoaDonMo = await _context.HOA_DON_NHA_HANG.AsNoTracking()
+                    .AnyAsync(h => h.BAN_NHA_HANGMaBan == id
+                        && (h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
+                            || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan));
+                if (conHoaDonMo)
+                {
+                    TempData["ErrorMessage"] = "Không thể xóa bàn đang có hóa đơn phục vụ chưa thanh toán!";
+                    return RedirectToPage();
+                }
+
                 var ban = await _context.BAN_NHA_HANG.FindAsync(id);
                 if (ban != null)
                 {
                     _context.BAN_NHA_HANG.Remove(ban);
                     await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = $"Đã xóa bàn '{ban.TenBan}' thành công.";
                 }
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "Không thể xóa bàn: " + ex.Message);
-                await OnGetAsync();
-                return Page();
+                _logger.LogError(ex, "Lỗi xóa bàn {Id}", id);
+                TempData["ErrorMessage"] = "Không thể xóa bàn do lỗi hệ thống.";
+                return RedirectToPage();
             }
         }
 
@@ -128,23 +143,25 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
         {
             try
             {
-                // Kiểm tra mã thật 100% trong CSDL
-                var hoaDon = await _context.HOA_DON_NHA_HANG.FirstOrDefaultAsync(h => h.MaHoaDonNhaHang == maHoaDon);
+                var hoaDon = await _context.HOA_DON_NHA_HANG
+                    .FirstOrDefaultAsync(h => h.MaHoaDonNhaHang == maHoaDon && h.BAN_NHA_HANGMaBan == maBan);
 
                 if (hoaDon != null)
                 {
+                    hoaDon.TrangThaiThanhToan = HangSoHeThong.HoaDonNHChoThanhToan;
                     hoaDon.HinhThucThanhToan = "Chờ Thanh Toán";
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = $"Đã gửi yêu cầu thanh toán (Mã HD: {maHoaDon}) tới Quầy thu ngân!";
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = $"Lỗi: Không tìm thấy hóa đơn {maHoaDon} trong hệ thống. Vui lòng kiểm tra lại!";
+                    TempData["ErrorMessage"] = $"Không tìm thấy hóa đơn hợp lệ {maHoaDon} thuộc bàn này!";
                 }
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Lỗi hệ thống khi gửi yêu cầu thanh toán: " + ex.Message;
+                _logger.LogError(ex, "Lỗi gửi yêu cầu thanh toán {MaHD}", maHoaDon);
+                TempData["ErrorMessage"] = "Lỗi hệ thống khi gửi yêu cầu thanh toán.";
             }
 
             return RedirectToPage();

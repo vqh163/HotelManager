@@ -47,16 +47,22 @@
                             string textClass = "text-dark";
                             string iconClass = "bi-receipt";
 
-                            if (hd.HinhThucThanhToan == "Chờ Thanh Toán")
+                            if (hd.HinhThucThanhToan == "Chờ thanh toán" || hd.HinhThucThanhToan == "Chờ Thanh Toán")
                             {
                                 bgClass = "bg-danger bg-opacity-10 border-danger border-opacity-25";
                                 textClass = "text-danger";
                             }
-                            else if (hd.HinhThucThanhToan == "Đã Thanh Toán")
+                            else if (hd.HinhThucThanhToan == "Đã thanh toán" || hd.HinhThucThanhToan == "Đã Thanh Toán")
                             {
                                 bgClass = "bg-success text-white border-success";
                                 textClass = "text-white";
                                 iconClass = "bi-check-circle";
+                            }
+                            else if (hd.HinhThucThanhToan == "Ghi nợ phòng")
+                            {
+                                bgClass = "bg-info bg-opacity-10 border-info border-opacity-50";
+                                textClass = "text-info";
+                                iconClass = "bi-door-closed";
                             }
 
                             <!-- TRUYỀN DỮ LIỆU ĐỘNG VÀO JAVASCRIPT -->
@@ -150,10 +156,29 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn btn-info text-white fw-bold w-100 py-3 rounded-3 mb-3 d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-door-closed me-2"></i> Ghi nợ vào phòng</span>
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
+                    <!-- Chọn phương thức thanh toán hoặc Ghi nợ vào phòng đang lưu trú -->
+                    <div class="mb-3">
+                        <label asp-for="PhuongThucThanhToan" class="form-label text-muted small fw-bold text-uppercase">Phương thức thanh toán</label>
+                        <select asp-for="PhuongThucThanhToan" id="selectPhuongThucNH" class="form-select fw-semibold" onchange="toggleGhiNoPhong()">
+                            <option value="Tiền mặt">Tiền mặt</option>
+                            <option value="Chuyển khoản">Chuyển khoản / QR</option>
+                            <option value="Quẹt thẻ">Quẹt thẻ (POS)</option>
+                            <option value="Ghi nợ phòng">Ghi nợ vào phòng đang ở</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="boxChonPhongGhiNo" style="display: none;">
+                        <label asp-for="MaDatPhongGhiNo" class="form-label text-info small fw-bold text-uppercase">
+                            <i class="bi bi-door-closed me-1"></i> Chọn phòng ghi nợ
+                        </label>
+                        <select asp-for="MaDatPhongGhiNo" class="form-select border-info">
+                            <option value="">-- Chọn phòng đang có khách --</option>
+                            @foreach (var p in Model.DanhSachPhongDangO)
+                            {
+                                <option value="@p.MaDatPhong">@p.HienThi</option>
+                            }
+                        </select>
+                    </div>
 
                     <!-- Nút Submit gọi hàm OnPostThanhToanAsync -->
                     <button type="submit" asp-page-handler="ThanhToan" class="btn btn-success fw-bold w-100 py-3 rounded-3 mb-3 d-flex justify-content-between align-items-center">
@@ -162,8 +187,7 @@
                     </button>
 
                     <div class="d-flex gap-2 mb-3">
-                        <button type="button" class="btn btn-light border flex-grow-1 text-muted fw-bold rounded-3 py-2"><i class="bi bi-printer me-2"></i> Tạm tính</button>
-                        <button type="button" class="btn btn-light border flex-grow-1 text-muted fw-bold rounded-3 py-2"><i class="bi bi-credit-card me-2"></i> Quẹt thẻ</button>
+                        <button type="button" class="btn btn-light border flex-grow-1 text-muted fw-bold rounded-3 py-2" onclick="window.print()"><i class="bi bi-printer me-2"></i> In tạm tính</button>
                     </div>
 
                     <!-- Nút quay lại (Không submit form) -->
@@ -189,6 +213,15 @@
 <!-- SCRIPTS XỬ LÝ LOGIC ẨN HIỆN & RENDER MÓN -->
 @section Scripts {
     <script>
+        function toggleGhiNoPhong() {
+            const val = document.getElementById('selectPhuongThucNH').value;
+            document.getElementById('boxChonPhongGhiNo').style.display = (val === 'Ghi nợ phòng') ? 'block' : 'none';
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+
         function formatVND(amount) {
             return amount.toLocaleString('vi-VN') + ' VND';
         }
@@ -203,17 +236,17 @@
             // Cập nhật input ẩn để chuẩn bị dữ liệu gửi POST Thanh toán
             document.getElementById('maHoaDonToPayInput').value = maHD;
 
-            // Render động danh sách món ăn từ JSON
+            // Render động danh sách món ăn từ JSON (đã escape HTML chống XSS)
             const dsMon = JSON.parse(decodeURIComponent(dsMonJsonEncoded));
             const container = document.getElementById('danhSachMonContainer');
             container.innerHTML = '';
 
             dsMon.forEach(mon => {
-                let ghiChuHtml = mon.GhiChu ? `<small class="text-muted"><i class="bi bi-info-circle"></i> ${mon.GhiChu}</small>` : '';
+                let ghiChuHtml = mon.GhiChu ? `<small class="text-muted"><i class="bi bi-info-circle"></i> ${escapeHtml(mon.GhiChu)}</small>` : '';
                 container.innerHTML += `
                             <div class="row mb-3 align-items-center">
                                 <div class="col-6">
-                                    <div class="fw-bold text-dark">${mon.TenMon}</div>
+                                    <div class="fw-bold text-dark">${escapeHtml(mon.TenMon)}</div>
                                     ${ghiChuHtml}
                                 </div>
                                 <div class="col-2 text-center text-muted fw-bold">${formatVND(mon.DonGia).replace(' VND', '')}</div>

@@ -72,6 +72,10 @@
                                 </select>
                                 <span asp-validation-for="MaChucVuSelected" class="text-danger"></span>
                             </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="LuongCoBanInput" class="form-label fw-bold">Mức lương cơ bản (VNĐ)</label>
+                                <input asp-for="LuongCoBanInput" type="number" min="0" step="100000" class="form-control" placeholder="VD: 10000000" />
+                            </div>
                         </div>
 
                         <div class="d-flex justify-content-end mt-3">

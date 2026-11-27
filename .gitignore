@@ -480,3 +480,10 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Bảo vệ dữ liệu nhạy cảm, sao lưu CSDL và tệp dữ liệu tạm
+HotelManager/Backups/
+HotelManager/App_Data/
+HotelManager/wwwroot/uploads/kyc/
+HotelManager/*_meta.txt*
+HotelManager/menu_data.json*

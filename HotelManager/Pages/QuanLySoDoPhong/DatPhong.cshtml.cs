@@ -225,27 +225,33 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 var phong = await _context.PHONG.FirstOrDefaultAsync(p => p.MaPhong == id);
                 if (phong == null) return NotFound();
 
-                // Chặn đặt phòng nếu phòng đang bị Khóa hoặc Bảo trì (TT04)
-                if (phong.MaTrangThai == "TT04")
+                // Chặn đặt phòng nếu phòng đang bị Khóa hoặc Bảo trì (kiểm tra đồng bộ cả TT04 và bảng TRANG_THAI_PHONG)
+                bool dangBaoTri = phong.MaTrangThai == "TT04";
+                if (!dangBaoTri && !string.IsNullOrWhiteSpace(phong.MaTrangThai))
+                {
+                    dangBaoTri = await _context.TRANG_THAI_PHONG.AsNoTracking()
+                        .AnyAsync(t => t.MaTrangThai == phong.MaTrangThai && t.TrangThaiPhong == "Bảo trì");
+                }
+                if (dangBaoTri)
                 {
                     ModelState.AddModelError(string.Empty, "Phòng này hiện đang được bảo trì hoặc bị khóa. Vui lòng chọn phòng khác.");
                     return Page();
                 }
 
-                // Kiểm tra sức chứa tối đa của phòng
-                if (ThongTinDatPhong.SoLuongKhach > phong.SucChuaToiDa)
+                // Kiểm tra số lượng khách hợp lệ và sức chứa tối đa của phòng
+                int soKhachYeuCau = ThongTinDatPhong.SoLuongKhach ?? 1;
+                if (soKhachYeuCau < 1 || soKhachYeuCau > (phong.SucChuaToiDa ?? 1))
                 {
-                    ModelState.AddModelError(string.Empty, $"Phòng {phong.SoPhong} chỉ cho phép tối đa {phong.SucChuaToiDa} khách.");
+                    ModelState.AddModelError(string.Empty, $"Phòng {phong.SoPhong} chỉ cho phép từ 1 đến {phong.SucChuaToiDa ?? 1} khách.");
                     return Page();
                 }
+                ThongTinDatPhong.SoLuongKhach = soKhachYeuCau;
 
                 // Lớp phòng thủ 2: Kiểm tra trùng lịch đặt phòng (Check Overlap Date) bằng LINQ
                 bool isDoubleBooked = await (from dp in _context.DAT_PHONG
                                              join ct in _context.CHI_TIET_DAT_PHONG on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
                                              where ct.PHONGMaPhong == phong.MaPhong
-                                                && dp.TrangThaiDatPhong != "Đã hủy"
-                                                && dp.TrangThaiDatPhong != "Đã check-out"
-                                                && dp.TrangThaiDatPhong != "Đã hoàn tất"
+                                                && !HotelManager.Helpers.HangSoHeThong.TrangThaiDaKetThuc.Contains(dp.TrangThaiDatPhong ?? "")
                                                 && dp.NgayNhan < requestedOut
                                                 && dp.NgayTra > requestedIn
                                              select dp.MaDatPhong).AnyAsync();
@@ -372,6 +378,16 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 // =================================================================
                 // LƯU ĐƠN ĐẶT PHÒNG & CHI TIẾT ĐẶT PHÒNG (UC_03)
                 // =================================================================
+                // Bảo mật chống Mass Assignment: Khách hàng tự đặt online không được tự nhập tiền cọc khống
+                if (!isStaffBooking)
+                {
+                    ThongTinDatPhong.TienCoc = 0m;
+                }
+                else if ((ThongTinDatPhong.TienCoc ?? 0m) < 0m)
+                {
+                    ThongTinDatPhong.TienCoc = 0m;
+                }
+
                 ThongTinDatPhong.MaDatPhong = $"DP{timestamp}{randomSuffix}";
                 ThongTinDatPhong.KHACH_HANGMaKH = maKhachHangChot;
                 ThongTinDatPhong.NgayDat = DateTime.Now;
@@ -394,13 +410,7 @@ namespace HotelManager.Pages.QuanLySoDoPhong
                 };
                 _context.CHI_TIET_DAT_PHONG.Add(chiTiet);
 
-                // Cập nhật trạng thái phòng sang TT02 nếu nhận phòng ngay trong ngày hôm nay
-                if (requestedIn.Date == today)
-                {
-                    phong.MaTrangThai = "TT02";
-                    _context.PHONG.Update(phong);
-                }
-
+                // Không ghi đè phong.MaTrangThai = "TT02" để bảo toàn liên kết bản ghi TRANG_THAI_PHONG (TTP_xxx)
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 

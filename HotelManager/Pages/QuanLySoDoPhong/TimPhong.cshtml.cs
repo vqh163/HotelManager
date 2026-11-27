@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using HotelManager.Data;
+using HotelManager.Helpers;
 using HotelManager.Models;
 
 namespace HotelManager.Pages.QuanLySoDoPhong
@@ -13,10 +15,12 @@ namespace HotelManager.Pages.QuanLySoDoPhong
     public class TimPhongModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<TimPhongModel> _logger;
 
-        public TimPhongModel(ApplicationDbContext context)
+        public TimPhongModel(ApplicationDbContext context, ILogger<TimPhongModel> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -30,7 +34,6 @@ namespace HotelManager.Pages.QuanLySoDoPhong
             public string? LoaiPhongTimKiem { get; set; } = "Tất cả";
         }
 
-        // Tạo ViewModel để truyền cả thông tin phòng lẫn trạng thái "Khả dụng" ra View
         public class PhongHienThi
         {
             public PHONG PhongInfo { get; set; } = default!;
@@ -39,25 +42,69 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
         public List<PhongHienThi> DanhSachPhong { get; set; } = new List<PhongHienThi>();
 
+        // Hàm phụ trợ: Tải danh sách phòng khả dụng thật (loại trừ phòng Bảo trì trong TRANG_THAI_PHONG và phòng trùng lịch)
+        private async Task TimKiemPhongThucTeAsync(DateTime ngayNhan, DateTime ngayTra, int soKhach, string? loaiPhong, int? takeLimit = null)
+        {
+            DateTime requestedIn = ngayNhan.Date.AddHours(14);
+            DateTime requestedOut = ngayTra.Date.AddHours(12);
+
+            // 1. Lấy danh sách mã trạng thái đang bị khóa "Bảo trì" từ bảng TRANG_THAI_PHONG
+            var maTrangThaiBaoTri = await _context.TRANG_THAI_PHONG.AsNoTracking()
+                .Where(t => t.TrangThaiPhong == "Bảo trì")
+                .Select(t => t.MaTrangThai)
+                .ToListAsync();
+
+            var query = _context.PHONG.AsNoTracking()
+                .Where(p => p.MaTrangThai != "TT04"
+                         && (p.MaTrangThai == null || !maTrangThaiBaoTri.Contains(p.MaTrangThai))
+                         && (p.SucChuaToiDa ?? 1) >= soKhach);
+
+            if (!string.IsNullOrEmpty(loaiPhong) && loaiPhong != "Tất cả")
+            {
+                query = query.Where(p => p.LoaiPhong == loaiPhong);
+            }
+
+            query = query.OrderBy(p => p.SoPhong);
+            var rooms = takeLimit.HasValue ? await query.Take(takeLimit.Value).ToListAsync() : await query.ToListAsync();
+
+            // 2. Lấy tập phòng đã có lịch đặt trùng trong 1 truy vấn LINQ duy nhất
+            var bookedRoomIds = await (from dp in _context.DAT_PHONG.AsNoTracking()
+                                       join ct in _context.CHI_TIET_DAT_PHONG.AsNoTracking()
+                                            on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
+                                       where !HangSoHeThong.TrangThaiDaKetThuc.Contains(dp.TrangThaiDatPhong ?? "")
+                                          && dp.NgayNhan < requestedOut
+                                          && dp.NgayTra > requestedIn
+                                          && ct.PHONGMaPhong != null
+                                       select ct.PHONGMaPhong!)
+                                       .Distinct()
+                                       .ToListAsync();
+
+            var bookedSet = new HashSet<string>(bookedRoomIds);
+            DanhSachPhong = rooms.Select(r => new PhongHienThi
+            {
+                PhongInfo = r,
+                IsAvailable = !bookedSet.Contains(r.MaPhong)
+            }).ToList();
+        }
+
         public async Task<IActionResult> OnGetAsync()
         {
             try
             {
-                // Mặc định load danh sách và gán tất cả là khả dụng khi mới vào trang
-                var rooms = await _context.PHONG.AsNoTracking().Take(9).ToListAsync();
-                DanhSachPhong = rooms.Select(r => new PhongHienThi { PhongInfo = r, IsAvailable = true }).ToList();
+                // Tính khả dụng thực tế cho ngày hôm nay -> ngày mai (không gán cứng IsAvailable = true)
+                await TimKiemPhongThucTeAsync(DateTime.Now.Date, DateTime.Now.Date.AddDays(1), 1, "Tất cả", takeLimit: 9);
                 return Page();
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, $"Lỗi hệ thống: {ex.Message}");
+                _logger.LogError(ex, "Lỗi tải danh sách phòng tìm kiếm.");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi tải danh sách phòng.");
                 return Page();
             }
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            // Kiểm tra tính hợp lệ của ngày nhận và ngày trả
             if (Input.NgayNhan.Date < DateTime.Now.Date)
             {
                 ModelState.AddModelError(string.Empty, "Lỗi: Ngày nhận phòng không được chọn trong quá khứ.");
@@ -72,49 +119,13 @@ namespace HotelManager.Pages.QuanLySoDoPhong
 
             try
             {
-                DateTime requestedIn = Input.NgayNhan.Date.AddHours(14);  // Giờ check-in tiêu chuẩn 14:00
-                DateTime requestedOut = Input.NgayTra.Date.AddHours(12); // Giờ check-out tiêu chuẩn 12:00
-
-                // 1. Truy vấn danh sách phòng thỏa mãn tiêu chí và KHÔNG bị khóa bảo trì (TT04)
-                var query = _context.PHONG.AsNoTracking()
-                                          .Where(p => p.MaTrangThai != "TT04" && p.SucChuaToiDa >= Input.SoKhach);
-
-                if (!string.IsNullOrEmpty(Input.LoaiPhongTimKiem) && Input.LoaiPhongTimKiem != "Tất cả")
-                {
-                    query = query.Where(p => p.LoaiPhong == Input.LoaiPhongTimKiem);
-                }
-
-                var rooms = await query.OrderBy(p => p.SoPhong).ToListAsync();
-
-                // 2. [TỐI ƯU HIỆU NĂNG - CHỐNG LỖI N+1 QUERY]:
-                // Chỉ dùng 1 câu truy vấn LINQ duy nhất để lấy toàn bộ Mã Phòng đã bị đặt trùng lịch
-                var bookedRoomIds = await (from dp in _context.DAT_PHONG.AsNoTracking()
-                                           join ct in _context.CHI_TIET_DAT_PHONG.AsNoTracking()
-                                                on dp.MaDatPhong equals ct.DAT_PHONGMaDatPhong
-                                           where dp.TrangThaiDatPhong != "Đã hủy"
-                                              && dp.TrangThaiDatPhong != "Đã check-out"
-                                              && dp.TrangThaiDatPhong != "Đã hoàn tất"
-                                              && dp.NgayNhan < requestedOut
-                                              && dp.NgayTra > requestedIn
-                                           select ct.PHONGMaPhong)
-                                           .Distinct()
-                                           .ToListAsync();
-
-                // Đưa vào HashSet để tra cứu O(1) siêu tốc trên RAM
-                var bookedSet = new HashSet<string>(bookedRoomIds);
-
-                // 3. Ánh xạ kết quả ra ViewModel mà không cần gọi lại Database
-                DanhSachPhong = rooms.Select(r => new PhongHienThi
-                {
-                    PhongInfo = r,
-                    IsAvailable = !bookedSet.Contains(r.MaPhong)
-                }).ToList();
-
+                await TimKiemPhongThucTeAsync(Input.NgayNhan, Input.NgayTra, Math.Max(1, Input.SoKhach), Input.LoaiPhongTimKiem);
                 return Page();
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, $"Lỗi tìm kiếm: {ex.Message}");
+                _logger.LogError(ex, "Lỗi tìm kiếm phòng trống.");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi khi tìm kiếm phòng trống.");
                 return Page();
             }
         }
