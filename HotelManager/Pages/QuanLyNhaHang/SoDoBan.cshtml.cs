@@ -72,11 +72,14 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
                     .OrderBy(b => b.TenBan)
                     .ToListAsync();
 
-                // Truy vấn thuần LINQ các hóa đơn đang mở (chưa thanh toán / chưa ghi nợ phòng)
+                // Truy vấn thuần LINQ các hóa đơn đang mở (chưa thanh toán / chưa ghi nợ phòng / chưa hủy)
                 var dsHoaDonActive = await _context.HOA_DON_NHA_HANG.AsNoTracking()
-                    .Where(h => h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
-                             || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan
-                             || (string.IsNullOrEmpty(h.TrangThaiThanhToan) && h.HinhThucThanhToan != "Đã Thanh Toán"))
+                    .Where(h => (h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
+                              || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan
+                              || string.IsNullOrEmpty(h.TrangThaiThanhToan))
+                             && h.HinhThucThanhToan != "Đã Thanh Toán"
+                             && h.HinhThucThanhToan != "Ghi nợ phòng"
+                             && h.HinhThucThanhToan != "Đã Hủy")
                     .OrderByDescending(h => h.ThoiGianTao)
                     .ToListAsync();
 

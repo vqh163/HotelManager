@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HotelManager.Data;
 using HotelManager.Helpers;
 using HotelManager.Models;
@@ -43,6 +44,28 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
             }
             catch { }
         }
+        // [MỚI] Lưu giờ hoàn tất của từng order để dừng đồng hồ
+        private static readonly string FilePathHoanTat = Path.Combine(Directory.GetCurrentDirectory(), "kds_order_done_time.json");
+        public static Dictionary<string, DateTime> GioHoanTat { get; set; } = new Dictionary<string, DateTime>();
+
+        public static void LoadGioHoanTat()
+        {
+            try
+            {
+                if (File.Exists(FilePathHoanTat))
+                {
+                    var d = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(File.ReadAllText(FilePathHoanTat));
+                    if (d != null) GioHoanTat = d;
+                }
+            }
+            catch { }
+        }
+
+        public static void SaveGioHoanTat()
+        {
+            try { File.WriteAllText(FilePathHoanTat, JsonSerializer.Serialize(GioHoanTat)); }
+            catch { }
+        }
     }
 
     // ViewModel hiển thị từng thẻ Order trên màn hình KDS
@@ -68,7 +91,7 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         public string CanhBaoDiUng { get; set; } = string.Empty;
         public bool LaMonGoiThem { get; set; } = false;
     }
-
+    [Authorize(Roles = "Đầu bếp,Quản lý,Giám đốc")]
     public class QuanLyOrderModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -156,17 +179,21 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
             try
             {
                 TrangThaiOrderBepStore.Load();
+                TrangThaiOrderBepStore.LoadGioHoanTat();   
 
                 // Truy vấn danh mục món ăn và cảnh báo dị ứng trực tiếp từ SQL Server (bảng DICH_VU)
                 var dsDichVuDb = await _context.DICH_VU.AsNoTracking().ToListAsync();
                 var dictDichVu = dsDichVuDb.ToDictionary(d => d.MaDichVu.Trim(), d => d.TenDichVu ?? "Món ăn");
                 var dictDiUng = dsDichVuDb.ToDictionary(d => d.MaDichVu.Trim(), d => d.CanhBaoDiUng ?? string.Empty);
 
-                // Lấy toàn bộ hóa đơn nhà hàng đang phục vụ / chờ thanh toán bằng LINQ
+                // Lấy toàn bộ hóa đơn nhà hàng đang mở (loại hóa đơn đã thanh toán / ghi nợ phòng / đã hủy)
                 var dsHoaDonActive = await _context.HOA_DON_NHA_HANG.AsNoTracking()
-                    .Where(h => h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
-                             || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan
-                             || (string.IsNullOrEmpty(h.TrangThaiThanhToan) && h.HinhThucThanhToan != "Đã Thanh Toán"))
+                    .Where(h => (h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHDangPhucVu
+                              || h.TrangThaiThanhToan == HangSoHeThong.HoaDonNHChoThanhToan
+                              || string.IsNullOrEmpty(h.TrangThaiThanhToan))
+                             && h.HinhThucThanhToan != "Đã Thanh Toán"
+                             && h.HinhThucThanhToan != "Ghi nợ phòng"
+                             && h.HinhThucThanhToan != "Đã Hủy")
                     .OrderByDescending(h => h.ThoiGianTao)
                     .ToListAsync();
 
@@ -301,7 +328,12 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                     }
 
                     DateTime tgTao = hd.ThoiGianTao ?? DateTime.Now;
-                    TimeSpan elapsed = DateTime.Now - tgTao;
+                    // [SỬA] Order đã hoàn tất thì dừng đồng hồ tại giờ hoàn tất
+                    DateTime moc = DateTime.Now;
+                    if (trangThaiBep == "Hoàn tất" && TrangThaiOrderBepStore.GioHoanTat.TryGetValue(maHd, out var gioXong))
+                        moc = gioXong;
+
+                    TimeSpan elapsed = moc - tgTao;
                     if (elapsed.TotalSeconds < 0) elapsed = TimeSpan.Zero;
 
                     string thoiGianCho = elapsed.TotalHours >= 1
@@ -331,12 +363,20 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                 SoLuongHoanTat = tatCaOrder.Count(o => o.TrangThaiBep == "Hoàn tất");
 
                 var filtered = tatCaOrder.AsEnumerable();
-                if (!string.IsNullOrEmpty(TrangThaiLoc) && TrangThaiLoc != "Tất cả")
+                if (string.IsNullOrEmpty(TrangThaiLoc) || TrangThaiLoc == "Tất cả")
                 {
-                    if (TrangThaiLoc == "Xong" || TrangThaiLoc == "Hoàn tất")
-                        filtered = filtered.Where(o => o.TrangThaiBep == "Hoàn tất");
-                    else
-                        filtered = filtered.Where(o => o.TrangThaiBep == TrangThaiLoc);
+                    // [SỬA] "Tất cả": ẩn order đã hoàn tất quá 30 phút
+                    filtered = filtered.Where(o => o.TrangThaiBep != "Hoàn tất"
+                        || !TrangThaiOrderBepStore.GioHoanTat.TryGetValue(o.MaHoaDonNhaHang, out var g)
+                        || (DateTime.Now - g).TotalMinutes <= 30);
+                }
+                else if (TrangThaiLoc == "Xong" || TrangThaiLoc == "Hoàn tất")
+                {
+                    filtered = filtered.Where(o => o.TrangThaiBep == "Hoàn tất");
+                }
+                else
+                {
+                    filtered = filtered.Where(o => o.TrangThaiBep == TrangThaiLoc);
                 }
 
                 if (!string.IsNullOrWhiteSpace(TuKhoaTimKiem))
@@ -374,9 +414,25 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
                 {
                     await Task.Run(() =>
                     {
+                        string ma = maHoaDon.Trim();
+                        string tt = trangThaiMoi.Trim();
+
                         TrangThaiOrderBepStore.Load();
-                        TrangThaiOrderBepStore.TrangThaiDict[maHoaDon.Trim()] = trangThaiMoi.Trim();
+                        TrangThaiOrderBepStore.TrangThaiDict[ma] = tt;
                         TrangThaiOrderBepStore.Save();
+
+                        // Ghi / xóa giờ hoàn tất để dừng đồng hồ KDS
+                        TrangThaiOrderBepStore.LoadGioHoanTat();
+                        if (tt == "Hoàn tất")
+                        {
+                            if (!TrangThaiOrderBepStore.GioHoanTat.ContainsKey(ma))
+                                TrangThaiOrderBepStore.GioHoanTat[ma] = DateTime.Now;
+                        }
+                        else
+                        {
+                            TrangThaiOrderBepStore.GioHoanTat.Remove(ma);
+                        }
+                        TrangThaiOrderBepStore.SaveGioHoanTat();
                     });
                 }
             }
