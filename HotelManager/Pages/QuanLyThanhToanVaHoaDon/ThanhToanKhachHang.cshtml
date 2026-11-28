@@ -1,0 +1,484 @@
+﻿@page
+@model HotelManager.Pages.QuanLyThanhToan.ThanhToanKhachHangModel
+@{
+    ViewData["Title"] = "Thanh toán & Hóa đơn của tôi";
+}
+
+<style>
+    body {
+        background-color: #f7f8fa;
+    }
+
+    .guest-container {
+        max-width: 980px;
+    }
+
+    /* Banner chào khách hàng tách biệt phong cách với giao diện nhân viên */
+    .guest-hero {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: #ffffff;
+        border-radius: 20px;
+        padding: 26px 28px;
+    }
+
+    .guest-hero-accent {
+        color: #fbbf24;
+    }
+
+    /* Chỉ dẫn 3 bước tối giản theo yêu cầu phi chức năng Usability */
+    .step-badge {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #fef3c7;
+        color: #b45309;
+        font-weight: 700;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Thẻ hóa đơn thân thiện màn hình di động */
+    .guest-bill-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+        .guest-bill-card:hover {
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            transform: translateY(-2px);
+        }
+
+    /* Tùy chọn phương thức thanh toán trực tuyến */
+    .online-pay-radio {
+        display: none;
+    }
+
+    .online-pay-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        background: #ffffff;
+    }
+
+    .online-pay-radio:checked + .online-pay-option {
+        border-color: #d97706;
+        background-color: #fffbeb;
+        box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
+    }
+
+    @@media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #vungInHoaDonKhach, #vungInHoaDonKhach * {
+            visibility: visible;
+        }
+
+        #vungInHoaDonKhach {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+        }
+    }
+</style>
+
+<div class="container py-4 guest-container">
+
+    <!-- Banner Chào Khách Hàng & Tóm tắt số dư thanh toán / tiền cọc -->
+    <div class="guest-hero shadow-sm mb-4">
+        <div class="row align-items-center g-3">
+            <div class="col-md-7">
+                <span class="badge bg-warning text-dark rounded-pill px-3 py-1 mb-2 fw-bold">
+                    <i class="bi bi-stars me-1"></i>
+                    @(Model.KhachHangHienTai?.HangThanhVien ?? "Khách hàng Grand Horizon")
+                </span>
+                <h3 class="fw-bold mb-1">
+                    Xin chào, <span class="guest-hero-accent">@(Model.KhachHangHienTai?.HoTen ?? User.Identity?.Name ?? "Quý khách")</span>
+                </h3>
+                <p class="small text-white-50 mb-0">
+                    Theo dõi hóa đơn lưu trú, tiền cọc đặt phòng và thanh toán trực tuyến an toàn chuẩn PCI-DSS
+                </p>
+            </div>
+            <div class="col-md-5">
+                <div class="row g-2 text-center">
+                    <div class="col-6">
+                        <div class="bg-white bg-opacity-10 rounded-4 p-3 border border-light border-opacity-10">
+                            <small class="d-block text-white-50">Cần thanh toán</small>
+                            <div class="fs-5 fw-bold text-warning mt-1">@Model.TongTienCanThanhToan.ToString("N0") ₫</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="bg-white bg-opacity-10 rounded-4 p-3 border border-light border-opacity-10">
+                            <small class="d-block text-white-50">Tiền cọc đang giữ</small>
+                            <div class="fs-5 fw-bold text-white mt-1">@Model.TongTienCocHienCo.ToString("N0") ₫</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thanh hướng dẫn 3 bước thanh toán tối giản -->
+    <div class="bg-white border rounded-4 p-3 mb-4 shadow-sm">
+        <div class="row g-2 text-center small">
+            <div class="col-4">
+                <span class="step-badge me-1">1</span>
+                <span class="fw-semibold text-dark d-none d-sm-inline">Kiểm tra hóa đơn</span>
+                <span class="fw-semibold text-dark d-sm-none">Kiểm tra</span>
+            </div>
+            <div class="col-4">
+                <span class="step-badge me-1">2</span>
+                <span class="fw-semibold text-dark d-none d-sm-inline">Quét QR / Deep-link</span>
+                <span class="fw-semibold text-dark d-sm-none">Quét QR</span>
+            </div>
+            <div class="col-4">
+                <span class="step-badge me-1">3</span>
+                <span class="fw-semibold text-dark d-none d-sm-inline">Tải hóa đơn GTGT</span>
+                <span class="fw-semibold text-dark d-sm-none">Hóa đơn</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông báo kết quả thao tác -->
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBao
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Form tra cứu nhanh theo Mã hóa đơn hoặc Mã đặt phòng -->
+    <form method="get" class="mb-4">
+        <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white border">
+            <span class="input-group-text bg-white border-0 ps-4 text-muted">
+                <i class="bi bi-search"></i>
+            </span>
+            <input asp-for="MaTraCuu" class="form-control border-0 shadow-none py-2" placeholder="Tra cứu bằng Mã hóa đơn hoặc Mã đặt phòng (VD: HD..., DP...)..." />
+            @if (!string.IsNullOrEmpty(Model.MaTraCuu))
+            {
+                <a asp-page="./ThanhToanKhachHang" class="btn btn-light border-0 text-muted px-3 d-flex align-items-center" title="Xóa tìm kiếm">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            }
+            <button type="submit" class="btn btn-dark px-4 fw-semibold">Tra cứu</button>
+        </div>
+    </form>
+
+    <!-- Danh sách Hóa đơn của khách hàng -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-dark mb-0">
+            <i class="bi bi-receipt text-warning me-2"></i>Hóa đơn lưu trú & dịch vụ của bạn
+        </h5>
+        <span class="badge bg-light text-secondary border rounded-pill px-3 py-2">
+            @Model.DanhSachHoaDonKhach.Count hóa đơn
+        </span>
+    </div>
+
+    @if (Model.DanhSachHoaDonKhach.Any())
+    {
+        <div class="d-flex flex-column gap-3">
+            @foreach (var hd in Model.DanhSachHoaDonKhach)
+            {
+                bool isPaid = hd.TrangThaiThanhToan == "Đã thanh toán";
+                decimal tienPhong = hd.TienPhong ?? 0;
+                decimal tienDV = hd.TienDichVu ?? 0;
+                decimal tienNH = hd.TienNhaHang ?? 0;
+                decimal tienGiam = hd.TienGiamGia ?? 0;
+                decimal tienVAT = hd.TienThueVAT ?? 0;
+                decimal tienCoc = hd.TienCocDaTru ?? 0;
+                decimal tongTT = hd.TongTienThanhToan ?? 0;
+
+                <div class="guest-bill-card p-4">
+                    <div class="row align-items-center g-3">
+                        <!-- Thông tin chi tiết hóa đơn -->
+                        <div class="col-md-7">
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                                <span class="fw-bold fs-5 text-dark">@hd.MaHoaDon</span>
+                                @if (!string.IsNullOrEmpty(hd.DAT_PHONGMaDatPhong))
+                                {
+                                    <span class="badge bg-light text-secondary border">Đặt phòng: @hd.DAT_PHONGMaDatPhong</span>
+                                }
+                                @if (isPaid)
+                                {
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">
+                                        <i class="bi bi-check-circle me-1"></i>Đã thanh toán
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning bg-opacity-25 text-dark rounded-pill px-3">
+                                        <i class="bi bi-clock me-1"></i>Chờ thanh toán
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="small text-muted mb-2">
+                                <i class="bi bi-calendar3 me-1"></i>Ngày lập: @(hd.NgayLap?.ToString("dd/MM/yyyy HH:mm") ?? "-")
+                            </div>
+
+                            <!-- Tóm tắt bóc tách chi phí -->
+                            <div class="d-flex flex-wrap gap-3 small text-secondary bg-light p-2 px-3 rounded-3">
+                                <span>Phòng: <strong class="text-dark">@tienPhong.ToString("N0") ₫</strong></span>
+                                <span>Dịch vụ/NH: <strong class="text-dark">@((tienDV + tienNH).ToString("N0")) ₫</strong></span>
+                                <span>VAT: <strong class="text-dark">@tienVAT.ToString("N0") ₫</strong></span>
+                                @if (tienCoc > 0)
+                                {
+                                    <span class="text-primary">Trừ cọc: <strong>-@tienCoc.ToString("N0") ₫</strong></span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Tổng tiền & Nút thao tác -->
+                        <div class="col-md-5 text-md-end">
+                            <small class="text-muted d-block">Tổng tiền cần thanh toán</small>
+                            <div class="fs-3 fw-bold @(isPaid ? "text-success" : "text-dark") mb-3">@tongTT.ToString("N0") ₫</div>
+
+                            <div class="d-flex gap-2 justify-content-md-end flex-wrap">
+                                <button type="button" class="btn btn-outline-dark rounded-pill px-3 fw-semibold"
+                                        data-mahd="@hd.MaHoaDon"
+                                        data-madp="@(hd.DAT_PHONGMaDatPhong ?? "-")"
+                                        data-ngay="@(hd.NgayLap?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
+                                        data-phong="@tienPhong"
+                                        data-dv="@tienDV"
+                                        data-nh="@tienNH"
+                                        data-giam="@tienGiam"
+                                        data-vat="@tienVAT"
+                                        data-coc="@tienCoc"
+                                        data-tong="@tongTT"
+                                        data-tt="@(hd.TrangThaiThanhToan ?? "Chưa thanh toán")"
+                                        onclick="xemHoaDonKhach(this)">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i> Hóa đơn GTGT
+                                </button>
+
+                                @if (!isPaid)
+                                {
+                                    <button type="button" class="btn btn-warning text-dark rounded-pill px-4 fw-bold shadow-sm"
+                                            onclick="moModalThanhToanOnline('@hd.MaHoaDon', '@tongTT')">
+                                        <i class="bi bi-qr-code-scan me-1"></i> Thanh toán ngay
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="guest-bill-card p-5 text-center text-muted">
+            <i class="bi bi-receipt-cutoff fs-1 d-block mb-2 text-warning"></i>
+            <h6 class="fw-bold text-dark">Chưa có hóa đơn nào phù hợp</h6>
+            <p class="small mb-0">Khi phát sinh hóa đơn lưu trú hoặc dịch vụ, thông tin thanh toán của quý khách sẽ hiển thị tại đây.</p>
+        </div>
+    }
+</div>
+
+<!-- Modal 1: Thanh toán trực tuyến bằng QR động & Deep-link -->
+<div class="modal fade" id="modalThanhToanKhach" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white border-0 p-4">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0"><i class="bi bi-shield-lock-fill text-warning me-2"></i>Thanh toán Trực tuyến An toàn</h5>
+                    <small class="text-white-50">Hóa đơn: <strong id="payMaHD" class="text-warning">-</strong></small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="post" asp-page-handler="ThanhToanTrucTuyen">
+                <input type="hidden" asp-for="InputPay.MaHoaDon" id="inpPayMaHD" />
+                <input type="hidden" asp-for="MaTraCuu" />
+
+                <div class="modal-body p-4">
+                    <div class="row g-4 align-items-center">
+                        <!-- Cột trái: Chọn kênh thanh toán trực tuyến -->
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3 bg-light border mb-3 d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-semibold">Số tiền thanh toán:</span>
+                                <span class="fs-4 fw-bold text-danger" id="paySoTienText">0 ₫</span>
+                            </div>
+
+                            <label class="form-label fw-bold small text-secondary mb-2">Chọn phương thức thanh toán</label>
+                            <div class="d-flex flex-column gap-2 mb-3">
+                                <div>
+                                    <input type="radio" asp-for="InputPay.PhuongThucThanhToan" value="Chuyển khoản (VietQR)" id="khVietQR" class="online-pay-radio" checked onchange="capNhatQRKhach()" />
+                                    <label for="khVietQR" class="online-pay-option">
+                                        <i class="bi bi-qr-code-scan fs-4 text-warning"></i>
+                                        <div>
+                                            <div class="fw-bold small text-dark">Chuyển khoản VietQR 24/7</div>
+                                            <small class="text-muted">Quét mã QR hoặc mở app ngân hàng</small>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div>
+                                    <input type="radio" asp-for="InputPay.PhuongThucThanhToan" value="Ví điện tử (MoMo/VNPay)" id="khViDienTu" class="online-pay-radio" onchange="capNhatQRKhach()" />
+                                    <label for="khViDienTu" class="online-pay-option">
+                                        <i class="bi bi-phone fs-4 text-primary"></i>
+                                        <div>
+                                            <div class="fw-bold small text-dark">Ví điện tử (VNPay / MoMo)</div>
+                                            <small class="text-muted">Xác nhận nhanh qua cổng thanh toán</small>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div>
+                                    <input type="radio" asp-for="InputPay.PhuongThucThanhToan" value="Thẻ quốc tế / ATM" id="khTheQuocTe" class="online-pay-radio" onchange="capNhatQRKhach()" />
+                                    <label for="khTheQuocTe" class="online-pay-option">
+                                        <i class="bi bi-credit-card fs-4 text-success"></i>
+                                        <div>
+                                            <div class="fw-bold small text-dark">Thẻ Visa / Mastercard / ATM</div>
+                                            <small class="text-muted">Kết nối cổng thanh toán chuẩn PCI-DSS</small>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="small text-muted">
+                                <i class="bi bi-lock-fill text-success me-1"></i>
+                                Không lưu thông tin thẻ trên máy chủ khách sạn — chỉ lưu mã giao dịch tham chiếu từ cổng thanh toán.
+                            </div>
+                        </div>
+
+                        <!-- Cột phải: Mã QR động & Deep-link mở ứng dụng ngân hàng -->
+                        <div class="col-md-6 text-center">
+                            <div class="p-3 rounded-4 bg-light border">
+                                <span class="badge bg-warning text-dark rounded-pill mb-2 px-3">Mã QR Động Tự Động</span>
+                                <div class="my-2">
+                                    <img id="imgQRKhach" src="" alt="Mã VietQR thanh toán" class="img-fluid rounded-3 border bg-white p-2 shadow-sm" style="max-width: 210px;" />
+                                </div>
+                                <div class="small text-muted mb-2">
+                                    Nội dung CK: <code class="bg-white px-2 py-1 rounded border text-dark fw-bold" id="payNoiDungCK">-</code>
+                                </div>
+                                <a id="lnkDeepLinkKhach" href="#" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> Mở ứng dụng Ngân hàng (Deep-link)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-0 px-4 py-3">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Để sau</button>
+                    <button type="submit" class="btn btn-warning text-dark rounded-pill px-5 fw-bold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> Xác nhận Đã Thanh Toán
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Xem & Tải Hóa đơn điện tử GTGT -->
+<div class="modal fade" id="modalHoaDonKhach" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-body p-4" id="vungInHoaDonKhach">
+                <div class="text-center border-bottom pb-3 mb-3">
+                    <h5 class="fw-bold text-dark mb-0">GRAND HORIZON HOTEL</h5>
+                    <small class="text-muted">HÓA ĐƠN ĐIỆN TỬ GIÁ TRỊ GIA TĂNG (GTGT)</small>
+                    <div class="mt-2"><span class="badge bg-dark px-3 py-1" id="khInMaHD">-</span></div>
+                </div>
+                <div class="small mb-3">
+                    <div class="d-flex justify-content-between py-1"><span class="text-muted">Khách hàng:</span><strong>@(Model.KhachHangHienTai?.HoTen ?? User.Identity?.Name ?? "Quý khách")</strong></div>
+                    <div class="d-flex justify-content-between py-1"><span class="text-muted">Mã Đặt phòng:</span><strong id="khInMaDP">-</strong></div>
+                    <div class="d-flex justify-content-between py-1"><span class="text-muted">Ngày lập:</span><strong id="khInNgay">-</strong></div>
+                </div>
+                <table class="table table-sm table-bordered small mb-3">
+                    <thead class="table-light">
+                        <tr><th>Khoản mục</th><th class="text-end">Số tiền</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Tiền phòng lưu trú</td><td class="text-end" id="khInPhong">0 ₫</td></tr>
+                        <tr><td>Dịch vụ phòng & Minibar</td><td class="text-end" id="khInDV">0 ₫</td></tr>
+                        <tr><td>Dịch vụ Nhà hàng</td><td class="text-end" id="khInNH">0 ₫</td></tr>
+                        <tr class="text-danger"><td>Giảm giá / Ưu đãi</td><td class="text-end" id="khInGiam">-0 ₫</td></tr>
+                        <tr><td>Thuế GTGT (VAT)</td><td class="text-end" id="khInVAT">+0 ₫</td></tr>
+                        <tr class="text-primary"><td>Tiền cọc đã khấu trừ</td><td class="text-end" id="khInCoc">-0 ₫</td></tr>
+                    </tbody>
+                </table>
+                <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3">
+                    <span class="fw-bold text-dark">TỔNG THANH TOÁN:</span>
+                    <span class="fs-5 fw-bold text-success" id="khInTong">0 ₫</span>
+                </div>
+                <div class="text-end small text-muted mt-2">Trạng thái: <strong id="khInTT">-</strong></div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-dark rounded-pill px-4 fw-bold" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Tải PDF / In Hóa đơn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // @@ts-nocheck
+        var currentPayMaHD = '';
+        var currentPayAmount = 0;
+
+        function fmtVnd(val) {
+            return parseFloat(val || '0').toLocaleString('vi-VN') + ' ₫';
+        }
+
+        // Mở Modal thanh toán trực tuyến và sinh mã QR động + Deep-link
+        function moModalThanhToanOnline(maHD, soTien) {
+            currentPayMaHD = maHD;
+            currentPayAmount = Math.max(0, Math.round(parseFloat(soTien || '0')));
+
+            document.getElementById('inpPayMaHD').value = maHD;
+            document.getElementById('payMaHD').innerText = maHD;
+            document.getElementById('paySoTienText').innerText = currentPayAmount.toLocaleString('vi-VN') + ' ₫';
+            document.getElementById('payNoiDungCK').innerText = 'TT ' + maHD;
+
+            capNhatQRKhach();
+            new window['bootstrap'].Modal(document.getElementById('modalThanhToanKhach')).show();
+        }
+
+        function capNhatQRKhach() {
+            if (!currentPayMaHD) return;
+            var info = encodeURIComponent('TT ' + currentPayMaHD);
+            document.getElementById('imgQRKhach').src =
+                'https://img.vietqr.io/image/MB-0000123456789-compact2.png?amount=' + currentPayAmount + '&addInfo=' + info + '&accountName=GRAND%20HORIZON%20HOTEL';
+            document.getElementById('lnkDeepLinkKhach').href =
+                'https://dl.vietqr.io/pay?app=mb&ba=0000123456789@mb&am=' + currentPayAmount + '&tn=' + info;
+        }
+
+        // Đổ chi tiết bóc tách hóa đơn lên Modal Hóa đơn GTGT
+        function xemHoaDonKhach(btn) {
+            document.getElementById('khInMaHD').innerText = btn.getAttribute('data-mahd');
+            document.getElementById('khInMaDP').innerText = btn.getAttribute('data-madp');
+            document.getElementById('khInNgay').innerText = btn.getAttribute('data-ngay');
+            document.getElementById('khInPhong').innerText = fmtVnd(btn.getAttribute('data-phong'));
+            document.getElementById('khInDV').innerText = fmtVnd(btn.getAttribute('data-dv'));
+            document.getElementById('khInNH').innerText = fmtVnd(btn.getAttribute('data-nh'));
+            document.getElementById('khInGiam').innerText = '-' + fmtVnd(btn.getAttribute('data-giam'));
+            document.getElementById('khInVAT').innerText = '+' + fmtVnd(btn.getAttribute('data-vat'));
+            document.getElementById('khInCoc').innerText = '-' + fmtVnd(btn.getAttribute('data-coc'));
+            document.getElementById('khInTong').innerText = fmtVnd(btn.getAttribute('data-tong'));
+            document.getElementById('khInTT').innerText = btn.getAttribute('data-tt');
+            new window['bootstrap'].Modal(document.getElementById('modalHoaDonKhach')).show();
+        }
+    </script>
+}
