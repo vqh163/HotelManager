@@ -114,6 +114,8 @@ builder.Services.AddAuthorizationBuilder()
         policy.RequireRole(HangSoHeThong.VaiTroKhachHang))
     .AddPolicy(HangSoHeThong.PolicyThanhToan, policy =>
         policy.RequireRole(HangSoHeThong.VaiTroKeToan, HangSoHeThong.VaiTroLeTan, HangSoHeThong.VaiTroQuanLy, HangSoHeThong.VaiTroGiamDoc))
+    .AddPolicy(HangSoHeThong.PolicyBaoCao, policy =>
+        policy.RequireRole(HangSoHeThong.VaiTroGiamDoc, HangSoHeThong.VaiTroQuanLy, HangSoHeThong.VaiTroKeToan, HangSoHeThong.VaiTroSales))
     .AddPolicy(HangSoHeThong.PolicyXemAnhKyc, policy =>
         policy.RequireRole(HangSoHeThong.VaiTroLeTan, HangSoHeThong.VaiTroQuanLy, HangSoHeThong.VaiTroGiamDoc, HangSoHeThong.VaiTroQuanTri));
 
@@ -134,6 +136,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage("/QuanLyNhaHang/SuaBan", HangSoHeThong.PolicyQuanLyCap);
     options.Conventions.AuthorizeFolder("/QuanLyThanhToanVaHoaDon", HangSoHeThong.PolicyThanhToan);
     options.Conventions.AuthorizePage("/QuanLyThanhToanVaHoaDon/ThanhToanKhachHang");
+    options.Conventions.AuthorizeFolder("/QuanLyBaoCaoThongKe", HangSoHeThong.PolicyBaoCao);
     options.Conventions.AuthorizeFolder("/QuanLyLichCaNhan", HangSoHeThong.PolicyNoiBo);
     options.Conventions.AuthorizeFolder("/QuanLyHoSo", HangSoHeThong.PolicyKhachHang);
     options.Conventions.AuthorizeFolder("/QuanLyTienSanh", HangSoHeThong.PolicyTienSanh);

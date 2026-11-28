@@ -32,12 +32,11 @@ namespace HotelManager.Data
         public DbSet<HOA_DON> HOA_DON { get; set; } = default!;
         public DbSet<THANH_TOAN> THANH_TOAN { get; set; } = default!;
         public DbSet<NHAT_KY_HE_THONG> NHAT_KY_HE_THONG { get; set; } = default!;
-
-        // 3 bảng mới thay thế lưu trữ tệp phẳng và bộ nhớ RAM tĩnh
+        // Các bảng mở rộng nghiệp vụ & Báo cáo thống kê
         public DbSet<DON_XIN_NGHI> DON_XIN_NGHI { get; set; } = default!;
         public DbSet<PHIEU_NHAP_XUAT_KHO> PHIEU_NHAP_XUAT_KHO { get; set; } = default!;
         public DbSet<BIEN_BAN_KIEM_KE> BIEN_BAN_KIEM_KE { get; set; } = default!;
-
+        public DbSet<BAO_CAO_DOANH_THU> BAO_CAO_DOANH_THU { get; set; } = default!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

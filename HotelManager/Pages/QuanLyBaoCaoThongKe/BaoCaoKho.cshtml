@@ -1,0 +1,688 @@
+﻿@page
+@model HotelManager.Pages.QuanLyBaoCaoThongKe.BaoCaoKhoModel
+@{
+    ViewData["Title"] = "Báo cáo tồn kho vật tư";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --pms-cyan: #189ab4;
+        --pms-cyan-hover: #127e94;
+        --pms-bg-soft: #f5f7f9;
+        --pms-border: #e5e9ed;
+        --pms-text: #2c3e50;
+    }
+
+    body {
+        background-color: #ffffff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--pms-text);
+        font-size: 0.85rem;
+    }
+
+    .report-page {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 135px);
+        min-height: 580px;
+        padding: 12px 16px 0 16px;
+    }
+
+    .report-top-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .report-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+        color: #1f2937;
+    }
+
+    .icon-action-btn {
+        border: none;
+        background: transparent;
+        color: #5a6268;
+        font-size: 1.2rem;
+        padding: 4px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: 0.15s;
+        text-decoration: none;
+    }
+
+        .icon-action-btn:hover {
+            background-color: #f1f3f5;
+            color: var(--pms-cyan);
+        }
+
+    /* --- 4 THẺ KPI --- */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .kpi-label {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-bottom: 2px;
+    }
+
+    .kpi-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+    }
+
+    .kpi-cyan {
+        background: #e6f6f9;
+        color: var(--pms-cyan);
+    }
+
+    .kpi-green {
+        background: #e6f7ee;
+        color: #157347;
+    }
+
+    .kpi-amber {
+        background: #fff4e5;
+        color: #b45309;
+    }
+
+    .kpi-red {
+        background: #fdecec;
+        color: #dc2626;
+    }
+
+    /* --- BỘ LỌC --- */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--pms-border);
+    }
+
+    .filter-controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .filter-pill-select, .filter-pill-input {
+        background-color: var(--pms-bg-soft);
+        border: 1px solid var(--pms-border);
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 0.83rem;
+        color: #334155;
+    }
+
+    .filter-pill-select {
+        padding-right: 28px;
+        cursor: pointer;
+        width: auto;
+    }
+
+        .filter-pill-select:focus, .filter-pill-input:focus {
+            background-color: #ffffff;
+            border-color: var(--pms-cyan);
+            box-shadow: none;
+            outline: none;
+        }
+
+    .btn-search-cyan {
+        background-color: var(--pms-cyan);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: 0.15s;
+    }
+
+        .btn-search-cyan:hover {
+            background-color: var(--pms-cyan-hover);
+            color: #ffffff;
+        }
+
+    .sub-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .group-select-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #495057;
+        font-size: 0.83rem;
+    }
+
+    .btn-fullscreen {
+        background-color: var(--pms-bg-soft);
+        border: 1px solid var(--pms-border);
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 0.83rem;
+        font-weight: 500;
+        color: #334155;
+        cursor: pointer;
+        transition: 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-fullscreen:hover {
+            background-color: #e2e8f0;
+            color: var(--pms-cyan);
+        }
+
+    /* --- BẢNG TỒN KHO --- */
+    .report-table-wrapper {
+        flex: 1;
+        overflow: auto;
+        border-top: 1px solid var(--pms-border);
+        border-bottom: 1px solid var(--pms-border);
+        position: relative;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 0;
+    }
+
+        .report-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 9px 10px;
+            border-bottom: 1px solid #dfe4ea;
+            white-space: nowrap;
+        }
+
+        .report-table tbody td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #374151;
+            font-size: 0.82rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .report-table tbody tr.data-row:hover {
+            background-color: #f8fbff;
+        }
+
+    .group-header-row {
+        background-color: #f4f6f8;
+        cursor: pointer;
+        user-select: none;
+    }
+
+        .group-header-row td {
+            font-weight: 600;
+            color: #334155;
+            padding: 7px 10px !important;
+            border-bottom: 1px solid #e5e9ed;
+        }
+
+    .item-code {
+        color: var(--pms-cyan);
+        font-weight: 600;
+    }
+
+    .num-col {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-ok {
+        background-color: #e6f7ee;
+        color: #157347;
+    }
+
+    .status-low {
+        background-color: #fff4e5;
+        color: #b45309;
+    }
+
+    .status-out {
+        background-color: #fdecec;
+        color: #dc2626;
+    }
+
+    .report-table tfoot td {
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        background-color: #ffffff;
+        border-top: 2px solid #cbd5e1;
+        padding: 10px;
+        font-weight: 700;
+        color: #111827;
+        font-size: 0.84rem;
+        white-space: nowrap;
+    }
+
+    /* --- PHÓNG TO TOÀN MÀN HÌNH --- */
+    .report-page.fullscreen-mode {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        background-color: #ffffff;
+        height: 100vh !important;
+        width: 100vw !important;
+        padding: 14px 20px;
+    }
+
+        .report-page.fullscreen-mode .filter-bar,
+        .report-page.fullscreen-mode .kpi-grid {
+            display: none !important;
+        }
+
+    @@media (max-width: 992px) {
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media print {
+        header, footer, .no-print {
+            display: none !important;
+        }
+
+        .report-page {
+            height: auto;
+            padding: 0;
+        }
+
+        .report-table-wrapper {
+            overflow: visible;
+        }
+    }
+
+    .quick-nav-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .quick-nav-pill {
+        background: #ffffff;
+        border: 1px solid var(--pms-border, #e5e9ed);
+        border-radius: 8px;
+        padding: 6px 13px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #334155;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.15s;
+    }
+
+        .quick-nav-pill:hover {
+            border-color: var(--pms-cyan, #189ab4);
+            color: var(--pms-cyan, #189ab4);
+            background: #f0f9fb;
+        }
+
+        .quick-nav-pill.active {
+            background: var(--pms-cyan, #189ab4);
+            border-color: var(--pms-cyan, #189ab4);
+            color: #ffffff;
+        }
+
+    .fullscreen-mode .quick-nav-strip {
+        display: none !important;
+    }
+</style>
+
+<div class="report-page" id="reportPageContainer">
+    <form method="get" id="khoFilterForm">
+        <!-- HÀNG 1: TIÊU ĐỀ & EXPORT / IN -->
+        <div class="report-top-bar">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <h1 class="report-title">Báo cáo tồn kho vật tư</h1>
+                <span class="text-muted small">Cập nhật lúc: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-1 no-print">
+                <a class="icon-action-btn"
+                   title="Xuất file Excel (CSV)"
+                   asp-page-handler="ExportCsv"
+                   asp-route-DanhMucLoc="@Model.DanhMucLoc"
+                   asp-route-TrangThaiLoc="@Model.TrangThaiLoc"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   asp-route-SortBy="@Model.SortBy">
+                    <i class="bi bi-cloud-arrow-down-fill"></i>
+                </a>
+                <button type="button" class="icon-action-btn" title="In báo cáo" onclick="window.print()">
+                    <i class="bi bi-printer-fill"></i>
+                </button>
+            </div>
+        </div>
+        <div class="quick-nav-strip no-print">
+            <a class="quick-nav-pill" asp-page="./DashboardBaoCao"><i class="bi bi-speedometer2"></i>Dashboard Tổng quan</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoDoanhThu"><i class="bi bi-receipt-cutoff"></i>Doanh thu chi tiết</a>
+            <a class="quick-nav-pill" asp-page="./DuBaoCongSuat"><i class="bi bi-graph-up-arrow"></i>Dự báo công suất &amp; Giá động</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoSalesB2B"><i class="bi bi-building-check"></i>Sản lượng B2B &amp; Hoa hồng</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoKho"><i class="bi bi-box-seam"></i>Báo cáo Kho vật tư</a>
+            <a class="quick-nav-pill active" asp-page="./KiemToanDem"><i class="bi bi-moon-stars-fill"></i>Kiểm toán đêm &amp; Kế toán</a>
+        </div>
+        <!-- 4 THẺ KPI TỔNG QUAN -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Tổng mặt hàng</div>
+                    <div class="kpi-value">@Model.TongMatHang.ToString("N0")</div>
+                </div>
+                <div class="kpi-icon kpi-cyan"><i class="bi bi-box-seam-fill"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Tổng giá trị tồn kho</div>
+                    <div class="kpi-value text-success">@Model.TongGiaTriTon.ToString("N0") ₫</div>
+                </div>
+                <div class="kpi-icon kpi-green"><i class="bi bi-cash-stack"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Vật tư sắp hết (≤ định mức)</div>
+                    <div class="kpi-value text-warning">@Model.SoMatHangSapHet.ToString("N0")</div>
+                </div>
+                <div class="kpi-icon kpi-amber"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Vật tư đã hết hàng</div>
+                    <div class="kpi-value text-danger">@Model.SoMatHangHetHang.ToString("N0")</div>
+                </div>
+                <div class="kpi-icon kpi-red"><i class="bi bi-x-octagon-fill"></i></div>
+            </div>
+        </div>
+
+        <!-- HÀNG 2: BỘ LỌC -->
+        <div class="filter-bar no-print">
+            <div class="filter-controls">
+                <input type="text" class="filter-pill-input" asp-for="TuKhoa" placeholder="Tìm mã hoặc tên vật tư..." style="min-width: 230px;" />
+
+                <select class="form-select filter-pill-select" asp-for="DanhMucLoc">
+                    <option value="">Tất cả danh mục</option>
+                    @foreach (var dm in Model.DanhSachDanhMuc)
+                    {
+                        <option value="@dm">@dm</option>
+                    }
+                </select>
+
+                <select class="form-select filter-pill-select" asp-for="TrangThaiLoc">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="Đủ hàng">Đủ hàng</option>
+                    <option value="Sắp hết">Sắp hết</option>
+                    <option value="Hết hàng">Hết hàng</option>
+                </select>
+
+                <select class="form-select filter-pill-select" asp-for="SortBy" onchange="submitFilter()">
+                    <option value="ton_asc">Sắp xếp: Tồn kho ít nhất</option>
+                    <option value="ton_desc">Sắp xếp: Tồn kho nhiều nhất</option>
+                    <option value="giatri_desc">Sắp xếp: Giá trị tồn cao nhất</option>
+                    <option value="ten_asc">Sắp xếp: Tên A - Z</option>
+                </select>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a class="btn btn-light btn-sm border px-3 d-flex align-items-center" asp-page="./BaoCaoKho">Đặt lại</a>
+                <button type="submit" class="btn btn-search-cyan">Tìm kiếm</button>
+            </div>
+        </div>
+
+        <!-- HÀNG 3: NHÓM THEO, LỊCH SỬ KIỂM KÊ & PHÓNG TO -->
+        <div class="sub-toolbar no-print">
+            <div class="group-select-wrapper">
+                <span>Nhóm theo</span>
+                <select class="form-select filter-pill-select" asp-for="NhomTheo" onchange="submitFilter()">
+                    <option value="DanhMuc">Danh mục vật tư</option>
+                    <option value="TrangThai">Trạng thái tồn kho</option>
+                    <option value="KhongNhom">Không nhóm</option>
+                </select>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                @if (Model.LichSuKiemKe.Any())
+                {
+                    <button type="button" class="btn-fullscreen" data-bs-toggle="modal" data-bs-target="#modalKiemKe">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Lịch sử kiểm kê (@Model.LichSuKiemKe.Count)</span>
+                    </button>
+                }
+
+                <button type="button" class="btn-fullscreen" id="btnFullscreen" onclick="toggleFullscreen()">
+                    <i class="bi bi-arrows-fullscreen" id="iconFullscreen"></i>
+                    <span id="textFullscreen">Phóng to</span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- BẢNG DỮ LIỆU TỒN KHO -->
+    <div class="report-table-wrapper">
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Mã vật tư</th>
+                    <th>Tên vật tư</th>
+                    <th>Danh mục</th>
+                    <th>Đơn vị tính</th>
+                    <th class="num-col">Số lượng tồn</th>
+                    <th class="num-col">Định mức tối thiểu</th>
+                    <th class="num-col">Đơn giá nhập (VNĐ)</th>
+                    <th class="num-col">Thành tiền tồn (VNĐ)</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.DanhSachBaoCao.Any())
+                {
+                    int groupIdx = 0;
+                    foreach (var group in Model.DuLieuTheoNhom)
+                    {
+                        groupIdx++;
+                        if (Model.NhomTheo != "KhongNhom")
+                        {
+                            string groupLabel = Model.NhomTheo == "TrangThai" ? "Trạng thái" : "Danh mục";
+                            <tr class="group-header-row" onclick="toggleGroup(@groupIdx)">
+                                <td colspan="9">
+                                    <i class="bi bi-caret-down-fill me-1 small text-muted" id="icon-group-@groupIdx"></i>
+                                    @groupLabel: @group.Key (@group.Count() mặt hàng — Giá trị: @group.Sum(x => x.ThanhTienTon).ToString("N0") ₫)
+                                </td>
+                            </tr>
+                        }
+
+                        foreach (var item in group)
+                        {
+                            string badgeClass = item.TrangThaiTon == "Hết hàng"
+                                ? "status-out"
+                                : item.TrangThaiTon == "Sắp hết"
+                                    ? "status-low"
+                                    : "status-ok";
+
+                            <tr class="data-row group-rows-@groupIdx">
+                                <td><span class="item-code">#@item.MaVatTu</span></td>
+                                <td class="fw-semibold">@item.TenVatTu</td>
+                                <td>@item.DanhMuc</td>
+                                <td>@item.DonViTinh</td>
+                                <td class="num-col fw-semibold @(item.SoLuongTon <= 0 ? "text-danger" : item.SoLuongTon <= item.SoLuongTonToiThieu ? "text-warning" : "")">
+                                    @item.SoLuongTon.ToString("N0")
+                                </td>
+                                <td class="num-col text-muted">@item.SoLuongTonToiThieu.ToString("N0")</td>
+                                <td class="num-col">@item.DonGiaNhap.ToString("N0")</td>
+                                <td class="num-col fw-semibold text-success">@item.ThanhTienTon.ToString("N0")</td>
+                                <td><span class="status-badge @badgeClass">@item.TrangThaiTon</span></td>
+                            </tr>
+                        }
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            Không có dữ liệu vật tư nào phù hợp với điều kiện lọc.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="text-uppercase">Tổng cộng (@Model.TongMatHang mặt hàng)</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="num-col">@Model.TongSoLuongTon.ToString("N0")</td>
+                    <td></td>
+                    <td></td>
+                    <td class="num-col text-success">@Model.TongGiaTriTon.ToString("N0")</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL XEM LỊCH SỬ KIỂM KÊ (ĐỌC TỪ lichsu_kiemke_meta.txt) -->
+<div class="modal fade" id="modalKiemKe" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-clock-history text-info me-2"></i>Nhật ký kiểm kê kho</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                @if (Model.LichSuKiemKe.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var line in Model.LichSuKiemKe)
+                        {
+                            <li class="list-group-item small">@line</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted text-center my-4">Chưa có bản ghi kiểm kê nào.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function submitFilter() {
+            document.getElementById('khoFilterForm').submit();
+        }
+
+        function toggleGroup(idx) {
+            const rows = document.querySelectorAll('.group-rows-' + idx);
+            const icon = document.getElementById('icon-group-' + idx);
+            let isHidden = false;
+
+            rows.forEach(r => {
+                if (r.style.display === 'none') {
+                    r.style.display = '';
+                    isHidden = false;
+                } else {
+                    r.style.display = 'none';
+                    isHidden = true;
+                }
+            });
+
+            if (icon) {
+                icon.className = isHidden
+                    ? 'bi bi-caret-right-fill me-1 small text-muted'
+                    : 'bi bi-caret-down-fill me-1 small text-muted';
+            }
+        }
+
+        function toggleFullscreen() {
+            const page = document.getElementById('reportPageContainer');
+            const icon = document.getElementById('iconFullscreen');
+            const text = document.getElementById('textFullscreen');
+            if (!page) return;
+
+            const isFull = page.classList.toggle('fullscreen-mode');
+            if (isFull) {
+                icon.className = 'bi bi-fullscreen-exit';
+                text.innerText = 'Thu nhỏ';
+            } else {
+                icon.className = 'bi bi-arrows-fullscreen';
+                text.innerText = 'Phóng to';
+            }
+        }
+
+        document.addEventListener('keydown', function (e) {
+            const page = document.getElementById('reportPageContainer');
+            if (e.key === 'Escape' && page && page.classList.contains('fullscreen-mode')) {
+                toggleFullscreen();
+            }
+        });
+    </script>
+}

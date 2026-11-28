@@ -45,6 +45,7 @@ namespace HotelManager.Helpers
         public const string PolicyBuongPhong = "BuongPhongPolicy";
         public const string PolicyKhachHang = "KhachHangPolicy";
         public const string PolicyThanhToan = "ThanhToanPolicy";
+        public const string PolicyBaoCao = "BaoCaoPolicy";
         public const string PolicyXemAnhKyc = "XemAnhKycPolicy";
 
         // =========================================================================
