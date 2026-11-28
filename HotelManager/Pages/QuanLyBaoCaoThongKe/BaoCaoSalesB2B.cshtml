@@ -1,0 +1,782 @@
+﻿@page
+@model HotelManager.Pages.QuanLyBaoCaoThongKe.BaoCaoSalesB2BModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Báo cáo sản lượng B2B & Hoa hồng đối tác";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --pms-cyan: #189ab4;
+        --pms-cyan-hover: #127e94;
+        --pms-bg-soft: #f5f7f9;
+        --pms-border: #e5e9ed;
+        --pms-text: #2c3e50;
+    }
+
+    body {
+        background-color: #ffffff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--pms-text);
+        font-size: 0.85rem;
+    }
+
+    .report-page {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 135px);
+        min-height: 580px;
+        padding: 12px 16px 0 16px;
+    }
+
+    .report-top-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .report-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+        color: #1f2937;
+    }
+
+    .icon-action-btn {
+        border: none;
+        background: transparent;
+        color: #5a6268;
+        font-size: 1.2rem;
+        padding: 4px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: 0.15s;
+        text-decoration: none;
+    }
+
+        .icon-action-btn:hover {
+            background-color: #f1f3f5;
+            color: var(--pms-cyan);
+        }
+
+    /* --- 4 THẺ KPI --- */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .kpi-label {
+        font-size: 0.77rem;
+        color: #64748b;
+        margin-bottom: 2px;
+    }
+
+    .kpi-value {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1e293b;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-sub {
+        font-size: 0.73rem;
+        color: #64748b;
+        margin-top: 2px;
+    }
+
+    .kpi-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+    }
+
+    .kpi-cyan {
+        background: #e6f6f9;
+        color: var(--pms-cyan);
+    }
+
+    .kpi-blue {
+        background: #e8f0fe;
+        color: #2563eb;
+    }
+
+    .kpi-green {
+        background: #e6f7ee;
+        color: #157347;
+    }
+
+    .kpi-amber {
+        background: #fff4e5;
+        color: #b45309;
+    }
+
+    /* --- BỘ LỌC --- */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--pms-border);
+    }
+
+    .filter-controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .date-range-box {
+        display: inline-flex;
+        align-items: center;
+        background-color: var(--pms-bg-soft);
+        border: 1px solid var(--pms-border);
+        border-radius: 6px;
+        padding: 3px 8px;
+        gap: 6px;
+    }
+
+        .date-range-box input[type="date"] {
+            border: none;
+            background: transparent;
+            font-size: 0.82rem;
+            color: #334155;
+            outline: none;
+            padding: 3px 0;
+        }
+
+    .filter-pill-select, .filter-pill-input {
+        background-color: var(--pms-bg-soft);
+        border: 1px solid var(--pms-border);
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-size: 0.82rem;
+        color: #334155;
+    }
+
+    .filter-pill-select {
+        padding-right: 26px;
+        cursor: pointer;
+        width: auto;
+    }
+
+        .filter-pill-select:focus, .filter-pill-input:focus {
+            background-color: #ffffff;
+            border-color: var(--pms-cyan);
+            box-shadow: none;
+            outline: none;
+        }
+
+    .btn-search-cyan {
+        background-color: var(--pms-cyan);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: 0.15s;
+    }
+
+        .btn-search-cyan:hover {
+            background-color: var(--pms-cyan-hover);
+            color: #ffffff;
+        }
+
+    .sub-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .btn-fullscreen {
+        background-color: var(--pms-bg-soft);
+        border: 1px solid var(--pms-border);
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: #334155;
+        cursor: pointer;
+        transition: 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-fullscreen:hover {
+            background-color: #e2e8f0;
+            color: var(--pms-cyan);
+        }
+
+    /* --- BẢNG SẢN LƯỢNG B2B --- */
+    .report-table-wrapper {
+        flex: 1;
+        overflow: auto;
+        border-top: 1px solid var(--pms-border);
+        border-bottom: 1px solid var(--pms-border);
+        position: relative;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 0;
+    }
+
+        .report-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.77rem;
+            line-height: 1.25;
+            padding: 8px 7px;
+            border-bottom: 1px solid #dfe4ea;
+            vertical-align: middle;
+            white-space: normal;
+        }
+
+        .report-table tbody td {
+            padding: 8px 7px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #374151;
+            font-size: 0.8rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .report-table tbody tr.data-row:hover {
+            background-color: #f8fbff;
+        }
+
+    .group-header-row {
+        background-color: #f4f6f8;
+        cursor: pointer;
+        user-select: none;
+    }
+
+        .group-header-row td {
+            font-weight: 600;
+            color: #334155;
+            padding: 7px 10px !important;
+            border-bottom: 1px solid #e5e9ed;
+        }
+
+    .partner-code {
+        color: var(--pms-cyan);
+        font-weight: 600;
+    }
+
+    .num-col {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .rate-badge {
+        background-color: #fff4e5;
+        color: #b45309;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 600;
+    }
+
+    .debt-over-badge {
+        background-color: #fdecec;
+        color: #dc2626;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-left: 4px;
+    }
+
+    .report-table tfoot td {
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        background-color: #ffffff;
+        border-top: 2px solid #cbd5e1;
+        padding: 9px 7px;
+        font-weight: 700;
+        color: #111827;
+        font-size: 0.81rem;
+        white-space: nowrap;
+    }
+
+    /* --- PHÓNG TO TOÀN MÀN HÌNH --- */
+    .report-page.fullscreen-mode {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        background-color: #ffffff;
+        height: 100vh !important;
+        width: 100vw !important;
+        padding: 14px 20px;
+    }
+
+        .report-page.fullscreen-mode .filter-bar,
+        .report-page.fullscreen-mode .kpi-grid {
+            display: none !important;
+        }
+
+    @@media (max-width: 992px) {
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media print {
+        header, footer, .no-print {
+            display: none !important;
+        }
+
+        .report-page {
+            height: auto;
+            padding: 0;
+        }
+
+        .report-table-wrapper {
+            overflow: visible;
+        }
+    }
+
+    .quick-nav-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .quick-nav-pill {
+        background: #ffffff;
+        border: 1px solid var(--pms-border, #e5e9ed);
+        border-radius: 8px;
+        padding: 6px 13px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #334155;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.15s;
+    }
+
+        .quick-nav-pill:hover {
+            border-color: var(--pms-cyan, #189ab4);
+            color: var(--pms-cyan, #189ab4);
+            background: #f0f9fb;
+        }
+
+        .quick-nav-pill.active {
+            background: var(--pms-cyan, #189ab4);
+            border-color: var(--pms-cyan, #189ab4);
+            color: #ffffff;
+        }
+
+    .fullscreen-mode .quick-nav-strip {
+        display: none !important;
+    }
+</style>
+
+<div class="report-page" id="reportPageContainer">
+    <form method="get" id="b2bFilterForm">
+        <!-- HÀNG 1: TIÊU ĐỀ & EXPORT / IN -->
+        <div class="report-top-bar">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <h1 class="report-title">Báo cáo sản lượng B2B &amp; Hoa hồng đối tác</h1>
+                <div class="form-check mb-0 no-print">
+                    <input class="form-check-input" type="checkbox" asp-for="ChiHienCoPhatSinh" id="chkCoPhatSinh" onchange="submitFilter()" />
+                    <label class="form-check-label small fw-medium" for="chkCoPhatSinh">Chỉ hiện đối tác có booking trong kỳ</label>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-1 no-print">
+                <a class="icon-action-btn"
+                   title="Xuất file Excel (CSV)"
+                   asp-page-handler="ExportCsv"
+                   asp-route-TuNgay="@Model.TuNgay?.ToString("yyyy-MM-dd")"
+                   asp-route-DenNgay="@Model.DenNgay?.ToString("yyyy-MM-dd")"
+                   asp-route-LoaiDoiTacLoc="@Model.LoaiDoiTacLoc"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   asp-route-ChiHienCoPhatSinh="@Model.ChiHienCoPhatSinh"
+                   asp-route-SortBy="@Model.SortBy">
+                    <i class="bi bi-cloud-arrow-down-fill"></i>
+                </a>
+                <button type="button" class="icon-action-btn" title="In báo cáo" onclick="window.print()">
+                    <i class="bi bi-printer-fill"></i>
+                </button>
+            </div>
+        </div>
+        <div class="quick-nav-strip no-print">
+            <a class="quick-nav-pill" asp-page="./DashboardBaoCao"><i class="bi bi-speedometer2"></i>Dashboard Tổng quan</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoDoanhThu"><i class="bi bi-receipt-cutoff"></i>Doanh thu chi tiết</a>
+            <a class="quick-nav-pill" asp-page="./DuBaoCongSuat"><i class="bi bi-graph-up-arrow"></i>Dự báo công suất &amp; Giá động</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoSalesB2B"><i class="bi bi-building-check"></i>Sản lượng B2B &amp; Hoa hồng</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoKho"><i class="bi bi-box-seam"></i>Báo cáo Kho vật tư</a>
+            <a class="quick-nav-pill active" asp-page="./KiemToanDem"><i class="bi bi-moon-stars-fill"></i>Kiểm toán đêm &amp; Kế toán</a>
+        </div>
+        <!-- 4 THẺ KPI TỔNG QUAN -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Đối tác B2B</div>
+                    <div class="kpi-value">@Model.TongSoDoiTac.ToString("N0")</div>
+                    <div class="kpi-sub">@Model.SoDoiTacCoBooking đối tác có phát sinh</div>
+                </div>
+                <div class="kpi-icon kpi-cyan"><i class="bi bi-building-fill-check"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Sản lượng B2B</div>
+                    <div class="kpi-value text-primary">@Model.TongDemPhong.ToString("N0") đêm</div>
+                    <div class="kpi-sub">@Model.TongBooking booking • @Model.TongKhach lượt khách</div>
+                </div>
+                <div class="kpi-icon kpi-blue"><i class="bi bi-calendar2-week-fill"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Tổng doanh thu B2B</div>
+                    <div class="kpi-value text-success">@Model.TongDoanhThuB2B.ToString("N0") ₫</div>
+                    <div class="kpi-sub">Thực nhận: @Model.TongDoanhThuThucNhan.ToString("N0") ₫</div>
+                </div>
+                <div class="kpi-icon kpi-green"><i class="bi bi-graph-up-arrow"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Tổng hoa hồng đối tác</div>
+                    <div class="kpi-value text-warning">@Model.TongTienHoaHong.ToString("N0") ₫</div>
+                    <div class="kpi-sub">Tổng công nợ: @Model.TongCongNo.ToString("N0") ₫</div>
+                </div>
+                <div class="kpi-icon kpi-amber"><i class="bi bi-percent"></i></div>
+            </div>
+        </div>
+
+        <!-- HÀNG 2: BỘ LỌC -->
+        <div class="filter-bar no-print">
+            <div class="filter-controls">
+                <div class="date-range-box">
+                    <i class="bi bi-calendar3 text-muted"></i>
+                    <input type="date" name="TuNgay" value="@Model.TuNgay?.ToString("yyyy-MM-dd")" />
+                    <i class="bi bi-arrow-right text-muted mx-1"></i>
+                    <input type="date" name="DenNgay" value="@Model.DenNgay?.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <select class="form-select filter-pill-select" asp-for="LoaiDoiTacLoc">
+                    <option value="">Tất cả loại đối tác</option>
+                    @foreach (var loai in Model.DanhSachLoaiDoiTac)
+                    {
+                        <option value="@loai">@loai</option>
+                    }
+                </select>
+
+                <input type="text" class="filter-pill-input" asp-for="TuKhoa" placeholder="Mã, tên đối tác, người liên hệ..." style="min-width: 210px;" />
+
+                <select class="form-select filter-pill-select" asp-for="SortBy" onchange="submitFilter()">
+                    <option value="doanhthu_desc">Sắp xếp: Doanh thu cao nhất</option>
+                    <option value="hoahong_desc">Sắp xếp: Hoa hồng cao nhất</option>
+                    <option value="demphong_desc">Sắp xếp: Đêm phòng nhiều nhất</option>
+                    <option value="congno_desc">Sắp xếp: Công nợ cao nhất</option>
+                    <option value="ten_asc">Sắp xếp: Tên A - Z</option>
+                </select>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a class="btn btn-light btn-sm border px-3 d-flex align-items-center" asp-page="./BaoCaoSalesB2B">Đặt lại</a>
+                <button type="submit" class="btn btn-search-cyan">Tìm kiếm</button>
+            </div>
+        </div>
+
+        <!-- HÀNG 3: NHÓM THEO & PHÓNG TO -->
+        <div class="sub-toolbar no-print">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">Nhóm theo</span>
+                <select class="form-select filter-pill-select" asp-for="NhomTheo" onchange="submitFilter()">
+                    <option value="LoaiDoiTac">Loại đối tác (OTA / Lữ hành / DN)</option>
+                    <option value="KhongNhom">Không nhóm</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn-fullscreen" id="btnFullscreen" onclick="toggleFullscreen()">
+                <i class="bi bi-arrows-fullscreen" id="iconFullscreen"></i>
+                <span id="textFullscreen">Phóng to</span>
+            </button>
+        </div>
+    </form>
+
+    <!-- BẢNG TỔNG HỢP SẢN LƯỢNG & HOA HỒNG -->
+    <div class="report-table-wrapper">
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Mã ĐT</th>
+                    <th>Tên đối tác</th>
+                    <th>Người liên hệ</th>
+                    <th class="num-col">Số<br />booking</th>
+                    <th class="num-col">Đêm<br />phòng</th>
+                    <th class="num-col">Lượt<br />khách</th>
+                    <th class="num-col">Doanh thu<br />B2B (₫)</th>
+                    <th class="num-col">% Hoa<br />hồng</th>
+                    <th class="num-col">Tiền hoa<br />hồng (₫)</th>
+                    <th class="num-col">Doanh thu<br />thực nhận (₫)</th>
+                    <th class="num-col">Công nợ /<br />Hạn mức (₫)</th>
+                    <th class="text-center no-print">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.DanhSachBaoCao.Any())
+                {
+                    int groupIdx = 0;
+                    foreach (var group in Model.DuLieuTheoNhom)
+                    {
+                        groupIdx++;
+                        if (Model.NhomTheo != "KhongNhom")
+                        {
+                            <tr class="group-header-row" onclick="toggleGroup(@groupIdx)">
+                                <td colspan="12">
+                                    <i class="bi bi-caret-down-fill me-1 small text-muted" id="icon-group-@groupIdx"></i>
+                                    Loại đối tác: @group.Key (@group.Count() đối tác — Doanh thu: @group.Sum(x => x.TongDoanhThu).ToString("N0") ₫ • Hoa hồng: @group.Sum(x => x.TienHoaHong).ToString("N0") ₫)
+                                </td>
+                            </tr>
+                        }
+
+                        foreach (var item in group)
+                        {
+                            <tr class="data-row group-rows-@groupIdx">
+                                <td><span class="partner-code">#@item.MaDoiTac</span></td>
+                                <td>
+                                    <div class="fw-semibold">@item.TenDoiTac</div>
+                                    @if (!string.IsNullOrEmpty(item.Email))
+                                    {
+                                        <div class="text-muted" style="font-size: 0.72rem;">@item.Email</div>
+                                    }
+                                </td>
+                                <td>
+                                    <div>@item.NguoiLienHe</div>
+                                    @if (!string.IsNullOrEmpty(item.SDT))
+                                    {
+                                        <div class="text-muted" style="font-size: 0.72rem;">@item.SDT</div>
+                                    }
+                                </td>
+                                <td class="num-col">
+                                    <span class="fw-semibold">@item.SoBooking</span>
+                                    @if (item.SoBookingHuy > 0)
+                                    {
+                                        <div class="text-danger" style="font-size: 0.7rem;">(Hủy: @item.SoBookingHuy)</div>
+                                    }
+                                </td>
+                                <td class="num-col fw-semibold text-primary">@item.TongDemPhong.ToString("N0")</td>
+                                <td class="num-col">@item.TongSoKhach.ToString("N0")</td>
+                                <td class="num-col fw-semibold">@item.TongDoanhThu.ToString("N0")</td>
+                                <td class="num-col">
+                                    <span class="rate-badge">@item.TyLeHoaHong.ToString("0.##")%</span>
+                                </td>
+                                <td class="num-col fw-semibold text-warning">@item.TienHoaHong.ToString("N0")</td>
+                                <td class="num-col fw-semibold text-success">@item.DoanhThuThucNhan.ToString("N0")</td>
+                                <td class="num-col">
+                                    <div class="@(item.VuotHanMuc ? "text-danger fw-bold" : "")">
+                                        @item.SoDuCongNo.ToString("N0")
+                                        @if (item.VuotHanMuc)
+                                        {
+                                            <span class="debt-over-badge">Vượt HM</span>
+                                        }
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">HM: @item.HanMucCongNo.ToString("N0")</div>
+                                </td>
+                                <td class="text-center no-print">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-info py-0 px-2"
+                                            onclick="showPartnerDetails('@item.MaDoiTac')"
+                                        @(item.DanhSachBooking.Any() ? "" : "disabled")
+                                            title="Xem danh sách booking của đối tác">
+                                        <i class="bi bi-list-ul"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="12" class="text-center text-muted py-5">
+                            Chưa có dữ liệu đối tác B2B nào phù hợp với điều kiện lọc.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="text-uppercase">Tổng cộng (@Model.TongSoDoiTac đối tác)</td>
+                    <td class="num-col">@Model.TongBooking.ToString("N0")</td>
+                    <td class="num-col text-primary">@Model.TongDemPhong.ToString("N0")</td>
+                    <td class="num-col">@Model.TongKhach.ToString("N0")</td>
+                    <td class="num-col">@Model.TongDoanhThuB2B.ToString("N0")</td>
+                    <td></td>
+                    <td class="num-col text-warning">@Model.TongTienHoaHong.ToString("N0")</td>
+                    <td class="num-col text-success">@Model.TongDoanhThuThucNhan.ToString("N0")</td>
+                    <td class="num-col">@Model.TongCongNo.ToString("N0")</td>
+                    <td class="no-print"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL CHI TIẾT BOOKING & HOA HỒNG CỦA ĐỐI TÁC -->
+<div class="modal fade" id="modalPartnerDetails" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-building text-info me-2"></i>
+                    Chi tiết booking đối tác: <span id="modalPartnerName" class="text-primary"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Mã đặt phòng</th>
+                                <th>Khách hàng</th>
+                                <th>Phòng</th>
+                                <th>Ngày nhận</th>
+                                <th>Ngày trả</th>
+                                <th class="text-end">Số đêm</th>
+                                <th class="text-end">Doanh thu (₫)</th>
+                                <th class="text-end">Hoa hồng (₫)</th>
+                                <th class="pe-3">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalPartnerBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const partnerDataMap = @Html.Raw(JsonSerializer.Serialize(
+                    Model.DanhSachBaoCao.ToDictionary(
+                    x => x.MaDoiTac,
+                    x => new { x.TenDoiTac, x.TyLeHoaHong, Bookings = x.DanhSachBooking }
+                    )
+                    ));
+
+        function submitFilter() {
+            document.getElementById('b2bFilterForm').submit();
+        }
+
+        function toggleGroup(idx) {
+            const rows = document.querySelectorAll('.group-rows-' + idx);
+            const icon = document.getElementById('icon-group-' + idx);
+            let isHidden = false;
+
+            rows.forEach(r => {
+                if (r.style.display === 'none') {
+                    r.style.display = '';
+                    isHidden = false;
+                } else {
+                    r.style.display = 'none';
+                    isHidden = true;
+                }
+            });
+
+            if (icon) {
+                icon.className = isHidden
+                    ? 'bi bi-caret-right-fill me-1 small text-muted'
+                    : 'bi bi-caret-down-fill me-1 small text-muted';
+            }
+        }
+
+        function toggleFullscreen() {
+            const page = document.getElementById('reportPageContainer');
+            const icon = document.getElementById('iconFullscreen');
+            const text = document.getElementById('textFullscreen');
+            if (!page) return;
+
+            const isFull = page.classList.toggle('fullscreen-mode');
+            if (isFull) {
+                icon.className = 'bi bi-fullscreen-exit';
+                text.innerText = 'Thu nhỏ';
+            } else {
+                icon.className = 'bi bi-arrows-fullscreen';
+                text.innerText = 'Phóng to';
+            }
+        }
+
+        document.addEventListener('keydown', function (e) {
+            const page = document.getElementById('reportPageContainer');
+            if (e.key === 'Escape' && page && page.classList.contains('fullscreen-mode')) {
+                toggleFullscreen();
+            }
+        });
+
+        function showPartnerDetails(maDoiTac) {
+            const data = partnerDataMap[maDoiTac];
+            if (!data) return;
+
+            document.getElementById('modalPartnerName').innerText = `${data.TenDoiTac} (Hoa hồng ${data.TyLeHoaHong}%)`;
+            const tbody = document.getElementById('modalPartnerBody');
+            tbody.innerHTML = '';
+
+            const fmt = new Intl.NumberFormat('vi-VN');
+            data.Bookings.forEach(b => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                            <td class="ps-3 fw-semibold text-info">#${b.MaDatPhong}</td>
+                            <td>${b.TenKhach}</td>
+                            <td>${b.Phong}</td>
+                            <td>${b.NgayNhan}</td>
+                            <td>${b.NgayTra}</td>
+                            <td class="text-end">${b.SoDemPhong}</td>
+                            <td class="text-end fw-semibold">${fmt.format(b.DoanhThu)}</td>
+                            <td class="text-end text-warning fw-semibold">${fmt.format(b.HoaHong)}</td>
+                            <td class="pe-3"><span class="badge bg-light text-dark border">${b.TrangThai}</span></td>
+                        `;
+                tbody.appendChild(tr);
+            });
+
+            const modal = new bootstrap.Modal(document.getElementById('modalPartnerDetails'));
+            modal.show();
+        }
+    </script>
+}

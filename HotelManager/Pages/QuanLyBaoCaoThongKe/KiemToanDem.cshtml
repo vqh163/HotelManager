@@ -1,0 +1,673 @@
+﻿@page
+@model HotelManager.Pages.QuanLyBaoCaoThongKe.KiemToanDemModel
+@{
+    ViewData["Title"] = "Kiểm toán đêm (Night Audit) & Đồng bộ kế toán";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --pms-cyan: #189ab4;
+        --pms-cyan-hover: #127e94;
+        --pms-bg-soft: #f5f7f9;
+        --pms-border: #e5e9ed;
+        --pms-text: #2c3e50;
+    }
+
+    body {
+        background-color: #f8fafc;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--pms-text);
+        font-size: 0.86rem;
+    }
+
+    .audit-page {
+        padding: 16px 22px 34px 22px;
+    }
+
+    .page-header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .page-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    /* --- THANH CHUYỂN NHANH --- */
+    .quick-nav-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .quick-nav-pill {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 8px;
+        padding: 6px 13px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #334155;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.15s;
+    }
+
+        .quick-nav-pill:hover {
+            border-color: var(--pms-cyan);
+            color: var(--pms-cyan);
+            background: #f0f9fb;
+        }
+
+        .quick-nav-pill.active {
+            background: var(--pms-cyan);
+            border-color: var(--pms-cyan);
+            color: #ffffff;
+        }
+
+    /* --- TAB CHÍNH --- */
+    .mode-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 0;
+    }
+
+    .mode-tab-btn {
+        border: none;
+        background: transparent;
+        padding: 10px 18px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #64748b;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: 0.15s;
+    }
+
+        .mode-tab-btn.active {
+            color: var(--pms-cyan);
+            border-bottom-color: var(--pms-cyan);
+        }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(170px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 10px;
+        padding: 13px 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .kpi-label {
+        font-size: 0.77rem;
+        color: #64748b;
+        margin-bottom: 2px;
+    }
+
+    .kpi-value {
+        font-size: 1.18rem;
+        font-weight: 700;
+        color: #0f172a;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-sub {
+        font-size: 0.72rem;
+        color: #64748b;
+        margin-top: 2px;
+    }
+
+    .kpi-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .bg-soft-cyan {
+        background: #e6f6f9;
+        color: var(--pms-cyan);
+    }
+
+    .bg-soft-green {
+        background: #e6f7ee;
+        color: #157347;
+    }
+
+    .bg-soft-amber {
+        background: #fff4e5;
+        color: #b45309;
+    }
+
+    .bg-soft-red {
+        background: #fdecec;
+        color: #dc2626;
+    }
+
+    .bg-soft-blue {
+        background: #e8f0fe;
+        color: #2563eb;
+    }
+
+    .panel-card {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-bottom: 16px;
+    }
+
+    .panel-title {
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 12px 0;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .btn-cyan {
+        background-color: var(--pms-cyan);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 7px 18px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: 0.15s;
+    }
+
+        .btn-cyan:hover {
+            background-color: var(--pms-cyan-hover);
+            color: #ffffff;
+        }
+
+    .num-col {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .account-code {
+        display: inline-block;
+        background: #eef2ff;
+        color: #3730a3;
+        font-weight: 700;
+        font-size: 0.74rem;
+        padding: 2px 7px;
+        border-radius: 4px;
+    }
+
+    @@media (max-width: 992px) {
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media print {
+        header, footer, .no-print {
+            display: none !important;
+        }
+
+        body {
+            background: #ffffff;
+        }
+    }
+</style>
+
+<div class="audit-page">
+    <!-- TIÊU ĐỀ -->
+    <div class="page-header-bar">
+        <div>
+            <h1 class="page-title">Kiểm toán đêm (Night Audit) &amp; Đồng bộ Kế toán</h1>
+            <div class="text-muted small">Rà soát tồn đọng cuối ngày, chốt sổ doanh thu và kết xuất chứng từ định khoản kế toán</div>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3 no-print" onclick="window.print()">
+            <i class="bi bi-printer-fill me-1"></i>In biên bản
+        </button>
+    </div>
+
+    <!-- THANH ĐIỀU HƯỚNG NHANH -->
+    <div class="quick-nav-strip no-print">
+        <a class="quick-nav-pill" asp-page="./DashboardBaoCao"><i class="bi bi-speedometer2"></i>Dashboard Tổng quan</a>
+        <a class="quick-nav-pill" asp-page="./BaoCaoDoanhThu"><i class="bi bi-receipt-cutoff"></i>Doanh thu chi tiết</a>
+        <a class="quick-nav-pill" asp-page="./DuBaoCongSuat"><i class="bi bi-graph-up-arrow"></i>Dự báo công suất &amp; Giá động</a>
+        <a class="quick-nav-pill" asp-page="./BaoCaoSalesB2B"><i class="bi bi-building-check"></i>Sản lượng B2B &amp; Hoa hồng</a>
+        <a class="quick-nav-pill" asp-page="./BaoCaoKho"><i class="bi bi-box-seam"></i>Báo cáo Kho vật tư</a>
+        <a class="quick-nav-pill active" asp-page="./KiemToanDem"><i class="bi bi-moon-stars-fill"></i>Kiểm toán đêm &amp; Kế toán</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 small no-print" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.ThongBao
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        </div>
+    }
+
+    <!-- 2 TAB CHỨC NĂNG -->
+    <div class="mode-tabs no-print">
+        <button type="button" class="mode-tab-btn @(Model.TabActive != "accounting" ? "active" : "")" id="tabBtnAudit" onclick="switchTab('audit')">
+            <i class="bi bi-moon-stars-fill"></i>
+            1. Chạy Kiểm toán đêm (Night Audit)
+            @if (Model.DanhSachCanhBao.Any())
+            {
+                <span class="badge bg-danger rounded-pill">@Model.DanhSachCanhBao.Count</span>
+            }
+        </button>
+        <button type="button" class="mode-tab-btn @(Model.TabActive == "accounting" ? "active" : "")" id="tabBtnAccounting" onclick="switchTab('accounting')">
+            <i class="bi bi-arrow-repeat"></i>
+            2. Đồng bộ Phần mềm Kế toán
+            <span class="badge bg-info text-white rounded-pill">@Model.DanhSachButToan.Count</span>
+        </button>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 1: KIỂM TOÁN ĐÊM (NIGHT AUDIT) -->
+    <!-- ===================================================================== -->
+    <div id="paneAudit" style="display: @(Model.TabActive != "accounting" ? "block" : "none");">
+        <!-- CHỌN NGÀY KIỂM TOÁN & TRẠNG THÁI CHỐT -->
+        <div class="panel-card d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <form method="get" class="d-flex align-items-center gap-2 flex-wrap no-print">
+                <input type="hidden" name="TabActive" value="audit" />
+                <input type="hidden" name="TuNgayKeToan" value="@Model.TuNgayKeToan?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="DenNgayKeToan" value="@Model.DenNgayKeToan?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="PhanMemKeToan" value="@Model.PhanMemKeToan" />
+
+                <label class="fw-semibold small text-muted mb-0">Ngày kiểm toán:</label>
+                <input type="date" name="NgayKiemToan" class="form-control form-control-sm w-auto" value="@Model.NgayKiemToan?.ToString("yyyy-MM-dd")" />
+                <button type="submit" class="btn btn-cyan btn-sm">Kiểm tra sổ ngày</button>
+            </form>
+
+            <div>
+                @if (Model.DaChotSoNgayNay && Model.BanGhiChotGanNhat != null)
+                {
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-3 py-2">
+                        <i class="bi bi-patch-check-fill me-1"></i>
+                        Đã chốt sổ ngày @Model.NgayKiemToan?.ToString("dd/MM/yyyy") lúc @Model.BanGhiChotGanNhat.ThoiGian.ToString("HH:mm dd/MM/yyyy") (bởi @Model.BanGhiChotGanNhat.TenDangNhap)
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2">
+                        <i class="bi bi-hourglass-split me-1"></i>
+                        Ngày @Model.NgayKiemToan?.ToString("dd/MM/yyyy") chưa chốt kiểm toán đêm
+                    </span>
+                }
+            </div>
+        </div>
+
+        <!-- 4 KPI NGÀY KIỂM TOÁN -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Công suất phòng đêm @Model.NgayKiemToan?.ToString("dd/MM")</div>
+                    <div class="kpi-value text-info">@Model.CongSuatNgay.ToString("0.#")%</div>
+                    <div class="kpi-sub">@Model.SoPhongDangLuuTru / @Model.TongSoPhong phòng • In: @Model.SoLuotCheckInNgay / Out: @Model.SoLuotCheckOutNgay</div>
+                </div>
+                <div class="kpi-icon bg-soft-cyan"><i class="bi bi-door-closed-fill"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Tổng doanh thu trong ngày</div>
+                    <div class="kpi-value text-success">@Model.TongDoanhThuNgay.ToString("N0") ₫</div>
+                    <div class="kpi-sub">Phòng: @Model.DoanhThuPhongNgay.ToString("N0") • NH: @Model.DoanhThuNhaHangNgay.ToString("N0")</div>
+                </div>
+                <div class="kpi-icon bg-soft-green"><i class="bi bi-cash-coin"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Tiền đã thực thu trong ngày</div>
+                    <div class="kpi-value text-primary">@Model.ThucThuTrongNgay.ToString("N0") ₫</div>
+                    <div class="kpi-sub">Công nợ phát sinh: @Model.CongNoPhatSinhNgay.ToString("N0") ₫</div>
+                </div>
+                <div class="kpi-icon bg-soft-blue"><i class="bi bi-wallet2"></i></div>
+            </div>
+
+            <div class="kpi-card">
+                <div>
+                    <div class="kpi-label">Mục tồn đọng cần kiểm tra</div>
+                    <div class="kpi-value @(Model.DanhSachCanhBao.Any() ? "text-danger" : "text-success")">@Model.DanhSachCanhBao.Count</div>
+                    <div class="kpi-sub">@(Model.DanhSachCanhBao.Any() ? "Nên xử lý trước khi chốt sổ" : "Sổ sách trong ngày đã sạch")</div>
+                </div>
+                <div class="kpi-icon @(Model.DanhSachCanhBao.Any() ? "bg-soft-red" : "bg-soft-green")">
+                    <i class="bi @(Model.DanhSachCanhBao.Any() ? "bi-exclamation-triangle-fill" : "bi-shield-check")"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH RÀ SOÁT TỒN ĐỌNG + FORM CHỐT SỔ -->
+        <div class="row g-3 mb-3">
+            <div class="col-lg-8">
+                <div class="panel-card h-100 mb-0">
+                    <h2 class="panel-title">
+                        <i class="bi bi-list-check text-danger"></i>
+                        Checklist rà soát trước khi chốt Kiểm toán đêm
+                    </h2>
+
+                    @if (Model.DanhSachCanhBao.Any())
+                    {
+                        <div class="table-responsive" style="max-height: 310px;">
+                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.81rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Loại cảnh báo</th>
+                                        <th>Chứng từ</th>
+                                        <th>Đối tượng</th>
+                                        <th>Chi tiết cần xử lý</th>
+                                        <th class="num-col">Số tiền (₫)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var w in Model.DanhSachCanhBao)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge @(w.MucDo == "danger" ? "bg-danger-subtle text-danger-emphasis" : "bg-warning-subtle text-warning-emphasis")">
+                                                    @w.LoaiCanhBao
+                                                </span>
+                                            </td>
+                                            <td class="fw-semibold text-info">#@w.MaChungTu</td>
+                                            <td class="fw-medium">@w.DoiTuong</td>
+                                            <td>@w.MoTa</td>
+                                            <td class="num-col fw-semibold">@w.SoTienLienQuan.ToString("N0")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-success">
+                            <i class="bi bi-check-circle-fill fs-1 d-block mb-2"></i>
+                            <div class="fw-semibold">Không phát hiện hóa đơn treo, phòng quá hạn hay No-show trong ngày!</div>
+                            <div class="text-muted small">Bạn có thể tiến hành chốt kiểm toán đêm ngay bây giờ.</div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="panel-card h-100 mb-0">
+                    <h2 class="panel-title">
+                        <i class="bi bi-lock-fill text-info"></i>
+                        Xác nhận chốt Kiểm toán đêm
+                    </h2>
+
+                    <form method="post" asp-page-handler="ChotKiemToanDem">
+                        <input type="hidden" name="NgayKiemToan" value="@Model.NgayKiemToan?.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="TuNgayKeToan" value="@Model.TuNgayKeToan?.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="DenNgayKeToan" value="@Model.DenNgayKeToan?.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="PhanMemKeToan" value="@Model.PhanMemKeToan" />
+
+                        <div class="small text-muted mb-3">
+                            Thao tác này sẽ đóng băng số liệu doanh thu ngày <strong>@Model.NgayKiemToan?.ToString("dd/MM/yyyy")</strong> và lưu biên bản chốt sổ vào bảng <code>NHAT_KY_HE_THONG</code>.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Ghi chú kiểm toán viên (tùy chọn)</label>
+                            <textarea class="form-control form-control-sm"
+                                      rows="4"
+                                      asp-for="GhiChuKiemToan"
+                                      placeholder="VD: Đã đối chiếu tiền mặt tại quầy Lễ tân & Thu ngân Nhà hàng, khớp 100%..."></textarea>
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-cyan w-100 py-2"
+                                onclick="return confirm('Xác nhận chốt Kiểm toán đêm cho ngày @Model.NgayKiemToan?.ToString("dd/MM/yyyy")?');">
+                            <i class="bi bi-moon-stars-fill me-1"></i>
+                            @(Model.DaChotSoNgayNay ? "Chốt bổ sung / Cập nhật biên bản" : "Chạy & Chốt Kiểm toán đêm")
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 2: ĐỒNG BỘ DỮ LIỆU PHẦN MỀM KẾ TOÁN -->
+    <!-- ===================================================================== -->
+    <div id="paneAccounting" style="display: @(Model.TabActive == "accounting" ? "block" : "none");">
+        <div class="panel-card">
+            <div class="d-flex align-items-end justify-content-between flex-wrap gap-3 mb-3 pb-3 border-bottom no-print">
+                <form method="get" class="d-flex align-items-end gap-2 flex-wrap">
+                    <input type="hidden" name="TabActive" value="accounting" />
+                    <input type="hidden" name="NgayKiemToan" value="@Model.NgayKiemToan?.ToString("yyyy-MM-dd")" />
+
+                    <div>
+                        <label class="form-label small text-muted mb-1">Từ ngày</label>
+                        <input type="date" name="TuNgayKeToan" class="form-control form-control-sm" value="@Model.TuNgayKeToan?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div>
+                        <label class="form-label small text-muted mb-1">Đến ngày</label>
+                        <input type="date" name="DenNgayKeToan" class="form-control form-control-sm" value="@Model.DenNgayKeToan?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div>
+                        <label class="form-label small text-muted mb-1">Phần mềm kế toán đích</label>
+                        <select class="form-select form-select-sm" asp-for="PhanMemKeToan">
+                            <option value="MISA AMIS / SME">MISA AMIS / SME (Chuẩn TT200)</option>
+                            <option value="FAST Accounting">FAST Accounting</option>
+                            <option value="SAP Business One">SAP Business One</option>
+                            <option value="Bravo ERP">Bravo ERP</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary btn-sm px-3">Lọc chứng từ</button>
+                </form>
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <a class="btn btn-outline-success btn-sm"
+                       asp-page-handler="ExportKeToanCsv"
+                       asp-route-TuNgayKeToan="@Model.TuNgayKeToan?.ToString("yyyy-MM-dd")"
+                       asp-route-DenNgayKeToan="@Model.DenNgayKeToan?.ToString("yyyy-MM-dd")"
+                       asp-route-PhanMemKeToan="@Model.PhanMemKeToan">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Tải CSV (MISA/Excel)
+                    </a>
+
+                    <a class="btn btn-outline-secondary btn-sm"
+                       asp-page-handler="ExportKeToanJson"
+                       asp-route-TuNgayKeToan="@Model.TuNgayKeToan?.ToString("yyyy-MM-dd")"
+                       asp-route-DenNgayKeToan="@Model.DenNgayKeToan?.ToString("yyyy-MM-dd")"
+                       asp-route-PhanMemKeToan="@Model.PhanMemKeToan">
+                        <i class="bi bi-filetype-json me-1"></i>Tải JSON API
+                    </a>
+
+                    <form method="post" asp-page-handler="DongBoKeToan" class="d-inline">
+                        <input type="hidden" name="NgayKiemToan" value="@Model.NgayKiemToan?.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="TuNgayKeToan" value="@Model.TuNgayKeToan?.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="DenNgayKeToan" value="@Model.DenNgayKeToan?.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="PhanMemKeToan" value="@Model.PhanMemKeToan" />
+
+                        <button type="submit"
+                                class="btn btn-cyan btn-sm"
+                            @(Model.DanhSachButToan.Any() ? "" : "disabled")
+                                onclick="return confirm('Xác nhận đồng bộ @Model.DanhSachButToan.Count bút toán sang @Model.PhanMemKeToan?');">
+                            <i class="bi bi-cloud-upload-fill me-1"></i>Đồng bộ ngay (@Model.DanhSachButToan.Count)
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TÓM TẮT ĐỊNH KHOẢN -->
+            <div class="kpi-grid mb-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Doanh thu chưa thuế (TK 5113)</div>
+                        <div class="kpi-value text-dark">@Model.TongTienTruocThueKT.ToString("N0") ₫</div>
+                    </div>
+                    <div class="kpi-icon bg-soft-cyan"><i class="bi bi-journal-text"></i></div>
+                </div>
+
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Thuế GTGT đầu ra (TK 3331)</div>
+                        <div class="kpi-value text-warning">@Model.TongThueVATKT.ToString("N0") ₫</div>
+                    </div>
+                    <div class="kpi-icon bg-soft-amber"><i class="bi bi-percent"></i></div>
+                </div>
+
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Đã thu tiền (TK 111 / 112)</div>
+                        <div class="kpi-value text-success">@Model.TongDaThuKT.ToString("N0") ₫</div>
+                    </div>
+                    <div class="kpi-icon bg-soft-green"><i class="bi bi-bank2"></i></div>
+                </div>
+
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Phải thu khách hàng (TK 131)</div>
+                        <div class="kpi-value @(Model.TongConNoKT > 0 ? "text-danger" : "text-muted")">@Model.TongConNoKT.ToString("N0") ₫</div>
+                    </div>
+                    <div class="kpi-icon bg-soft-red"><i class="bi bi-receipt"></i></div>
+                </div>
+            </div>
+
+            <!-- BẢNG KÊ BÚT TOÁN KẾ TOÁN -->
+            <div class="table-responsive" style="max-height: 380px;">
+                <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Số CT</th>
+                            <th>Ngày HT</th>
+                            <th>Phân hệ</th>
+                            <th>Đối tượng &amp; Diễn giải</th>
+                            <th class="text-center">TK Nợ</th>
+                            <th class="text-center">TK Có DT</th>
+                            <th class="text-center">TK Thuế</th>
+                            <th class="num-col">Trước thuế (₫)</th>
+                            <th class="num-col">Thuế VAT (₫)</th>
+                            <th class="num-col">Tổng cộng (₫)</th>
+                            <th class="num-col">Công nợ (₫)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.DanhSachButToan.Any())
+                        {
+                            foreach (var row in Model.DanhSachButToan)
+                            {
+                                <tr>
+                                    <td class="fw-semibold text-info">#@row.SoChungTu</td>
+                                    <td>@row.NgayHachToan.ToString("dd/MM/yyyy")</td>
+                                    <td><span class="badge bg-light text-dark border">@row.PhanHe</span></td>
+                                    <td>
+                                        <div class="fw-semibold">@row.DoiTuong</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">@row.DienGiai</div>
+                                    </td>
+                                    <td class="text-center"><span class="account-code">@row.TaiKhoanNo</span></td>
+                                    <td class="text-center"><span class="account-code">@row.TaiKhoanCoDoanhThu</span></td>
+                                    <td class="text-center"><span class="account-code">@row.TaiKhoanCoThue</span></td>
+                                    <td class="num-col">@row.TienTruocThue.ToString("N0")</td>
+                                    <td class="num-col text-muted">@row.TienThueVAT.ToString("N0")</td>
+                                    <td class="num-col fw-semibold text-success">@row.TongCong.ToString("N0")</td>
+                                    <td class="num-col @(row.ConNo > 0 ? "text-danger fw-semibold" : "text-muted")">@row.ConNo.ToString("N0")</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-5">
+                                    Không có chứng từ kế toán nào trong khoảng thời gian đã chọn.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- LỊCH SỬ CHỐT KIỂM TOÁN ĐÊM & ĐỒNG BỘ KẾ TOÁN (TỪ NHAT_KY_HE_THONG) -->
+    <!-- ===================================================================== -->
+    <div class="panel-card mb-0">
+        <h2 class="panel-title">
+            <i class="bi bi-clock-history text-primary"></i>
+            Lịch sử Kiểm toán đêm &amp; Đồng bộ Kế toán (Nhật ký hệ thống)
+        </h2>
+
+        @if (Model.LichSuKiemToanVaDongBo.Any())
+        {
+            <div class="table-responsive" style="max-height: 260px;">
+                <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã nhật ký</th>
+                            <th>Thời gian</th>
+                            <th>Người thực hiện</th>
+                            <th>Loại nghiệp vụ</th>
+                            <th>Chi tiết biên bản / Gói đồng bộ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.LichSuKiemToanVaDongBo)
+                        {
+                            bool isAudit = log.HanhDong.StartsWith("KIEM_TOAN_DEM");
+                            <tr>
+                                <td class="fw-semibold text-info">#@log.MaNhatKy</td>
+                                <td>@log.ThoiGian.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                <td class="fw-medium">@(log.TenDangNhap ?? "—")</td>
+                                <td>
+                                    <span class="badge @(isAudit ? "bg-primary-subtle text-primary-emphasis" : "bg-success-subtle text-success-emphasis")">
+                                        @log.HanhDong
+                                    </span>
+                                </td>
+                                <td style="white-space: normal; min-width: 300px;">@log.ChiTiet</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-4 small">
+                Chưa có bản ghi kiểm toán đêm hoặc đồng bộ kế toán nào trong hệ thống.
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function switchTab(tab) {
+            const isAccounting = tab === 'accounting';
+            document.getElementById('paneAudit').style.display = isAccounting ? 'none' : 'block';
+            document.getElementById('paneAccounting').style.display = isAccounting ? 'block' : 'none';
+            document.getElementById('tabBtnAudit').classList.toggle('active', !isAccounting);
+            document.getElementById('tabBtnAccounting').classList.toggle('active', isAccounting);
+        }
+    </script>
+}

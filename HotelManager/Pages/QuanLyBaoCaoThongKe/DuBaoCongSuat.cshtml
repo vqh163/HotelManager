@@ -1,0 +1,787 @@
+﻿@page
+@model HotelManager.Pages.QuanLyBaoCaoThongKe.DuBaoCongSuatModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Dự báo công suất & Định giá động";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --pms-cyan: #189ab4;
+        --pms-cyan-hover: #127e94;
+        --pms-bg-soft: #f5f7f9;
+        --pms-border: #e5e9ed;
+        --pms-text: #2c3e50;
+    }
+
+    body {
+        background-color: #ffffff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--pms-text);
+        font-size: 0.85rem;
+    }
+
+    .report-page {
+        padding: 14px 20px 30px 20px;
+    }
+
+    .report-top-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .report-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+        color: #1f2937;
+    }
+
+    .icon-action-btn {
+        border: none;
+        background: transparent;
+        color: #5a6268;
+        font-size: 1.2rem;
+        padding: 4px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: 0.15s;
+        text-decoration: none;
+    }
+
+        .icon-action-btn:hover {
+            background-color: #f1f3f5;
+            color: var(--pms-cyan);
+        }
+
+    /* --- 4 THẺ KPI --- */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(170px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 8px;
+        padding: 11px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .kpi-label {
+        font-size: 0.77rem;
+        color: #64748b;
+        margin-bottom: 2px;
+    }
+
+    .kpi-value {
+        font-size: 1.18rem;
+        font-weight: 700;
+        color: #1e293b;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-sub {
+        font-size: 0.72rem;
+        color: #64748b;
+        margin-top: 2px;
+    }
+
+    .kpi-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+    }
+
+    .kpi-cyan {
+        background: #e6f6f9;
+        color: var(--pms-cyan);
+    }
+
+    .kpi-amber {
+        background: #fff4e5;
+        color: #b45309;
+    }
+
+    .kpi-green {
+        background: #e6f7ee;
+        color: #157347;
+    }
+
+    .kpi-blue {
+        background: #e8f0fe;
+        color: #2563eb;
+    }
+
+    /* --- THANH BỘ LỌC --- */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding-bottom: 12px;
+        margin-bottom: 14px;
+        border-bottom: 1px solid var(--pms-border);
+    }
+
+    .filter-controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .segmented-control {
+        display: inline-flex;
+        background-color: #f1f3f5;
+        padding: 3px;
+        border-radius: 6px;
+        gap: 2px;
+    }
+
+    .segmented-btn {
+        border: none;
+        background: transparent;
+        color: #495057;
+        padding: 5px 12px;
+        border-radius: 5px;
+        font-weight: 500;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: 0.15s;
+    }
+
+        .segmented-btn.active {
+            background-color: #ffffff;
+            color: var(--pms-cyan);
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+    .filter-pill-select, .filter-pill-input {
+        background-color: var(--pms-bg-soft);
+        border: 1px solid var(--pms-border);
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 0.83rem;
+        color: #334155;
+    }
+
+    .filter-pill-select {
+        padding-right: 28px;
+        cursor: pointer;
+        width: auto;
+    }
+
+    .btn-search-cyan {
+        background-color: var(--pms-cyan);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: 0.15s;
+    }
+
+        .btn-search-cyan:hover {
+            background-color: var(--pms-cyan-hover);
+            color: #ffffff;
+        }
+
+    /* --- CARD BIỂU ĐỒ & ĐỊNH GIÁ --- */
+    .section-card {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 16px;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .section-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    /* --- BẢNG DỮ LIỆU --- */
+    .report-table-wrapper {
+        overflow: auto;
+        border: 1px solid var(--pms-border);
+        border-radius: 8px;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 0;
+    }
+
+        .report-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 4;
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.78rem;
+            padding: 9px 8px;
+            border-bottom: 1px solid #dfe4ea;
+            white-space: nowrap;
+        }
+
+        .report-table tbody td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #374151;
+            font-size: 0.81rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .report-table tbody tr:hover {
+            background-color: #f8fbff;
+        }
+
+    .weekend-row {
+        background-color: #fffdf5;
+    }
+
+    .num-col {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .occ-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 115px;
+    }
+
+    .occ-bar-bg {
+        flex: 1;
+        height: 7px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .occ-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+    }
+
+    .adj-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+    }
+
+    .adj-up-high {
+        background: #fdecec;
+        color: #dc2626;
+    }
+
+    .adj-up {
+        background: #fff4e5;
+        color: #b45309;
+    }
+
+    .adj-neutral {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .adj-down {
+        background: #e6f7ee;
+        color: #157347;
+    }
+
+    .btn-fullscreen {
+        background-color: var(--pms-bg-soft);
+        border: 1px solid var(--pms-border);
+        border-radius: 6px;
+        padding: 4px 11px;
+        font-size: 0.8rem;
+        color: #334155;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+        .btn-fullscreen:hover {
+            background-color: #e2e8f0;
+            color: var(--pms-cyan);
+        }
+
+    /* Chế độ phóng to bảng chi tiết */
+    .section-card.fullscreen-mode {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        margin: 0;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+    }
+
+        .section-card.fullscreen-mode .report-table-wrapper {
+            flex: 1;
+        }
+
+    @@media (max-width: 992px) {
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media print {
+        header, footer, .no-print {
+            display: none !important;
+        }
+    }
+
+    .quick-nav-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .quick-nav-pill {
+        background: #ffffff;
+        border: 1px solid var(--pms-border, #e5e9ed);
+        border-radius: 8px;
+        padding: 6px 13px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #334155;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.15s;
+    }
+
+        .quick-nav-pill:hover {
+            border-color: var(--pms-cyan, #189ab4);
+            color: var(--pms-cyan, #189ab4);
+            background: #f0f9fb;
+        }
+
+        .quick-nav-pill.active {
+            background: var(--pms-cyan, #189ab4);
+            border-color: var(--pms-cyan, #189ab4);
+            color: #ffffff;
+        }
+
+    .fullscreen-mode .quick-nav-strip {
+        display: none !important;
+    }
+</style>
+
+<div class="report-page">
+    <!-- HÀNG 1: TIÊU ĐỀ -->
+    <div class="report-top-bar">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <h1 class="report-title">Dự báo công suất &amp; Định giá động</h1>
+            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                Khảo sát @Model.TongSoPhongKhaoSat phòng • @Model.SoNgayDuBao ngày tới
+            </span>
+        </div>
+        <div class="quick-nav-strip no-print">
+            <a class="quick-nav-pill" asp-page="./DashboardBaoCao"><i class="bi bi-speedometer2"></i>Dashboard Tổng quan</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoDoanhThu"><i class="bi bi-receipt-cutoff"></i>Doanh thu chi tiết</a>
+            <a class="quick-nav-pill" asp-page="./DuBaoCongSuat"><i class="bi bi-graph-up-arrow"></i>Dự báo công suất &amp; Giá động</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoSalesB2B"><i class="bi bi-building-check"></i>Sản lượng B2B &amp; Hoa hồng</a>
+            <a class="quick-nav-pill" asp-page="./BaoCaoKho"><i class="bi bi-box-seam"></i>Báo cáo Kho vật tư</a>
+            <a class="quick-nav-pill active" asp-page="./KiemToanDem"><i class="bi bi-moon-stars-fill"></i>Kiểm toán đêm &amp; Kế toán</a>
+        </div>
+        <div class="d-flex align-items-center gap-1 no-print">
+            <a class="icon-action-btn"
+               title="Xuất file Excel (CSV)"
+               asp-page-handler="ExportCsv"
+               asp-route-TuNgay="@Model.TuNgay?.ToString("yyyy-MM-dd")"
+               asp-route-SoNgayDuBao="@Model.SoNgayDuBao"
+               asp-route-LoaiPhongLoc="@Model.LoaiPhongLoc">
+                <i class="bi bi-cloud-arrow-down-fill"></i>
+            </a>
+            <button type="button" class="icon-action-btn" title="In báo cáo" onclick="window.print()">
+                <i class="bi bi-printer-fill"></i>
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-info alert-dismissible fade show py-2 small no-print" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.ThongBao
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        </div>
+    }
+
+    <!-- 4 THẺ KPI -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Công suất dự báo TB</div>
+                <div class="kpi-value text-info">@Model.CongSuatTrungBinhKy.ToString("0.#")%</div>
+                <div class="kpi-sub">Tổng quy mô: @Model.TongSoPhongKhaoSat phòng</div>
+            </div>
+            <div class="kpi-icon kpi-cyan"><i class="bi bi-speedometer2"></i></div>
+        </div>
+
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Ngày cao điểm (≥ 70%)</div>
+                <div class="kpi-value text-warning">@Model.SoNgayCaoDiem / @Model.SoNgayDuBao ngày</div>
+                <div class="kpi-sub">Ưu tiên tăng giá tối ưu doanh thu</div>
+            </div>
+            <div class="kpi-icon kpi-amber"><i class="bi bi-fire"></i></div>
+        </div>
+
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Giá gợi ý động TB</div>
+                <div class="kpi-value text-primary">@Model.GiaGoiYTrungBinh.ToString("N0") ₫</div>
+                <div class="kpi-sub">Tự động điều chỉnh theo cầu &amp; cuối tuần</div>
+            </div>
+            <div class="kpi-icon kpi-blue"><i class="bi bi-tags-fill"></i></div>
+        </div>
+
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Doanh thu đã chốt</div>
+                <div class="kpi-value text-success">@Model.TongDoanhThuDaChot.ToString("N0") ₫</div>
+                <div class="kpi-sub">Tiềm năng tối đa: @Model.TongDoanhThuTiemNang.ToString("N0") ₫</div>
+            </div>
+            <div class="kpi-icon kpi-green"><i class="bi bi-cash-coin"></i></div>
+        </div>
+    </div>
+
+    <!-- THANH BỘ LỌC -->
+    <form method="get" id="forecastFilterForm" class="filter-bar no-print">
+        <input type="hidden" name="SoNgayDuBao" id="hiddenSoNgay" value="@Model.SoNgayDuBao" />
+
+        <div class="filter-controls">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">Từ ngày</span>
+                <input type="date" class="filter-pill-input" name="TuNgay" value="@Model.TuNgay?.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="segmented-control">
+                <button type="button" class="segmented-btn @(Model.SoNgayDuBao == 7 ? "active" : "")" onclick="setDays(7)">7 ngày</button>
+                <button type="button" class="segmented-btn @(Model.SoNgayDuBao == 14 ? "active" : "")" onclick="setDays(14)">14 ngày</button>
+                <button type="button" class="segmented-btn @(Model.SoNgayDuBao == 30 ? "active" : "")" onclick="setDays(30)">30 ngày</button>
+            </div>
+
+            <select class="form-select filter-pill-select" asp-for="LoaiPhongLoc" onchange="submitFilter()">
+                <option value="">Tất cả loại phòng</option>
+                @foreach (var lp in Model.DanhSachLoaiPhong)
+                {
+                    <option value="@lp">@lp</option>
+                }
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-search-cyan">Cập nhật dự báo</button>
+    </form>
+
+    <!-- BIỂU ĐỒ CÔNG SUẤT & GIÁ GỢI Ý + BẢNG ÁP DỤNG GIÁ ĐỘNG -->
+    <div class="row g-3 mb-3">
+        <!-- BIỂU ĐỒ -->
+        <div class="col-lg-7">
+            <div class="section-card h-100 mb-0">
+                <div class="section-header">
+                    <h2 class="section-title"><i class="bi bi-bar-chart-line-fill text-info"></i>Biểu đồ Công suất (%) &amp; Giá gợi ý động</h2>
+                    <span class="text-muted" style="font-size: 0.75rem;">Cột: Công suất • Đường: Giá gợi ý (₫)</span>
+                </div>
+                <div style="height: 270px; position: relative;">
+                    <canvas id="forecastChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ĐỊNH GIÁ ĐỘNG THEO LOẠI PHÒNG -->
+        <div class="col-lg-5">
+            <div class="section-card h-100 mb-0">
+                <div class="section-header">
+                    <h2 class="section-title"><i class="bi bi-sliders text-primary"></i>Đề xuất định giá động theo Loại phòng</h2>
+                </div>
+                <div class="table-responsive" style="max-height: 270px;">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Loại phòng</th>
+                                <th class="text-end">CS TB</th>
+                                <th class="text-end">Giá hiện tại</th>
+                                <th class="text-end">Giá đề xuất (₫)</th>
+                                <th class="text-center no-print">Áp dụng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.BangGiaTheoLoaiPhong.Any())
+                            {
+                                foreach (var lp in Model.BangGiaTheoLoaiPhong)
+                                {
+                                    string badge = lp.PhanTramGoiY >= 20 ? "adj-up-high"
+                                        : lp.PhanTramGoiY > 0 ? "adj-up"
+                                        : lp.PhanTramGoiY < 0 ? "adj-down"
+                                        : "adj-neutral";
+
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@lp.LoaiPhong</div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">@lp.TongPhong phòng • <span class="adj-badge @badge">@(lp.PhanTramGoiY > 0 ? "+" : "")@lp.PhanTramGoiY%</span></div>
+                                        </td>
+                                        <td class="text-end fw-semibold">@lp.CongSuatTrungBinh.ToString("0.#")%</td>
+                                        <td class="text-end text-muted">@lp.GiaHienTai.ToString("N0")</td>
+                                        <td colspan="2" class="no-print">
+                                            <form method="post" asp-page-handler="ApDungGia" class="d-flex align-items-center justify-content-end gap-1">
+                                                <input type="hidden" name="loaiPhong" value="@lp.LoaiPhong" />
+                                                <input type="hidden" name="TuNgay" value="@Model.TuNgay?.ToString("yyyy-MM-dd")" />
+                                                <input type="hidden" name="SoNgayDuBao" value="@Model.SoNgayDuBao" />
+                                                <input type="hidden" name="LoaiPhongLoc" value="@Model.LoaiPhongLoc" />
+                                                <input type="number"
+                                                       name="giaMoi"
+                                                       value="@lp.GiaDeXuat.ToString("0")"
+                                                       step="10000"
+                                                       min="0"
+                                                       class="form-control form-control-sm text-end fw-semibold text-primary"
+                                                       style="width: 105px; font-size: 0.78rem;" />
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-primary py-0 px-2"
+                                                        onclick="return confirm('Cập nhật giá phòng loại @lp.LoaiPhong xuống cơ sở dữ liệu?');"
+                                                        title="Áp dụng giá mới cho tất cả phòng thuộc loại này">
+                                                    Lưu
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Chưa có dữ liệu phòng.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-muted mt-2" style="font-size: 0.73rem;">
+                    <i class="bi bi-info-circle me-1"></i>Quy tắc: ≥85% (+20%), 70–84% (+10%), 40–69% (0%), &lt;40% (-10%), Cuối tuần (+5%).
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG CHI TIẾT DỰ BÁO THEO TỪNG NGÀY -->
+    <div class="section-card mb-0" id="forecastTableCard">
+        <div class="section-header">
+            <h2 class="section-title"><i class="bi bi-calendar3 text-info"></i>Chi tiết dự báo công suất &amp; giá bán theo ngày</h2>
+            <button type="button" class="btn-fullscreen no-print" onclick="toggleTableFullscreen()">
+                <i class="bi bi-arrows-fullscreen" id="iconFullscreen"></i>
+                <span id="textFullscreen">Phóng to</span>
+            </button>
+        </div>
+
+        <div class="report-table-wrapper">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Ngày</th>
+                        <th>Thứ</th>
+                        <th class="num-col">Tổng phòng</th>
+                        <th class="num-col">Đã đặt</th>
+                        <th class="num-col">Còn trống</th>
+                        <th>Công suất dự báo</th>
+                        <th class="num-col">Giá gốc TB (₫)</th>
+                        <th class="text-center">Điều chỉnh</th>
+                        <th class="num-col">Giá gợi ý động (₫)</th>
+                        <th class="num-col">DT đã chốt (₫)</th>
+                        <th class="num-col">DT tiềm năng (₫)</th>
+                        <th>Khuyến nghị hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.DanhSachDuBao)
+                    {
+                        string barColor = item.TyLeLapDay >= 85 ? "#dc2626"
+                            : item.TyLeLapDay >= 70 ? "#f59e0b"
+                            : item.TyLeLapDay >= 40 ? "#189ab4"
+                            : "#22c55e";
+
+                        string adjClass = item.PhanTramDieuChinh >= 20 ? "adj-up-high"
+                            : item.PhanTramDieuChinh > 0 ? "adj-up"
+                            : item.PhanTramDieuChinh < 0 ? "adj-down"
+                            : "adj-neutral";
+
+                        <tr class="@(item.LaCuoiTuan ? "weekend-row" : "")">
+                            <td class="fw-semibold">@item.Ngay.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @item.ThuTrongTuan
+                                @if (item.LaCuoiTuan)
+                                {
+                                    <span class="badge bg-warning-subtle text-warning-emphasis ms-1" style="font-size: 0.68rem;">Cuối tuần</span>
+                                }
+                            </td>
+                            <td class="num-col">@item.TongSoPhong</td>
+                            <td class="num-col fw-semibold text-primary">@item.SoPhongDaDat</td>
+                            <td class="num-col @(item.SoPhongTrong == 0 ? "text-danger fw-bold" : "")">@item.SoPhongTrong</td>
+                            <td>
+                                <div class="occ-bar-wrap">
+                                    <div class="occ-bar-bg">
+                                        <div class="occ-bar-fill" style="width: @Math.Min(100, item.TyLeLapDay)%; background-color: @barColor;"></div>
+                                    </div>
+                                    <span class="fw-semibold" style="width: 42px; text-align: right;">@item.TyLeLapDay.ToString("0.#")%</span>
+                                </div>
+                            </td>
+                            <td class="num-col text-muted">@item.GiaGocTrungBinh.ToString("N0")</td>
+                            <td class="text-center">
+                                <span class="adj-badge @adjClass">@(item.PhanTramDieuChinh > 0 ? "+" : "")@item.PhanTramDieuChinh%</span>
+                            </td>
+                            <td class="num-col fw-bold text-primary">@item.GiaGoiYDong.ToString("N0")</td>
+                            <td class="num-col fw-semibold text-success">@item.DoanhThuDaChot.ToString("N0")</td>
+                            <td class="num-col text-muted">@item.DoanhThuTiemNang.ToString("N0")</td>
+                            <td style="white-space: normal; min-width: 220px;">@item.KhuyenNghi</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function submitFilter() {
+            document.getElementById('forecastFilterForm').submit();
+        }
+
+        function setDays(days) {
+            document.getElementById('hiddenSoNgay').value = days;
+            submitFilter();
+        }
+
+        function toggleTableFullscreen() {
+            const card = document.getElementById('forecastTableCard');
+            const icon = document.getElementById('iconFullscreen');
+            const text = document.getElementById('textFullscreen');
+            if (!card) return;
+
+            const isFull = card.classList.toggle('fullscreen-mode');
+            icon.className = isFull ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen';
+            text.innerText = isFull ? 'Thu nhỏ' : 'Phóng to';
+        }
+
+        document.addEventListener('keydown', function (e) {
+            const card = document.getElementById('forecastTableCard');
+            if (e.key === 'Escape' && card && card.classList.contains('fullscreen-mode')) {
+                toggleTableFullscreen();
+            }
+        });
+
+        // Vẽ biểu đồ kết hợp Công suất (%) + Giá gợi ý động
+        const labels = @Html.Raw(JsonSerializer.Serialize(Model.DanhSachDuBao.Select(x => x.Ngay.ToString("dd/MM"))));
+        const occupancyData = @Html.Raw(JsonSerializer.Serialize(Model.DanhSachDuBao.Select(x => x.TyLeLapDay)));
+        const priceData = @Html.Raw(JsonSerializer.Serialize(Model.DanhSachDuBao.Select(x => x.GiaGoiYDong)));
+
+        const ctx = document.getElementById('forecastChart');
+        if (ctx) {
+            new Chart(ctx, {
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Công suất dự báo (%)',
+                            data: occupancyData,
+                            yAxisID: 'yOcc',
+                            backgroundColor: occupancyData.map(v =>
+                                v >= 85 ? 'rgba(220, 38, 38, 0.72)' :
+                                    v >= 70 ? 'rgba(245, 158, 11, 0.72)' :
+                                        'rgba(24, 154, 180, 0.65)'
+                            ),
+                            borderRadius: 4,
+                            maxBarThickness: 28
+                        },
+                        {
+                            type: 'line',
+                            label: 'Giá gợi ý động (VNĐ)',
+                            data: priceData,
+                            yAxisID: 'yPrice',
+                            borderColor: '#2563eb',
+                            backgroundColor: '#2563eb',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        yOcc: {
+                            type: 'linear',
+                            position: 'left',
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'Công suất (%)', font: { size: 11 } }
+                        },
+                        yPrice: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: 'Giá gợi ý (VNĐ)', font: { size: 11 } },
+                            ticks: {
+                                callback: v => new Intl.NumberFormat('vi-VN').format(v)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+}
