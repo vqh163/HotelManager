@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -5,6 +6,7 @@ using HotelManager.Data;
 using HotelManager.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -12,35 +14,46 @@ using System.Threading.Tasks;
 
 namespace HotelManager.Pages.QuanLyKho
 {
+    [Authorize]
     public class KiemKeKhoModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private static readonly object _logFileLock = new object();
 
         public KiemKeKhoModel(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // Thuộc tính lọc phạm vi kho kiểm kê (ALL, Kho vật dụng, Kho nhà hàng, Kho đồ tiêu hao)
+        [BindProperty(SupportsGet = true)]
+        public bool XemLichSu { get; set; } = false;
+
         [BindProperty(SupportsGet = true)]
         public string LoaiVatTuFilter { get; set; } = "ALL";
 
-        // Thông tin chung của biên bản kiểm kê
-        [BindProperty]
-        public string KyKiemKe { get; set; } = "Kiểm kê định kỳ Hàng Tuần";
+        [BindProperty(SupportsGet = true)]
+        [DataType(DataType.Date)]
+        public DateTime TuNgayLichSu { get; set; } = DateTime.Today.AddDays(-29);
+
+        [BindProperty(SupportsGet = true)]
+        [DataType(DataType.Date)]
+        public DateTime DenNgayLichSu { get; set; } = DateTime.Today;
 
         [BindProperty]
-        public string NguoiKiemKe { get; set; } = string.Empty;
+        public string? GhiChuKiemKe { get; set; }
 
         [BindProperty]
-        public string? GhiChuChung { get; set; }
+        public bool XacNhanGhiDe { get; set; } = false;
 
-        // Danh sách chi tiết từng mặt hàng nhận từ Form kiểm kê
         [BindProperty]
         public List<KiemKeItemInput> ItemsKiemKe { get; set; } = new List<KiemKeItemInput>();
 
-        // Lịch sử các biên bản kiểm kê định kỳ đã lưu
-        public List<BienBanKiemKeViewModel> LichSuKiemKe { get; set; } = new List<BienBanKiemKeViewModel>();
+        public List<DotKiemKeTomTat> LichSuKiemKe { get; set; } = new List<DotKiemKeTomTat>();
+
+        public bool CoXungDotTonKho { get; set; } = false;
+        public string ChiTietXungDot { get; set; } = string.Empty;
+
+        public string LoiLocNgay { get; set; } = string.Empty;
 
         [TempData]
         public string ThongBao { get; set; } = string.Empty;
@@ -57,32 +70,39 @@ namespace HotelManager.Pages.QuanLyKho
             public decimal DonGiaNhap { get; set; }
             public int TonHeThong { get; set; }
             public int TonThucTe { get; set; }
-            public string? LyDoChenhLech { get; set; }
+            public string? GhiChuDong { get; set; }
         }
 
-        public class BienBanKiemKeViewModel
+        public class DotKiemKeTomTat
         {
-            public string MaBienBan { get; set; } = string.Empty;
-            public string KyKiemKe { get; set; } = string.Empty;
-            public string PhamViKho { get; set; } = string.Empty;
-            public string NguoiKiemKe { get; set; } = string.Empty;
-            public int TongMatHang { get; set; }
-            public int SoMatHangLech { get; set; }
-            public decimal GiaTriChenhLech { get; set; }
-            public string GhiChu { get; set; } = string.Empty;
+            public string MaPhieu { get; set; } = string.Empty;
             public DateTime ThoiGian { get; set; }
+            public string NguoiThucHien { get; set; } = string.Empty;
+            public int SoMatHangDieuChinh { get; set; }
+            public decimal TongGiaTriThieu { get; set; }
+            public decimal TongGiaTriThua { get; set; }
+            public string GhiChu { get; set; } = string.Empty;
         }
 
-        /// <summary>
-        /// Tải danh sách vật tư từ bảng KHO_VAT_TU bằng LINQ để lập bảng kiểm kê
-        /// </summary>
         public async Task OnGetAsync()
         {
             try
             {
-                NguoiKiemKe = User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(User.Identity.Name)
-                    ? User.Identity.Name
-                    : "Thủ kho ca trực";
+                if (TuNgayLichSu == default) TuNgayLichSu = DateTime.Today.AddDays(-29);
+                if (DenNgayLichSu == default) DenNgayLichSu = DateTime.Today;
+
+                if (XemLichSu)
+                {
+                    if (KiemTraKhoangNgayLichSu())
+                    {
+                        LichSuKiemKe = DocLichSuKiemKeTheoKhoangNgay(TuNgayLichSu, DenNgayLichSu);
+                    }
+                    else
+                    {
+                        LichSuKiemKe = new List<DotKiemKeTomTat>();
+                    }
+                    return;
+                }
 
                 var query = _context.KHO_VAT_TU.AsNoTracking().AsQueryable();
 
@@ -104,189 +124,263 @@ namespace HotelManager.Pages.QuanLyKho
                     DonViTinh = v.DonViTinh ?? "Cái",
                     DonGiaNhap = v.DonGiaNhap ?? 0,
                     TonHeThong = v.SoLuongTon ?? 0,
-                    TonThucTe = v.SoLuongTon ?? 0,
-                    LyDoChenhLech = ""
+                    TonThucTe = v.SoLuongTon ?? 0
                 }).ToList();
-
-                LichSuKiemKe = DocLichSuKiemKe();
             }
             catch (Exception ex)
             {
-                ThongBaoLoi = "Lỗi khi tải danh sách kiểm kê kho: " + ex.Message;
+                ThongBaoLoi = "Lỗi khi tải dữ liệu kiểm kê kho: " + ex.Message;
             }
         }
 
-        /// <summary>
-        /// Chốt biên bản kiểm kê: Cập nhật lại SoLuongTon thực tế vào bảng KHO_VAT_TU và lưu nhật ký kiểm kê
-        /// </summary>
         public async Task<IActionResult> OnPostAsync()
         {
+            if (TuNgayLichSu == default || DenNgayLichSu == default || TuNgayLichSu.Date > DenNgayLichSu.Date)
+            {
+                TuNgayLichSu = DateTime.Today.AddDays(-29);
+                DenNgayLichSu = DateTime.Today;
+            }
+
+            XemLichSu = false;
+
             try
             {
                 if (ItemsKiemKe == null || !ItemsKiemKe.Any())
                 {
-                    ThongBaoLoi = "Không có dữ liệu vật tư nào để chốt kiểm kê.";
-                    return RedirectToPage(new { LoaiVatTuFilter = this.LoaiVatTuFilter });
+                    ThongBaoLoi = "Không có dữ liệu vật tư nào để cân bằng kho.";
+                    return RedirectToPage(new
+                    {
+                        LoaiVatTuFilter,
+                        TuNgayLichSu = TuNgayLichSu.ToString("yyyy-MM-dd"),
+                        DenNgayLichSu = DenNgayLichSu.ToString("yyyy-MM-dd")
+                    });
                 }
 
-                string maBienBan = "KK" + DateTime.Now.ToString("yyMMddHHmmss");
-                int soMatHangLech = 0;
-                decimal tongGiaTriLech = 0;
-
-                // Truy vấn các mặt hàng tương ứng từ CSDL bằng LINQ để cập nhật tồn kho
-                var maVatTuList = ItemsKiemKe.Select(x => x.MaVatTu).ToList();
-                var vatTuDbList = await _context.KHO_VAT_TU
-                    .Where(v => maVatTuList.Contains(v.MaVatTu))
-                    .ToListAsync();
-
-                foreach (var item in ItemsKiemKe)
+                if (ItemsKiemKe.Any(x => x.TonThucTe < 0))
                 {
-                    var vtDb = vatTuDbList.FirstOrDefault(v => v.MaVatTu == item.MaVatTu);
-                    if (vtDb == null) continue;
+                    ThongBaoLoi = "Số lượng kiểm đếm thực tế không được nhỏ hơn 0.";
+                    return Page();
+                }
 
-                    int tonCu = vtDb.SoLuongTon ?? 0;
-                    int tonMoi = item.TonThucTe < 0 ? 0 : item.TonThucTe;
-                    int chenhLech = tonMoi - tonCu;
+                var maVatTuList = ItemsKiemKe.Select(x => x.MaVatTu).Distinct().ToList();
+                var vatTuDbDict = await _context.KHO_VAT_TU
+                    .Where(v => maVatTuList.Contains(v.MaVatTu))
+                    .ToDictionaryAsync(v => v.MaVatTu, v => v);
 
-                    if (chenhLech != 0)
+                if (!XacNhanGhiDe)
+                {
+                    var xungDotList = new List<string>();
+                    foreach (var item in ItemsKiemKe)
                     {
-                        soMatHangLech++;
-                        decimal donGia = vtDb.DonGiaNhap ?? 0;
-                        tongGiaTriLech += chenhLech * donGia;
+                        if (!vatTuDbDict.TryGetValue(item.MaVatTu, out var vtDb)) continue;
+                        int tonDbHienTai = vtDb.SoLuongTon ?? 0;
 
-                        // Tự động cân bằng lại số lượng tồn kho theo thực tế kiểm đếm
-                        vtDb.SoLuongTon = tonMoi;
+                        if (tonDbHienTai != item.TonHeThong)
+                        {
+                            xungDotList.Add($"{item.MaVatTu} (lúc mở: {item.TonHeThong}, hiện tại DB: {tonDbHienTai})");
+                        }
+                    }
 
-                        // Ghi đồng bộ vào lịch sử Nhập/Xuất để phục vụ đối soát báo cáo tiêu hao (UC_12)
-                        string loaiGD = chenhLech > 0 ? "NHAP" : "XUAT";
-                        string dienGiai = $"[Cân bằng {KyKiemKe} - {maBienBan}] " +
-                                          (string.IsNullOrWhiteSpace(item.LyDoChenhLech) ? "Điều chỉnh chênh lệch kiểm kê" : item.LyDoChenhLech);
-
-                        GhiLichSuDieuChinhKho(
-                            maBienBan,
-                            loaiGD,
-                            vtDb.MaVatTu,
-                            vtDb.TenVatTu ?? "Vật tư",
-                            vtDb.LoaiVatTu ?? "Kho chung",
-                            vtDb.DonViTinh ?? "Cái",
-                            Math.Abs(chenhLech),
-                            donGia,
-                            $"Kiểm kê ({NguoiKiemKe})",
-                            dienGiai
-                        );
+                    if (xungDotList.Any())
+                    {
+                        CoXungDotTonKho = true;
+                        ChiTietXungDot = string.Join("; ", xungDotList.Take(5))
+                            + (xungDotList.Count > 5 ? $" và {xungDotList.Count - 5} mã khác." : ".");
+                        return Page();
                     }
                 }
 
-                await _context.SaveChangesAsync();
+                int soMatHangCapNhat = 0;
+                int soMatHangThieu = 0;
+                int soMatHangThua = 0;
+                var cacDongLogKiemKe = new List<string>();
 
-                string phamVi = string.IsNullOrEmpty(LoaiVatTuFilter) || LoaiVatTuFilter == "ALL" ? "Tất cả kho" : LoaiVatTuFilter;
-                GhiBienBanKiemKe(
-                    maBienBan,
-                    KyKiemKe,
-                    phamVi,
-                    NguoiKiemKe,
-                    ItemsKiemKe.Count,
-                    soMatHangLech,
-                    tongGiaTriLech,
-                    GhiChuChung ?? "Hoàn tất kiểm kê định kỳ"
-                );
+                string maPhieuKK = "KK" + DateTime.Now.ToString("yyMMddHHmmss");
+                string nguoiKiemKe = User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(User.Identity.Name)
+                    ? User.Identity.Name
+                    : "Thủ kho";
+                string thoiGianStr = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
-                ThongBao = $"Đã chốt biên bản [{maBienBan}] ({KyKiemKe})! Đã kiểm {ItemsKiemKe.Count} mặt hàng, phát hiện lệch và tự động cân bằng {soMatHangLech} mặt hàng.";
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    foreach (var item in ItemsKiemKe)
+                    {
+                        if (!vatTuDbDict.TryGetValue(item.MaVatTu, out var vtDb)) continue;
+
+                        int tonCu = vtDb.SoLuongTon ?? 0;
+                        int tonMoi = item.TonThucTe;
+                        int doLech = tonMoi - tonCu;
+
+                        if (doLech != 0)
+                        {
+                            vtDb.SoLuongTon = tonMoi;
+                            soMatHangCapNhat++;
+
+                            string loaiLog = doLech < 0 ? "KIEM_KE_THIEU" : "KIEM_KE_THUA";
+                            if (doLech < 0) soMatHangThieu++; else soMatHangThua++;
+
+                            string ghiChuHopNhat = string.Join(" - ", new[]
+                            {
+                                string.IsNullOrWhiteSpace(GhiChuKiemKe) ? "Kiểm kê định kỳ" : GhiChuKiemKe.Trim(),
+                                item.GhiChuDong?.Trim()
+                            }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                            string dongLog = string.Join("|",
+                                maPhieuKK,
+                                loaiLog,
+                                vtDb.MaVatTu,
+                                (vtDb.TenVatTu ?? "Vật tư").Replace("|", "/"),
+                                (vtDb.LoaiVatTu ?? "Kho chung").Replace("|", "/"),
+                                (vtDb.DonViTinh ?? "Cái").Replace("|", "/"),
+                                Math.Abs(doLech).ToString(CultureInfo.InvariantCulture),
+                                (vtDb.DonGiaNhap ?? 0).ToString(CultureInfo.InvariantCulture),
+                                nguoiKiemKe.Replace("|", "/"),
+                                ghiChuHopNhat.Replace("|", "/").Replace("\r", " ").Replace("\n", " "),
+                                thoiGianStr
+                            );
+
+                            cacDongLogKiemKe.Add(dongLog);
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+
+                if (soMatHangCapNhat == 0)
+                {
+                    string ghiChuKhop = string.IsNullOrWhiteSpace(GhiChuKiemKe)
+                        ? "Kiểm kê định kỳ (Khớp 100%)"
+                        : GhiChuKiemKe.Trim();
+
+                    string phamViKho = string.IsNullOrWhiteSpace(LoaiVatTuFilter) || LoaiVatTuFilter == "ALL"
+                        ? "Tất cả kho"
+                        : LoaiVatTuFilter;
+
+                    string dongLogKhop = string.Join("|",
+                        maPhieuKK,
+                        "KIEM_KE_KHOP",
+                        "ALL",
+                        "Đối soát toàn bộ vật tư",
+                        phamViKho.Replace("|", "/"),
+                        "-",
+                        "0",
+                        "0",
+                        nguoiKiemKe.Replace("|", "/"),
+                        ghiChuKhop.Replace("|", "/").Replace("\r", " ").Replace("\n", " "),
+                        thoiGianStr
+                    );
+
+                    cacDongLogKiemKe.Add(dongLogKhop);
+                }
+
+                string canhBaoLog = string.Empty;
+                if (cacDongLogKiemKe.Any())
+                {
+                    try
+                    {
+                        string filePath = Path.Combine(Directory.GetCurrentDirectory(), "lichsu_nhapxuat_meta.txt");
+                        lock (_logFileLock)
+                        {
+                            System.IO.File.AppendAllLines(filePath, cacDongLogKiemKe);
+                        }
+                    }
+                    catch (Exception logEx)
+                    {
+                        canhBaoLog = $" (Lưu ý: Đã lưu SQL nhưng chưa ghi được nhật ký kiểm kê: {logEx.Message})";
+                    }
+                }
+
+                ThongBao = soMatHangCapNhat > 0
+                    ? $"Phiếu [{maPhieuKK}] đã cân bằng tồn kho cho {soMatHangCapNhat}/{ItemsKiemKe.Count} mặt hàng ({soMatHangThieu} thiếu, {soMatHangThua} thừa).{canhBaoLog}"
+                    : $"Phiếu [{maPhieuKK}] đã đối soát {ItemsKiemKe.Count} mặt hàng (khớp 100% sổ sách) và lưu vào lịch sử.{canhBaoLog}";
             }
             catch (Exception ex)
             {
-                ThongBaoLoi = "Lỗi hệ thống khi chốt kiểm kê kho: " + ex.Message;
+                ThongBaoLoi = "Lỗi hệ thống khi cập nhật kiểm kê kho: " + ex.Message;
             }
 
-            return RedirectToPage(new { LoaiVatTuFilter = this.LoaiVatTuFilter });
-        }
-
-        private void GhiBienBanKiemKe(string maBB, string kyKK, string phamVi, string nguoiKK, int tongMH, int soLech, decimal giaTriLech, string ghiChu)
-        {
-            try
+            return RedirectToPage(new
             {
-                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "lichsu_kiemke_meta.txt");
-                string cleanNguoi = nguoiKK.Replace("|", "/").Trim();
-                string cleanGhiChu = ghiChu.Replace("|", "/").Replace("\r", " ").Replace("\n", " ").Trim();
-
-                string line = string.Join("|",
-                    maBB,
-                    kyKK,
-                    phamVi,
-                    cleanNguoi,
-                    tongMH,
-                    soLech,
-                    giaTriLech.ToString(CultureInfo.InvariantCulture),
-                    cleanGhiChu,
-                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                ) + Environment.NewLine;
-
-                System.IO.File.AppendAllText(filePath, line);
-            }
-            catch { }
+                LoaiVatTuFilter,
+                TuNgayLichSu = TuNgayLichSu.ToString("yyyy-MM-dd"),
+                DenNgayLichSu = DenNgayLichSu.ToString("yyyy-MM-dd")
+            });
         }
 
-        private void GhiLichSuDieuChinhKho(string maPhieu, string loai, string maVT, string tenVT, string loaiKho, string dvt, int soLuong, decimal donGia, string doiTac, string ghiChu)
+        private bool KiemTraKhoangNgayLichSu()
         {
+            if (TuNgayLichSu == default) TuNgayLichSu = DateTime.Today.AddDays(-29);
+            if (DenNgayLichSu == default) DenNgayLichSu = DateTime.Today;
+
+            if (TuNgayLichSu.Date > DenNgayLichSu.Date)
+            {
+                LoiLocNgay = "Khoảng ngày lọc lịch sử không hợp lệ: 'Từ ngày' không được lớn hơn 'Đến ngày'.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private List<DotKiemKeTomTat> DocLichSuKiemKeTheoKhoangNgay(DateTime tuNgay, DateTime denNgay)
+        {
+            var result = new List<DotKiemKeTomTat>();
             try
             {
                 string filePath = Path.Combine(Directory.GetCurrentDirectory(), "lichsu_nhapxuat_meta.txt");
-                string line = string.Join("|",
-                    maPhieu,
-                    loai,
-                    maVT,
-                    tenVT,
-                    loaiKho,
-                    dvt,
-                    soLuong,
-                    donGia.ToString(CultureInfo.InvariantCulture),
-                    doiTac.Replace("|", "/"),
-                    ghiChu.Replace("|", "/"),
-                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                ) + Environment.NewLine;
+                if (!System.IO.File.Exists(filePath)) return result;
 
-                System.IO.File.AppendAllText(filePath, line);
-            }
-            catch { }
-        }
+                DateTime startDate = tuNgay.Date;
+                DateTime endDate = denNgay.Date.AddDays(1).AddTicks(-1);
 
-        private List<BienBanKiemKeViewModel> DocLichSuKiemKe()
-        {
-            var list = new List<BienBanKiemKeViewModel>();
-            try
-            {
-                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "lichsu_kiemke_meta.txt");
-                if (!System.IO.File.Exists(filePath)) return list;
+                var cacDong = new List<(string MaPhieu, string Loai, decimal ThanhTien, string Nguoi, string GhiChu, DateTime ThoiGian)>();
 
-                var lines = System.IO.File.ReadAllLines(filePath);
-                foreach (var line in lines)
+                foreach (var line in System.IO.File.ReadAllLines(filePath))
                 {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
                     var p = line.Split('|');
-                    if (p.Length >= 9)
-                    {
-                        int.TryParse(p[4], out int tongMH);
-                        int.TryParse(p[5], out int soLech);
-                        decimal.TryParse(p[6], NumberStyles.Any, CultureInfo.InvariantCulture, out decimal giaTri);
-                        DateTime.TryParse(p[8], out DateTime tg);
+                    if (p.Length < 11) continue;
 
-                        list.Add(new BienBanKiemKeViewModel
-                        {
-                            MaBienBan = p[0],
-                            KyKiemKe = p[1],
-                            PhamViKho = p[2],
-                            NguoiKiemKe = p[3],
-                            TongMatHang = tongMH,
-                            SoMatHangLech = soLech,
-                            GiaTriChenhLech = giaTri,
-                            GhiChu = p[7],
-                            ThoiGian = tg
-                        });
-                    }
+                    string loai = p[1].Trim();
+                    if (loai != "KIEM_KE_THIEU" && loai != "KIEM_KE_THUA" && loai != "KIEM_KE_KHOP") continue;
+
+                    if (!int.TryParse(p[6].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int sl)) continue;
+                    if (!decimal.TryParse(p[7].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal gia)) continue;
+
+                    bool okTg = DateTime.TryParseExact(
+                                    p[10].Trim(),
+                                    "yyyy-MM-dd HH:mm:ss",
+                                    CultureInfo.InvariantCulture,
+                                    DateTimeStyles.None,
+                                    out DateTime tg)
+                                || DateTime.TryParse(p[10].Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out tg);
+
+                    if (!okTg || tg < startDate || tg > endDate) continue;
+
+                    cacDong.Add((p[0].Trim(), loai, sl * gia, p[8].Trim(), p[9].Trim(), tg));
                 }
-            }
-            catch { }
 
-            return list.OrderByDescending(x => x.ThoiGian).ToList();
+                result = cacDong
+                    .GroupBy(x => x.MaPhieu)
+                    .Select(g => new DotKiemKeTomTat
+                    {
+                        MaPhieu = g.Key,
+                        ThoiGian = g.Max(x => x.ThoiGian),
+                        NguoiThucHien = g.First().Nguoi,
+                        SoMatHangDieuChinh = g.Count(x => x.Loai != "KIEM_KE_KHOP"),
+                        TongGiaTriThieu = g.Where(x => x.Loai == "KIEM_KE_THIEU").Sum(x => x.ThanhTien),
+                        TongGiaTriThua = g.Where(x => x.Loai == "KIEM_KE_THUA").Sum(x => x.ThanhTien),
+                        GhiChu = g.First().GhiChu
+                    })
+                    .OrderByDescending(x => x.ThoiGian)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                LoiLocNgay = "Không thể đọc lịch sử kiểm kê: " + ex.Message;
+            }
+
+            return result;
         }
     }
 }

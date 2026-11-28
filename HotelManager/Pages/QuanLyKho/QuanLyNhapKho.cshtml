@@ -1,55 +1,394 @@
 ﻿@page
 @model HotelManager.Pages.QuanLyKho.QuanLyNhapKhoModel
 @{
-    ViewData["Title"] = "Quản lý Nhập Kho";
+    ViewData["Title"] = Model.XemDonPO ? "Nghiệm thu Đơn đặt hàng (PO)" : "Quản lý Nhập Kho";
+    bool ngayLichSuHopLe = Model.TuNgayLichSu.Date <= Model.DenNgayLichSu.Date;
 }
 
 <style>
-    /* Ẩn thanh menu mặc định của Layout */
-    header, footer {
-        display: none !important;
+    /* Giao diện nền sáng phẳng đồng bộ toàn phân hệ Kho, giữ nguyên Header của _Layout */
+    body {
+        background-color: #f5f6f8;
+        color: #1f2937;
+    }
+
+    .nk-page {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 18px 20px 32px;
+    }
+
+    .nk-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .nk-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .nk-subtitle {
+        font-size: 0.82rem;
+        color: #6b7280;
+        margin-top: 2px;
+    }
+
+    .nk-box {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+    }
+
+    .nk-box-head {
+        padding: 11px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .nk-kpi-row-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .nk-kpi-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-top: 3px solid #1f2937;
+        border-radius: 10px;
+        padding: 12px 16px;
+    }
+
+        .nk-kpi-card.k-amber {
+            border-top-color: #d97706;
+        }
+
+        .nk-kpi-card.k-emerald {
+            border-top-color: #059669;
+        }
+
+    .nk-kpi-title {
+        font-size: 0.74rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+    }
+
+    .nk-kpi-num {
+        font-size: 1.28rem;
+        font-weight: 700;
+        margin: 3px 0 2px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .nk-table {
+        font-size: 0.86rem;
+        margin-bottom: 0;
+    }
+
+        .nk-table thead th {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #6b7280;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 12px;
+            white-space: nowrap;
+        }
+
+        .nk-table tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+
+    .num {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .c-in {
+        color: #059669;
+        font-weight: 600;
+    }
+
+    .st-pill {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 5px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .st-ok {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .st-warn {
+        background: #fef9c3;
+        color: #a16207;
+    }
+
+    .btn-charcoal {
+        background: #1f2937;
+        border-color: #1f2937;
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+        .btn-charcoal:hover {
+            background: #111827;
+            border-color: #111827;
+            color: #ffffff;
+        }
+
+    .item-line {
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+
+    @@media (max-width: 992px) {
+        .nk-kpi-row-3 {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-12 col-xl-11">
+<div class="nk-page">
+    <!-- Thông báo kết quả xử lý -->
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.ThongBao
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.ThongBaoLoi
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.LoiLocNgay))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.LoiLocNgay
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
-            <!-- Khu vực hiển thị thông báo kết quả xử lý -->
-            @if (!string.IsNullOrEmpty(Model.ThongBao))
-            {
-                <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBao
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
-            {
-                <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
+    @if (Model.XemDonPO)
+    {
+        <!-- ============================================================= -->
+        <!-- CHẾ ĐỘ TOÀN MÀN HÌNH: NGHIỆM THU & XÁC NHẬN ĐƠN ĐẶT HÀNG (PO) -->
+        <!-- ============================================================= -->
+        <div class="nk-header">
+            <div>
+                <h1 class="nk-title">Nghiệm thu Đơn đặt hàng (PO)</h1>
+                <div class="nk-subtitle">Kiểm tra các đơn đặt hàng đã phát hành và xác nhận nhập kho tự động vào bảng KHO_VAT_TU</div>
+            </div>
+            <a asp-page="./QuanLyNhapKho"
+               asp-route-TuNgayLichSu="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")"
+               asp-route-DenNgayLichSu="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")"
+               class="btn btn-sm btn-outline-secondary fw-semibold px-3">
+                Quay lại nhập kho
+            </a>
+        </div>
 
-            <div class="row g-4">
-                <!-- Cột Trái: Form Lập Phiếu Nhập Kho -->
-                <div class="col-lg-5">
-                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
-                        <div class="card-header bg-gradient bg-success text-white p-4 border-0">
-                            <h5 class="mb-0 fw-bold"><i class="bi bi-file-earmark-plus me-2"></i> Lập Phiếu Nhập Kho</h5>
-                            <p class="mb-0 text-white-50 small mt-1">Bổ sung số lượng hàng hóa / vật tư vào kho</p>
-                        </div>
-                        <div class="card-body p-4 bg-light">
-                            <form method="post">
-                                <div class="mb-3">
-                                    <label asp-for="Input.MaVatTu" class="form-label fw-bold">Chọn vật tư / hàng hóa <span class="text-danger">*</span></label>
-                                    <select asp-for="Input.MaVatTu" id="selectVatTuNhap" class="form-select rounded-3 border-0 shadow-sm" onchange="capNhatThongTinVatTuNhap()" required>
-                                        <option value="">-- Chọn vật tư cần nhập --</option>
-                                        @if (Model.DanhSachVatTu != null)
+        <!-- 3 thẻ tóm tắt tình trạng đơn PO -->
+        <div class="nk-kpi-row-3">
+            <div class="nk-kpi-card">
+                <div class="nk-kpi-title">Tổng số đơn đặt hàng (PO)</div>
+                <div class="nk-kpi-num">@Model.DanhSachDonPO.Count</div>
+            </div>
+            <div class="nk-kpi-card k-amber">
+                <div class="nk-kpi-title">Chờ xác nhận nhập kho</div>
+                <div class="nk-kpi-num" style="color: #b45309;">@Model.SoDonPOChoNhap</div>
+            </div>
+            <div class="nk-kpi-card k-emerald">
+                <div class="nk-kpi-title">Đã nghiệm thu & nhập kho</div>
+                <div class="nk-kpi-num" style="color: #059669;">@(Model.DanhSachDonPO.Count - Model.SoDonPOChoNhap)</div>
+            </div>
+        </div>
+
+        <div class="nk-box overflow-hidden">
+            <div class="nk-box-head">
+                <span class="fw-bold small text-dark">Danh sách tất cả Đơn đặt hàng (PO)</span>
+                <span class="small text-muted">@Model.SoDonPOChoNhap đơn chờ xác nhận</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table nk-table">
+                    <thead>
+                        <tr>
+                            <th>Mã PO & Ngày lập</th>
+                            <th>Nhà cung cấp & Người lập</th>
+                            <th>Chi tiết mặt hàng đặt mua</th>
+                            <th class="text-end">Tổng dự toán</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-end">Xác nhận nhập</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.DanhSachDonPO != null && Model.DanhSachDonPO.Any())
+                        {
+                            @foreach (var po in Model.DanhSachDonPO)
+                            {
+                                bool daNhanHang = po.TrangThai == "Đã nhận hàng & Nhập kho";
+                                <tr>
+                                    <td class="text-nowrap">
+                                        <div class="fw-bold text-dark num">@po.MaPO</div>
+                                        <div class="text-muted small num">@po.NgayLap.ToString("dd/MM/yyyy HH:mm")</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">@po.NhaCungCap</div>
+                                        <div class="text-muted small">Người lập: @po.NguoiLap</div>
+                                    </td>
+                                    <td>
+                                        <div class="small text-dark">@po.TomTatMatHang</div>
+                                        @if (!string.IsNullOrWhiteSpace(po.GhiChu))
                                         {
+                                            <div class="small text-muted fst-italic">Ghi chú: @po.GhiChu</div>
+                                        }
+                                    </td>
+                                    <td class="text-end fw-semibold text-dark num">@po.TongTienDuToan.ToString("N0") ₫</td>
+                                    <td class="text-center">
+                                        @if (daNhanHang)
+                                        {
+                                            <span class="st-pill st-ok">Đã nhập kho</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="st-pill st-warn">Chờ giao hàng</span>
+                                        }
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        @if (!daNhanHang)
+                                        {
+                                            <form method="post"
+                                                  asp-page-handler="XacNhanNhapPO"
+                                                  asp-route-maPO="@po.MaPO"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Xác nhận đã nhận đủ hàng theo đơn @po.MaPO và cộng tồn vào kho?');">
+                                                <input type="hidden" name="TuNgayLichSu" value="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")" />
+                                                <input type="hidden" name="DenNgayLichSu" value="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")" />
+                                                <button type="submit" class="btn btn-sm btn-success fw-semibold px-3">
+                                                    Xác nhận nhập kho
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="small text-muted">Hoàn tất</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    Chưa có Đơn đặt hàng (PO) nào được phát hành.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ============================================================= -->
+        <!-- CHẾ ĐỘ CHÍNH: LẬP PHIẾU NHẬP KHO & LỊCH SỬ PHIẾU NHẬP         -->
+        <!-- ============================================================= -->
+        <div class="nk-header">
+            <div>
+                <h1 class="nk-title">Quản lý Nhập Kho</h1>
+                <div class="nk-subtitle">Lập phiếu nhập một hoặc nhiều vật tư cùng lúc, tự động cộng tồn và cập nhật đơn giá</div>
+            </div>
+            <a asp-page="./QuanLyNhapKho"
+               asp-route-XemDonPO="true"
+               asp-route-TuNgayLichSu="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")"
+               asp-route-DenNgayLichSu="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")"
+               class="btn btn-sm btn-charcoal px-3 py-2">
+                Đơn đặt hàng chờ nhập (@Model.SoDonPOChoNhap)
+            </a>
+        </div>
+
+        <!-- KHỐI 1: Form Lập Phiếu Nhập Nhiều Vật Tư -->
+        <div class="nk-box overflow-hidden mb-3">
+            <div class="nk-box-head">
+                <span class="fw-bold small text-dark">Lập phiếu nhập kho mới</span>
+                <span class="small text-muted">Có thể thêm nhiều dòng vật tư trong cùng 1 phiếu nhập</span>
+            </div>
+
+            <form method="post" id="formNhapKho">
+                <input type="hidden" name="TuNgayLichSu" value="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="DenNgayLichSu" value="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")" />
+
+                <!-- Thông tin chung của phiếu nhập -->
+                <div class="p-3 border-bottom">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <label asp-for="NhaCungCap" class="form-label small fw-semibold text-secondary mb-1">
+                                Nhà cung cấp / Nguồn nhập <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="NhaCungCap" class="form-control form-control-sm" placeholder="VD: Công ty CP Thực phẩm Đà Nẵng..." required />
+                        </div>
+                        <div class="col-md-7">
+                            <label asp-for="GhiChu" class="form-label small fw-semibold text-secondary mb-1">
+                                Ghi chú phiếu nhập
+                            </label>
+                            <input asp-for="GhiChu" class="form-control form-control-sm" placeholder="Số hóa đơn VAT, biên bản giao nhận, tình trạng hàng..." />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bảng nhập chi tiết nhiều vật tư -->
+                <div class="table-responsive">
+                    <table class="table nk-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 36%;">Vật tư / Hàng hóa <span class="text-danger">*</span></th>
+                                <th>Phân khu</th>
+                                <th class="text-end">Tồn hiện tại</th>
+                                <th class="text-center" style="width: 120px;">SL nhập <span class="text-danger">*</span></th>
+                                <th class="text-end" style="width: 155px;">Đơn giá (VNĐ) <span class="text-danger">*</span></th>
+                                <th class="text-end" style="width: 150px;">Thành tiền</th>
+                                <th class="text-center" style="width: 70px;">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyNhap">
+                            @for (int i = 0; i < Model.Items.Count; i++)
+                            {
+                                <tr class="row-nhap">
+                                    <td>
+                                        <select name="Items[@i].MaVatTu" class="form-select form-select-sm sel-vattu" onchange="chonVatTuNhap(this)" required>
+                                            <option value="">-- Chọn vật tư cần nhập --</option>
                                             @foreach (var vt in Model.DanhSachVatTu)
                                             {
                                                 <option value="@vt.MaVatTu"
+                                                        selected="@(vt.MaVatTu == Model.Items[i].MaVatTu)"
                                                         data-kho="@(vt.LoaiVatTu ?? "Chưa phân loại")"
                                                         data-dvt="@(vt.DonViTinh ?? "Cái")"
                                                         data-ton="@(vt.SoLuongTon ?? 0)"
@@ -57,169 +396,341 @@
                                                     [@vt.MaVatTu] @vt.TenVatTu (Tồn: @(vt.SoLuongTon ?? 0) @(vt.DonViTinh ?? ""))
                                                 </option>
                                             }
-                                        }
-                                    </select>
-                                </div>
-
-                                <!-- Hiển thị nhanh thông tin tồn hiện tại của vật tư -->
-                                <div class="p-3 bg-white rounded-3 shadow-sm mb-3 border-start border-4 border-success">
-                                    <div class="row text-center">
-                                        <div class="col-4 border-end">
-                                            <small class="text-muted d-block">Phân loại</small>
-                                            <strong class="text-dark small" id="lblLoaiKho">-</strong>
-                                        </div>
-                                        <div class="col-4 border-end">
-                                            <small class="text-muted d-block">Tồn hiện tại</small>
-                                            <strong class="text-primary fs-6" id="lblTonHienTai">0</strong>
-                                        </div>
-                                        <div class="col-4">
-                                            <small class="text-muted d-block">Đơn vị</small>
-                                            <strong class="text-secondary" id="lblDonViTinh">-</strong>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row g-3 mb-3">
-                                    <div class="col-md-6">
-                                        <label asp-for="Input.SoLuongNhap" class="form-label fw-bold">Số lượng nhập <span class="text-danger">*</span></label>
-                                        <input asp-for="Input.SoLuongNhap" id="inpSoLuongNhap" type="number" min="1" class="form-control rounded-3 border-0 shadow-sm fw-bold text-success" oninput="tinhThanhTien()" required />
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label asp-for="Input.DonGiaNhapMoi" class="form-label fw-bold">Đơn giá nhập (VNĐ) <span class="text-danger">*</span></label>
-                                        <input asp-for="Input.DonGiaNhapMoi" id="inpDonGiaNhap" type="number" step="0.01" min="0" class="form-control rounded-3 border-0 shadow-sm" oninput="tinhThanhTien()" required />
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold text-muted small">Tổng thành tiền dự kiến:</label>
-                                    <div class="fs-5 fw-bold text-danger" id="lblThanhTien">0 VNĐ</div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label asp-for="Input.NhaCungCap" class="form-label fw-bold">Nhà cung cấp / Nguồn nhập <span class="text-danger">*</span></label>
-                                    <input asp-for="Input.NhaCungCap" class="form-control rounded-3 border-0 shadow-sm" placeholder="VD: Công ty CP Thực phẩm Đà Nẵng..." required />
-                                </div>
-
-                                <div class="mb-4">
-                                    <label asp-for="Input.GhiChu" class="form-label fw-bold">Ghi chú phiếu nhập</label>
-                                    <textarea asp-for="Input.GhiChu" class="form-control rounded-3 border-0 shadow-sm" rows="2" placeholder="Số hóa đơn chứng từ, tình trạng hàng..."></textarea>
-                                </div>
-
-                                <button type="submit" class="btn btn-success btn-lg w-100 rounded-pill fw-bold shadow">
-                                    <i class="bi bi-check2-circle me-1"></i> Xác nhận Nhập Kho
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+                                        </select>
+                                    </td>
+                                    <td class="small text-secondary lbl-kho">-</td>
+                                    <td class="text-end num small text-secondary lbl-ton">-</td>
+                                    <td>
+                                        <input name="Items[@i].SoLuongNhap"
+                                               type="number"
+                                               min="1"
+                                               value="@(Model.Items[i].SoLuongNhap > 0 ? Model.Items[i].SoLuongNhap : 1)"
+                                               class="form-control form-control-sm text-center fw-bold num inp-sl"
+                                               oninput="tinhDongNhap(this)"
+                                               required />
+                                    </td>
+                                    <td>
+                                        <input name="Items[@i].DonGiaNhapMoi"
+                                               type="number"
+                                               step="0.01"
+                                               min="0"
+                                               value="@Model.Items[i].DonGiaNhapMoi.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                               class="form-control form-control-sm text-end num inp-gia"
+                                               oninput="tinhDongNhap(this)"
+                                               required />
+                                    </td>
+                                    <td class="text-end num c-in lbl-thanhtien">0 ₫</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="xoaDongNhap(this)">Xóa</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
 
-                <!-- Cột Phải: Lịch sử Phiếu Nhập Kho gần đây -->
-                <div class="col-lg-7">
-                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
-                        <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-clock-history text-success me-2"></i> Lịch sử Phiếu Nhập Kho</h5>
-                            <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-3 py-2">
-                                Tổng: @(Model.LichSuNhapKho?.Count ?? 0) phiếu
-                            </span>
+                <!-- Chân phiếu: Thêm dòng & Tổng tiền + Nút xác nhận -->
+                <div class="px-3 py-3 bg-light border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary fw-semibold px-3" onclick="themDongNhap()">
+                        + Thêm vật tư vào phiếu
+                    </button>
+
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <div class="small text-secondary">
+                            Số dòng: <strong class="text-dark num" id="lblTongDongNhap">@Model.Items.Count</strong>
+                            · Tổng tiền phiếu: <strong class="fs-6 c-in num" id="lblTongTienPhieuNhap">0 ₫</strong>
                         </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0 text-center">
-                                    <thead class="table-light text-secondary small">
-                                        <tr>
-                                            <th class="ps-3 text-start">Mã Phiếu</th>
-                                            <th class="text-start">Vật Tư</th>
-                                            <th>SL Nhập</th>
-                                            <th>Đơn Giá</th>
-                                            <th>Thành Tiền</th>
-                                            <th class="text-start pe-3">Nhà Cung Cấp & Thời Gian</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (Model.LichSuNhapKho != null && Model.LichSuNhapKho.Any())
-                                        {
-                                            @foreach (var item in Model.LichSuNhapKho)
-                                            {
-                                                <tr class="border-bottom">
-                                                    <td class="ps-3 text-start">
-                                                        <span class="badge bg-light text-dark border">@item.MaPhieu</span>
-                                                    </td>
-                                                    <td class="text-start">
-                                                        <div class="fw-bold text-dark">@item.TenVatTu</div>
-                                                        <small class="text-muted">@item.LoaiKho</small>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-success rounded-pill px-3">+@item.SoLuong @item.DonViTinh</span>
-                                                    </td>
-                                                    <td class="text-muted small">@item.DonGia.ToString("N0") ₫</td>
-                                                    <td class="fw-bold text-success">@item.ThanhTien.ToString("N0") ₫</td>
-                                                    <td class="text-start pe-3">
-                                                        <div class="small fw-semibold text-dark"><i class="bi bi-building me-1"></i>@item.DoiTacHoacBoPhan</div>
-                                                        <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>@item.ThoiGian.ToString("dd/MM/yyyy HH:mm")</small>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-5">
-                                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i> Chưa có lịch sử phiếu nhập kho nào.
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        <button type="submit" class="btn btn-sm btn-charcoal px-4 py-2">
+                            Xác nhận nhập kho
+                        </button>
                     </div>
                 </div>
+            </form>
+        </div>
+
+        <!-- Template HTML ẩn dùng để thêm dòng vật tư mới -->
+        <template id="tplDongNhap">
+            <tr class="row-nhap">
+                <td>
+                    <select name="Items[0].MaVatTu" class="form-select form-select-sm sel-vattu" onchange="chonVatTuNhap(this)" required>
+                        <option value="">-- Chọn vật tư cần nhập --</option>
+                        @foreach (var vt in Model.DanhSachVatTu)
+                        {
+                            <option value="@vt.MaVatTu"
+                                    data-kho="@(vt.LoaiVatTu ?? "Chưa phân loại")"
+                                    data-dvt="@(vt.DonViTinh ?? "Cái")"
+                                    data-ton="@(vt.SoLuongTon ?? 0)"
+                                    data-gia="@(vt.DonGiaNhap ?? 0)">
+                                [@vt.MaVatTu] @vt.TenVatTu (Tồn: @(vt.SoLuongTon ?? 0) @(vt.DonViTinh ?? ""))
+                            </option>
+                        }
+                    </select>
+                </td>
+                <td class="small text-secondary lbl-kho">-</td>
+                <td class="text-end num small text-secondary lbl-ton">-</td>
+                <td>
+                    <input name="Items[0].SoLuongNhap" type="number" min="1" value="1" class="form-control form-control-sm text-center fw-bold num inp-sl" oninput="tinhDongNhap(this)" required />
+                </td>
+                <td>
+                    <input name="Items[0].DonGiaNhapMoi" type="number" step="0.01" min="0" value="0" class="form-control form-control-sm text-end num inp-gia" oninput="tinhDongNhap(this)" required />
+                </td>
+                <td class="text-end num c-in lbl-thanhtien">0 ₫</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="xoaDongNhap(this)">Xóa</button>
+                </td>
+            </tr>
+        </template>
+
+        <!-- KHỐI 2: Lịch sử Phiếu Nhập Kho (gom theo Mã phiếu + lọc khoảng ngày, chặn Từ ngày > Đến ngày) -->
+        <div class="nk-box overflow-hidden" id="lich-su-nhap">
+            <div class="nk-box-head">
+                <div>
+                    <span class="fw-bold small text-dark">Lịch sử phiếu nhập kho</span>
+                    <span class="small text-muted ms-2">
+                        (@Model.TuNgayLichSu.ToString("dd/MM/yyyy") – @Model.DenNgayLichSu.ToString("dd/MM/yyyy") · @Model.LichSuPhieuNhap.Count phiếu)
+                    </span>
+                </div>
+
+                <form method="get"
+                      action="#lich-su-nhap"
+                      novalidate
+                      onsubmit="return kiemTraKhoangNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu');"
+                      class="d-flex flex-column align-items-end gap-1">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <label asp-for="TuNgayLichSu" class="small text-secondary fw-semibold mb-0 text-nowrap">Từ ngày</label>
+                            <input asp-for="TuNgayLichSu"
+                                   id="inpTuNgayLichSu"
+                                   type="date"
+                                   max="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")"
+                                   onchange="dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu')"
+                                   class="form-control form-control-sm @(ngayLichSuHopLe ? "" : "is-invalid")"
+                                   style="width: 140px;" />
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <label asp-for="DenNgayLichSu" class="small text-secondary fw-semibold mb-0 text-nowrap">Đến ngày</label>
+                            <input asp-for="DenNgayLichSu"
+                                   id="inpDenNgayLichSu"
+                                   type="date"
+                                   min="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")"
+                                   onchange="dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu')"
+                                   class="form-control form-control-sm @(ngayLichSuHopLe ? "" : "is-invalid")"
+                                   style="width: 140px;" />
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-charcoal px-3">Xem lịch sử</button>
+                    </div>
+                    <div id="errNgayLichSu" class="text-danger small @(ngayLichSuHopLe ? "d-none" : "")">
+                        Từ ngày không được lớn hơn Đến ngày.
+                    </div>
+                </form>
             </div>
 
+            <div class="table-responsive">
+                <table class="table nk-table">
+                    <thead>
+                        <tr>
+                            <th>Mã phiếu & Thời gian</th>
+                            <th>Nhà cung cấp & Ghi chú</th>
+                            <th>Chi tiết vật tư nhập</th>
+                            <th class="text-center">Số mặt hàng</th>
+                            <th class="text-end">Tổng giá trị phiếu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.LichSuPhieuNhap != null && Model.LichSuPhieuNhap.Any())
+                        {
+                            @foreach (var phieu in Model.LichSuPhieuNhap)
+                            {
+                                <tr>
+                                    <td class="text-nowrap">
+                                        <div class="fw-bold text-dark num">@phieu.MaPhieu</div>
+                                        <div class="text-muted small num">@phieu.ThoiGian.ToString("dd/MM/yyyy HH:mm")</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">@phieu.NhaCungCap</div>
+                                        @if (!string.IsNullOrWhiteSpace(phieu.GhiChu))
+                                        {
+                                            <div class="small text-muted">@phieu.GhiChu</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @foreach (var ct in phieu.ChiTietVatTu)
+                                        {
+                                            <div class="item-line">
+                                                <span class="fw-semibold text-dark">@ct.TenVatTu</span>
+                                                <span class="c-in num ms-1">+@ct.SoLuong @ct.DonViTinh</span>
+                                                <span class="text-muted num">× @ct.DonGia.ToString("N0") ₫</span>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="text-center num text-secondary">@phieu.ChiTietVatTu.Count</td>
+                                    <td class="text-end num c-in">@phieu.TongThanhTien.ToString("N0") ₫</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    @if (!ngayLichSuHopLe)
+                                    {
+                                        <span>Vui lòng chọn lại khoảng ngày hợp lệ (Từ ngày nhỏ hơn hoặc bằng Đến ngày).</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Không có phiếu nhập kho nào trong khoảng ngày @Model.TuNgayLichSu.ToString("dd/MM/yyyy") – @Model.DenNgayLichSu.ToString("dd/MM/yyyy").</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    }
 </div>
 
 @section Scripts {
     <script>
         // @@ts-nocheck
-        function capNhatThongTinVatTuNhap() {
-            var selectEl = document.getElementById('selectVatTuNhap');
-            if (!selectEl || selectEl['selectedIndex'] <= 0) {
-                document.getElementById('lblLoaiKho').innerText = '-';
-                document.getElementById('lblTonHienTai').innerText = '0';
-                document.getElementById('lblDonViTinh').innerText = '-';
+        // Thêm một dòng vật tư mới vào bảng lập phiếu nhập
+        function themDongNhap() {
+            var tbody = document.getElementById('tbodyNhap');
+            var tpl = document.getElementById('tplDongNhap');
+            if (!tbody || !tpl) return;
+
+            var clone = tpl.content.cloneNode(true);
+            tbody.appendChild(clone);
+            danhLaiChiSoNhap();
+            tinhTongPhieuNhap();
+        }
+
+        // Xóa một dòng vật tư (luôn giữ lại ít nhất 1 dòng)
+        function xoaDongNhap(btn) {
+            var tbody = document.getElementById('tbodyNhap');
+            var rows = tbody.querySelectorAll('.row-nhap');
+            if (rows.length <= 1) {
+                var r = rows[0];
+                r.querySelector('.sel-vattu')['value'] = '';
+                r.querySelector('.inp-sl')['value'] = '1';
+                r.querySelector('.inp-gia')['value'] = '0';
+                capNhatThongTinDongNhap(r, false);
+                tinhTongPhieuNhap();
                 return;
             }
 
-            var selectedOpt = selectEl['options'][selectEl['selectedIndex']];
-            var kho = selectedOpt.getAttribute('data-kho') || '-';
-            var dvt = selectedOpt.getAttribute('data-dvt') || '-';
-            var ton = selectedOpt.getAttribute('data-ton') || '0';
-            var gia = selectedOpt.getAttribute('data-gia') || '0';
-
-            document.getElementById('lblLoaiKho').innerText = kho;
-            document.getElementById('lblTonHienTai').innerText = ton;
-            document.getElementById('lblDonViTinh').innerText = dvt;
-
-            var inpGia = document.getElementById('inpDonGiaNhap');
-            if (inpGia) inpGia['value'] = gia;
-
-            tinhThanhTien();
+            var tr = btn.closest('tr');
+            if (tr) tr.remove();
+            danhLaiChiSoNhap();
+            tinhTongPhieuNhap();
         }
 
-        function tinhThanhTien() {
-            var inpSL = document.getElementById('inpSoLuongNhap');
-            var inpGia = document.getElementById('inpDonGiaNhap');
-            var lblTien = document.getElementById('lblThanhTien');
-
-            var sl = inpSL ? parseFloat(inpSL['value'] || '0') : 0;
-            var gia = inpGia ? parseFloat(inpGia['value'] || '0') : 0;
-            var tong = sl * gia;
-
-            if (lblTien) {
-                lblTien.innerText = tong.toLocaleString('vi-VN') + ' VNĐ';
+        // Đánh lại thuộc tính name="Items[i]..." liên tục cho ASP.NET Core Model Binding
+        function danhLaiChiSoNhap() {
+            var rows = document.querySelectorAll('#tbodyNhap .row-nhap');
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].querySelector('.sel-vattu').setAttribute('name', 'Items[' + i + '].MaVatTu');
+                rows[i].querySelector('.inp-sl').setAttribute('name', 'Items[' + i + '].SoLuongNhap');
+                rows[i].querySelector('.inp-gia').setAttribute('name', 'Items[' + i + '].DonGiaNhapMoi');
             }
+            var lblCount = document.getElementById('lblTongDongNhap');
+            if (lblCount) lblCount.innerText = rows.length.toString();
         }
+
+        function chonVatTuNhap(selectEl) {
+            var tr = selectEl.closest('tr');
+            if (tr) capNhatThongTinDongNhap(tr, true);
+        }
+
+        function capNhatThongTinDongNhap(tr, ghiDeDonGia) {
+            var selectEl = tr.querySelector('.sel-vattu');
+            var lblKho = tr.querySelector('.lbl-kho');
+            var lblTon = tr.querySelector('.lbl-ton');
+            var inpGia = tr.querySelector('.inp-gia');
+
+            if (!selectEl || selectEl['selectedIndex'] <= 0) {
+                lblKho.innerText = '-';
+                lblTon.innerText = '-';
+                if (ghiDeDonGia && inpGia) inpGia['value'] = '0';
+                tinhDongNhap(inpGia);
+                return;
+            }
+
+            var opt = selectEl['options'][selectEl['selectedIndex']];
+            lblKho.innerText = opt.getAttribute('data-kho') || '-';
+            lblTon.innerText = (opt.getAttribute('data-ton') || '0') + ' ' + (opt.getAttribute('data-dvt') || '');
+            if (ghiDeDonGia && inpGia) {
+                inpGia['value'] = opt.getAttribute('data-gia') || '0';
+            }
+
+            tinhDongNhap(inpGia);
+        }
+
+        function tinhDongNhap(el) {
+            var tr = el ? el.closest('tr') : null;
+            if (tr) {
+                var sl = parseFloat(tr.querySelector('.inp-sl')['value'] || '0') || 0;
+                var gia = parseFloat(tr.querySelector('.inp-gia')['value'] || '0') || 0;
+                tr.querySelector('.lbl-thanhtien').innerText = (sl * gia).toLocaleString('vi-VN') + ' ₫';
+            }
+            tinhTongPhieuNhap();
+        }
+
+        function tinhTongPhieuNhap() {
+            var rows = document.querySelectorAll('#tbodyNhap .row-nhap');
+            var tong = 0;
+            for (var i = 0; i < rows.length; i++) {
+                var sl = parseFloat(rows[i].querySelector('.inp-sl')['value'] || '0') || 0;
+                var gia = parseFloat(rows[i].querySelector('.inp-gia')['value'] || '0') || 0;
+                tong += sl * gia;
+            }
+            var lblTong = document.getElementById('lblTongTienPhieuNhap');
+            if (lblTong) lblTong.innerText = tong.toLocaleString('vi-VN') + ' ₫';
+        }
+
+        // Đồng bộ thuộc tính min/max trên lịch trình duyệt để chặn Từ ngày > Đến ngày
+        function dongBoGioiHanNgay(idTu, idDen, idLoi) {
+            var inpTu = document.getElementById(idTu);
+            var inpDen = document.getElementById(idDen);
+            var elLoi = document.getElementById(idLoi);
+            if (!inpTu || !inpDen) return true;
+
+            var tuVal = inpTu['value'] || '';
+            var denVal = inpDen['value'] || '';
+
+            if (denVal) inpTu.setAttribute('max', denVal);
+            else inpTu.removeAttribute('max');
+
+            if (tuVal) inpDen.setAttribute('min', tuVal);
+            else inpDen.removeAttribute('min');
+
+            var hopLe = !(tuVal && denVal && tuVal > denVal);
+            inpTu.classList.toggle('is-invalid', !hopLe);
+            inpDen.classList.toggle('is-invalid', !hopLe);
+            if (elLoi) elLoi.classList.toggle('d-none', hopLe);
+
+            return hopLe;
+        }
+
+        function kiemTraKhoangNgay(idTu, idDen, idLoi) {
+            var hopLe = dongBoGioiHanNgay(idTu, idDen, idLoi);
+            if (!hopLe) {
+                var inpTu = document.getElementById(idTu);
+                if (inpTu) inpTu.focus();
+            }
+            return hopLe;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var tbody = document.getElementById('tbodyNhap');
+            if (tbody) {
+                danhLaiChiSoNhap();
+                var rows = tbody.querySelectorAll('.row-nhap');
+                for (var i = 0; i < rows.length; i++) {
+                    capNhatThongTinDongNhap(rows[i], false);
+                }
+            }
+            dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu');
+        });
     </script>
 }
