@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class CapNhatPhieuBaoCaoSuCo_UC07 : Migration
+    public partial class trang : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

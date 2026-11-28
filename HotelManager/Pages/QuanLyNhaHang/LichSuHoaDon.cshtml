@@ -1,0 +1,354 @@
+﻿@page
+@model HotelManagement.Pages.NhaHang.ThuNgan.LichSuHoaDonModel
+@{
+    ViewData["Title"] = "Lịch Sử Hóa Đơn";
+    string currentFilter = string.IsNullOrEmpty(Model.TrangThaiLoc) ? "Tất cả" : Model.TrangThaiLoc;
+}
+
+<style>
+    .invoice-row {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent !important;
+    }
+
+        .invoice-row:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 .35rem .8rem rgba(0,0,0,.08) !important;
+        }
+
+    .invoice-row-active {
+        border: 2px solid #0d6efd !important;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.18) !important;
+    }
+
+    /* Chỉ in đúng Phiếu In Lại Hóa Đơn khi bấm In Hóa Đơn */
+    @@media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #inLaiHoaDonModal, #inLaiHoaDonModal * {
+            visibility: visible;
+        }
+
+        #inLaiHoaDonModal {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+
+<div class="container-fluid mt-4 mb-5">
+    <!-- THANH TIÊU ĐỀ & MENU SỔ XUỐNG CHUYỂN QUA LẠI GIỮA QUẦY THU NGÂN VÀ LỊCH SỬ HÓA ĐƠN -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold text-uppercase mb-0">Lịch Sử Hóa Đơn</h3>
+            <small class="text-muted">Nhân sự: <strong>@Model.TenNguoiDungHienTai</strong> (@(Model.LaQuanLy ? "Quản lý" : "Thu ngân"))</small>
+        </div>
+    </div>
+
+    <!-- THANH TÌM KIẾM & LỌC NGÀY / TRẠNG THÁI -->
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-light">
+        <form method="get" id="formLoc" class="row g-2 align-items-center m-0">
+            <div class="col-md-5">
+                <div class="input-group bg-white rounded-pill border overflow-hidden shadow-sm">
+                    <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" asp-for="TuKhoaTimKiem" id="inputTimKiem" class="form-control border-0 shadow-none" placeholder="Tìm mã hóa đơn hoặc số bàn..." />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <input type="date" asp-for="NgayLoc" class="form-control rounded-pill shadow-sm" onchange="this.form.submit()" />
+            </div>
+            <div class="col-md-3">
+                <select asp-for="TrangThaiLoc" class="form-select rounded-pill shadow-sm" onchange="this.form.submit()">
+                    <option value="Tất cả">Tất cả trạng thái</option>
+                    <option value="Đã Thanh Toán">Đã Thanh Toán</option>
+                    <option value="Ghi nợ phòng">Ghi nợ phòng</option>
+                    <option value="Đã Hủy">Đã Hủy</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex">
+                @if (!string.IsNullOrEmpty(Model.TuKhoaTimKiem) || Model.NgayLoc.HasValue || (!string.IsNullOrEmpty(Model.TrangThaiLoc) && Model.TrangThaiLoc != "Tất cả"))
+                {
+                    <a asp-page="./LichSuHoaDon" class="btn btn-light border rounded-pill fw-bold" title="Xóa toàn bộ bộ lọc"><i class="bi bi-x-lg"></i></a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <div class="row">
+        <!-- CỘT TRÁI: DANH SÁCH LỊCH SỬ / CHI TIẾT HÓA ĐƠN -->
+        <div class="col-lg-8">
+            <div id="viewDanhSach" class="card shadow-sm border-0 rounded-4 p-4 h-100">
+                @if (Model.DanhSachLichSu.Any())
+                {
+                    <div class="small text-muted mb-3 px-2">
+                        Hiển thị <strong>@Model.DanhSachLichSu.Count</strong> hóa đơn · Tổng giá trị (không tính hóa đơn hủy):
+                        <strong class="text-dark">@(Model.DanhSachLichSu.Where(x => x.HinhThucThanhToan != "Đã Hủy").Sum(x => x.TongCong).ToString("N0", new System.Globalization.CultureInfo("vi-VN"))) VND</strong>
+                    </div>
+                }
+                <div class="row text-center fw-bold text-muted small mb-3 px-2 border-bottom pb-2">
+                    <div class="col-1">STT</div>
+                    <div class="col-2">MÃ HÓA ĐƠN</div>
+                    <div class="col-2">SỐ BÀN</div>
+                    <div class="col-2">TỔNG TIỀN</div>
+                    <div class="col-2">GIỜ TẠO</div>
+                    <div class="col-1">NV LẬP</div>
+                    <div class="col-2">TRẠNG THÁI</div>
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                    @if (Model.DanhSachLichSu.Any())
+                    {
+                        foreach (var hd in Model.DanhSachLichSu)
+                        {
+                            string bgClass = hd.HinhThucThanhToan == "Đã Hủy" ? "bg-secondary bg-opacity-25" : (hd.HinhThucThanhToan == "Ghi nợ phòng" ? "bg-warning text-dark" : "bg-success text-white");
+                            string textClass = hd.HinhThucThanhToan == "Đã Hủy" ? "text-muted text-decoration-line-through" : (hd.HinhThucThanhToan == "Ghi nợ phòng" ? "text-dark" : "text-white");
+                            string iconClass = hd.HinhThucThanhToan == "Đã Hủy" ? "bi-x-circle" : (hd.HinhThucThanhToan == "Ghi nợ phòng" ? "bi-door-closed" : "bi-check-circle");
+
+                            <div class="row align-items-center py-3 px-2 rounded-4 shadow-sm invoice-row @bgClass"
+                                 onclick="hienThiChiTietLichSu(this, '@hd.MaHoaDonNhaHang', '@hd.TenBan', '@hd.HinhThucThanhToan', '@hd.GioTao', '@hd.NhanVienLap', '@hd.DanhSachMonJson', @hd.TamTinh, @hd.PhiPhucVu, @hd.ThueVAT, @hd.GiamGia, @hd.TongCong)">
+                                <div class="col-1 text-center fw-bold @textClass">@hd.STT</div>
+                                <div class="col-2 text-center fw-bold small @textClass">@hd.MaHoaDonNhaHang</div>
+                                <div class="col-2 text-center fw-bold small @textClass">@hd.TenBan</div>
+                                <div class="col-2 text-center fw-bold small @textClass">@(hd.TongCong.ToString("N0", new System.Globalization.CultureInfo("vi-VN"))) VND</div>
+                                <div class="col-2 text-center small @textClass">@hd.GioTao</div>
+                                <div class="col-1 text-center small text-truncate @textClass">@hd.NhanVienLap</div>
+                                <div class="col-2 text-center fw-bold small @textClass">
+                                    <i class="bi @iconClass me-1"></i> @hd.HinhThucThanhToan
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-clock-history fs-1"></i>
+                            <p class="mt-2">Chưa có hóa đơn nào trong lịch sử.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- CHI TIẾT HÓA ĐƠN LỊCH SỬ (Chỉ xem & In lại) -->
+            <div id="viewChiTiet" class="card shadow-sm border-0 rounded-4 p-4 h-100" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="fw-bold mb-0">Chi Tiết Hóa Đơn (Lịch Sử)</h3>
+                    <span class="badge rounded-pill px-3 py-2 fw-bold" id="lblTrangThaiCT">--</span>
+                </div>
+
+                <div class="d-flex align-items-center flex-wrap gap-3 border-bottom pb-3 mb-4">
+                    <span class="badge bg-info text-white rounded-pill px-3 py-2 fw-bold" id="lblSoBanCT">BÀN SỐ: --</span>
+                    <span class="text-muted fw-bold">Mã HD: <span id="lblMaHDCT" class="text-dark">--</span></span>
+                    <span class="text-muted">Giờ tạo: <strong id="lblGioTaoCT" class="text-dark">--</strong></span>
+                    <span class="text-muted">NV lập: <strong id="lblNhanVienCT" class="text-dark">--</strong></span>
+                </div>
+
+                <div class="row fw-bold text-muted small mb-3 border-bottom pb-2">
+                    <div class="col-6">MÓN ĂN & GHI CHÚ TỪNG MÓN</div>
+                    <div class="col-2 text-center">ĐƠN GIÁ</div>
+                    <div class="col-2 text-center">SỐ LƯỢNG</div>
+                    <div class="col-2 text-end">THÀNH TIỀN</div>
+                </div>
+
+                <div id="danhSachMonContainer" class="mb-3 border-bottom pb-3"></div>
+
+                <div class="row justify-content-end mt-3">
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between mb-2 text-muted">
+                            <span>Tạm tính</span><span class="fw-bold text-dark" id="lblTamTinh">0 VND</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-muted">
+                            <span>Phí phục vụ (5%)</span><span class="fw-bold text-dark" id="lblPhiPhucVu">0 VND</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-muted">
+                            <span>Thuế VAT (10%)</span><span class="fw-bold text-dark" id="lblVAT">0 VND</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 text-danger border-bottom pb-2">
+                            <span>Giảm giá (Voucher)</span><span class="fw-bold" id="lblGiamGia">0 VND</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark fs-5">Tổng Cộng</span>
+                            <span class="fw-bold text-primary fs-4" id="lblTongCong">0 VND</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: THAO TÁC TRÊN HÓA ĐƠN LỊCH SỬ (Chỉ cho Xem chi tiết & In lại) -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4 p-4">
+                <h4 class="fw-bold mb-3">Thao Tác Lịch Sử</h4>
+                <p class="small text-muted mb-4">Hóa đơn trong lịch sử đã được chốt hoặc hủy. Bạn chỉ có thể xem chi tiết và in lại hóa đơn.</p>
+
+                <button type="button" id="btnInLai" class="btn btn-primary fw-bold w-100 py-3 rounded-3 mb-3" disabled onclick="moPhieuInLai();">
+                    <i class="bi bi-printer-fill me-2"></i> In Lại Hóa Đơn
+                </button>
+
+                <button type="button" id="btnQuayLai" class="btn btn-secondary fw-bold w-100 py-2 rounded-3" style="display: none;" onclick="quayLaiLichSu()">
+                    <i class="bi bi-arrow-return-left me-2"></i> Quay Lại Danh Sách Lịch Sử
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL IN LẠI HÓA ĐƠN -->
+<div class="modal fade" id="inLaiHoaDonModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-printer-fill me-2"></i> IN LẠI HÓA ĐƠN
+                </h5>
+                <button type="button" class="btn-close btn-close-white no-print" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center border-bottom pb-3 mb-3">
+                    <h5 class="fw-bold mb-1">GRAND HORIZON HOTEL - NHÀ HÀNG</h5>
+                    <div class="small text-muted">Bản sao hóa đơn lưu trữ (<span id="inTrangThai">--</span>)</div>
+                </div>
+
+                <div class="d-flex justify-content-between small mb-1">
+                    <span><strong>Mã HĐ:</strong> <span id="inMaHD">--</span></span>
+                    <span><strong>Bàn:</strong> <span id="inBan">--</span></span>
+                </div>
+                <div class="d-flex justify-content-between small text-muted border-bottom pb-3 mb-3">
+                    <span>Giờ tạo: <span id="inGioTao">--</span></span>
+                    <span>NV: <span id="inNhanVien">--</span></span>
+                </div>
+
+                <div id="inDanhSachMon" class="border-bottom pb-2 mb-3 small"></div>
+
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Tạm tính:</span>
+                    <span class="fw-bold" id="inTamTinh">0 VND</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Phí phục vụ (5%):</span>
+                    <span class="fw-bold" id="inPhiPhucVu">0 VND</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Thuế VAT (10%):</span>
+                    <span class="fw-bold" id="inVAT">0 VND</span>
+                </div>
+                <div class="d-flex justify-content-between small text-danger border-bottom pb-2 mb-2">
+                    <span>Giảm giá:</span>
+                    <span class="fw-bold" id="inGiamGia">0 VND</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold fs-6">TỔNG CỘNG:</span>
+                    <span class="fw-bold text-primary fs-5" id="inTongCong">0 VND</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 no-print">
+                <button type="button" class="btn btn-light border px-3 fw-bold" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold" onclick="thucHienInLai();">
+                    <i class="bi bi-printer me-1"></i> In Hóa Đơn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentHistoryMaHD = '';
+
+        function formatVND(amount) { return amount.toLocaleString('vi-VN') + ' VND'; }
+
+        function hienThiChiTietLichSu(rowElem, maHD, tenBan, trangThai, gioTao, nhanVien, dsMonJsonEncoded, tamTinh, phiPhucVu, vat, giamGia, tongCong) {
+            document.querySelectorAll('.invoice-row').forEach(r => r.classList.remove('invoice-row-active'));
+            if (rowElem) rowElem.classList.add('invoice-row-active');
+
+            currentHistoryMaHD = maHD;
+            document.getElementById('viewDanhSach').style.display = 'none';
+            document.getElementById('viewChiTiet').style.display = 'block';
+            document.getElementById('btnQuayLai').style.display = 'block';
+            document.getElementById('btnInLai').disabled = false;
+
+            document.getElementById('lblMaHDCT').innerText = maHD;
+            document.getElementById('lblSoBanCT').innerText = tenBan.toUpperCase();
+            document.getElementById('lblGioTaoCT').innerText = gioTao;
+            document.getElementById('lblNhanVienCT').innerText = nhanVien;
+
+            const badgeTT = document.getElementById('lblTrangThaiCT');
+            badgeTT.innerText = trangThai;
+            badgeTT.className = 'badge rounded-pill px-3 py-2 fw-bold ' + (trangThai === 'Đã Hủy' ? 'bg-secondary' : (trangThai === 'Ghi nợ phòng' ? 'bg-warning text-dark' : 'bg-success'));
+
+            const dsMon = JSON.parse(decodeURIComponent(dsMonJsonEncoded));
+            const container = document.getElementById('danhSachMonContainer');
+            container.innerHTML = '';
+
+            dsMon.forEach(mon => {
+                let ghiChuHtml = mon.GhiChu ? `<div class="small text-muted bg-light px-2 py-1 rounded mt-1 border-start border-3 border-warning">Ghi chú món: ${mon.GhiChu}</div>` : '';
+                container.innerHTML += `
+                                    <div class="row mb-3 align-items-center">
+                                        <div class="col-6"><div class="fw-bold text-dark">${mon.TenMon}</div>${ghiChuHtml}</div>
+                                        <div class="col-2 text-center text-muted fw-bold">${formatVND(mon.DonGia).replace(' VND', '')}</div>
+                                        <div class="col-2 text-center fw-bold">${mon.SoLuong}</div>
+                                        <div class="col-2 text-end fw-bold text-primary">${formatVND(mon.ThanhTien)}</div>
+                                    </div>`;
+            });
+
+            document.getElementById('lblTamTinh').innerText = formatVND(tamTinh);
+            document.getElementById('lblPhiPhucVu').innerText = formatVND(phiPhucVu);
+            document.getElementById('lblVAT').innerText = formatVND(vat);
+            document.getElementById('lblGiamGia').innerText = giamGia > 0 ? '-' + formatVND(giamGia) : '0 VND';
+            document.getElementById('lblTongCong').innerText = formatVND(tongCong);
+        }
+
+        function moPhieuInLai() {
+            if (!currentHistoryMaHD) {
+                alert('Vui lòng chọn một hóa đơn trong lịch sử trước khi in lại!');
+                return;
+            }
+
+            document.getElementById('inTrangThai').innerText = document.getElementById('lblTrangThaiCT').innerText;
+            document.getElementById('inMaHD').innerText = document.getElementById('lblMaHDCT').innerText;
+            document.getElementById('inBan').innerText = document.getElementById('lblSoBanCT').innerText;
+            document.getElementById('inGioTao').innerText = document.getElementById('lblGioTaoCT').innerText;
+            document.getElementById('inNhanVien').innerText = document.getElementById('lblNhanVienCT').innerText;
+
+            document.getElementById('inDanhSachMon').innerHTML = document.getElementById('danhSachMonContainer').innerHTML;
+
+            document.getElementById('inTamTinh').innerText = document.getElementById('lblTamTinh').innerText;
+            document.getElementById('inPhiPhucVu').innerText = document.getElementById('lblPhiPhucVu').innerText;
+            document.getElementById('inVAT').innerText = document.getElementById('lblVAT').innerText;
+            document.getElementById('inGiamGia').innerText = document.getElementById('lblGiamGia').innerText;
+            document.getElementById('inTongCong').innerText = document.getElementById('lblTongCong').innerText;
+
+            const modal = new bootstrap.Modal(document.getElementById('inLaiHoaDonModal'));
+            modal.show();
+        }
+
+        function thucHienInLai() {
+            window.print();
+        }
+
+        function quayLaiLichSu() {
+            currentHistoryMaHD = '';
+            document.getElementById('viewChiTiet').style.display = 'none';
+            document.getElementById('viewDanhSach').style.display = 'block';
+            document.getElementById('btnQuayLai').style.display = 'none';
+            document.getElementById('btnInLai').disabled = true;
+        }
+        // Tự lọc sau khi dừng gõ 0,4 giây (không cần nút Lọc)
+        let timerTimKiem;
+        const oTimKiem = document.getElementById('inputTimKiem');
+        oTimKiem.addEventListener('input', function () {
+            clearTimeout(timerTimKiem);
+            timerTimKiem = setTimeout(() => document.getElementById('formLoc').submit(), 400);
+        });
+        // Giữ con trỏ ở cuối ô sau khi trang tải lại
+        if (oTimKiem.value) { oTimKiem.focus(); oTimKiem.setSelectionRange(oTimKiem.value.length, oTimKiem.value.length); }
+    </script>
+}

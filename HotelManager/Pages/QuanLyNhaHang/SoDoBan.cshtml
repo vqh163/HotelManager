@@ -275,7 +275,7 @@
                             @if (ban.TrangThai == "Đang có khách")
                             {
                                 <p class="small fw-bold text-dark mb-1 text-truncate">Mã đơn: <span class="fw-normal">@ban.MaHoaDonNhaHang</span></p>
-                                <p class="small fw-bold text-dark mb-0 text-truncate">Tạm tính: <span class="text-danger fw-bold">@ban.TongTienTamTinh.ToString("N0") VND</span></p>
+                                <p class="small fw-bold text-dark mb-0 text-truncate">Tạm tính: <span class="text-danger fw-bold">@(ban.TongTienTamTinh.ToString("N0", new System.Globalization.CultureInfo("vi-VN"))) VND</span></p>
                             }
                             else if (ban.TrangThai == "Đang dọn dẹp")
                             {

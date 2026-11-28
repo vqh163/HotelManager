@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HotelManager.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -69,7 +70,7 @@ namespace HotelManagement.Pages.NhaHang.NhaBep
         public string MoTa { get; set; } = string.Empty;
         public bool ConMon { get; set; }
     }
-
+    [Authorize(Roles = "Đầu bếp, Quản lý")]
     public class QuanLyThucDonModel : PageModel
     {
         private readonly ApplicationDbContext _context;

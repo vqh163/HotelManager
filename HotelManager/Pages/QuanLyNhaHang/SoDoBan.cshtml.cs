@@ -24,7 +24,7 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
     }
 
     // Bắt buộc đăng nhập; tự động chuyển về trang đăng nhập nếu truy cập trái phép
-    [Authorize]
+    [Authorize(Roles = "Phục vụ Nhà hàng, Quản lý")]
     public class SoDoBanModel : PageModel
     {
         private readonly ApplicationDbContext _context;
@@ -109,9 +109,8 @@ namespace HotelManagement.Pages.NhaHang.PhucVu
 
             return await KiemTraQuyenQuanLyAsync() ||
                    vaiTro.Contains("Phục vụ", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("PhucVu", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("Thu ngân", StringComparison.OrdinalIgnoreCase) ||
-                   vaiTro.Contains("ThuNgan", StringComparison.OrdinalIgnoreCase);
+                   vaiTro.Contains("PhucVu", StringComparison.OrdinalIgnoreCase);
+                   
         }
 
         public async Task<IActionResult> OnGetAsync()
