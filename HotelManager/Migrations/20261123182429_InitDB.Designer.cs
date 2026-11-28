@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261119153912_CapNhatPhieuBaoCaoSuCo_UC07")]
-    partial class CapNhatPhieuBaoCaoSuCo_UC07
+    [Migration("20261123182429_InitDB")]
+    partial class InitDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -45,6 +45,62 @@ namespace HotelManager.Migrations
                     b.HasKey("MaBan");
 
                     b.ToTable("BAN_NHA_HANG");
+                });
+
+            modelBuilder.Entity("HotelManager.Models.BAO_CAO_DOANH_THU", b =>
+                {
+                    b.Property<string>("MaBaoCao")
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("BaoGomThuePhi")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("ChietKhau")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DichVu")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("LoaiPhong")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("MaDatPhong")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("NgayDen")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("NgayDi")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal>("NoTruoc")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PhanHe")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TenKhach")
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TenPhong")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("TienDaThu")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TienPhong")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TongDoanhThu")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TrangThai")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("MaBaoCao");
+
+                    b.ToTable("BAO_CAO_DOANH_THU");
                 });
 
             modelBuilder.Entity("HotelManager.Models.CHI_TIET_DAT_PHONG", b =>

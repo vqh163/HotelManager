@@ -1,0 +1,681 @@
+﻿@page
+@model HotelManager.Pages.QuanLyBaoCaoThongKe.DashboardBaoCaoModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Dashboard Chỉ số Kinh doanh & Tài chính";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --pms-cyan: #189ab4;
+        --pms-cyan-hover: #127e94;
+        --pms-bg-soft: #f5f7f9;
+        --pms-border: #e5e9ed;
+        --pms-text: #2c3e50;
+    }
+
+    body {
+        background-color: #f8fafc;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--pms-text);
+        font-size: 0.86rem;
+    }
+
+    .dash-page {
+        padding: 16px 22px 32px 22px;
+    }
+
+    /* --- HEADER & THANH ĐIỀU HƯỚNG NHANH --- */
+    .dash-top-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .dash-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .quick-nav-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .quick-nav-pill {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 8px;
+        padding: 6px 13px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #334155;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.15s;
+    }
+
+        .quick-nav-pill:hover {
+            border-color: var(--pms-cyan);
+            color: var(--pms-cyan);
+            background: #f0f9fb;
+        }
+
+        .quick-nav-pill.active {
+            background: var(--pms-cyan);
+            border-color: var(--pms-cyan);
+            color: #ffffff;
+        }
+
+    .filter-select {
+        background-color: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 6px;
+        padding: 5px 28px 5px 10px;
+        font-size: 0.84rem;
+        color: #334155;
+        cursor: pointer;
+    }
+
+    .btn-cyan {
+        background-color: var(--pms-cyan);
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 16px;
+        font-weight: 600;
+        font-size: 0.84rem;
+        transition: 0.15s;
+    }
+
+        .btn-cyan:hover {
+            background-color: var(--pms-cyan-hover);
+            color: #ffffff;
+        }
+
+    /* --- 4 THẺ KPI --- */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(180px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+
+    .kpi-label {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-bottom: 3px;
+    }
+
+    .kpi-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0f172a;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-sub {
+        font-size: 0.73rem;
+        color: #64748b;
+        margin-top: 3px;
+    }
+
+    .kpi-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .bg-soft-cyan {
+        background: #e6f6f9;
+        color: var(--pms-cyan);
+    }
+
+    .bg-soft-green {
+        background: #e6f7ee;
+        color: #157347;
+    }
+
+    .bg-soft-blue {
+        background: #e8f0fe;
+        color: #2563eb;
+    }
+
+    .bg-soft-amber {
+        background: #fff4e5;
+        color: #b45309;
+    }
+
+    .bg-soft-red {
+        background: #fdecec;
+        color: #dc2626;
+    }
+
+    /* --- CARD CHUNG --- */
+    .dash-card {
+        background: #ffffff;
+        border: 1px solid var(--pms-border);
+        border-radius: 10px;
+        padding: 16px 18px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    }
+
+    .dash-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .dash-card-title {
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    /* --- BẢNG P&L VÀ DÒNG TIỀN --- */
+    .pl-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 0;
+        border-bottom: 1px dashed #e2e8f0;
+        font-size: 0.84rem;
+    }
+
+        .pl-row:last-child {
+            border-bottom: none;
+        }
+
+    .pl-total {
+        background: #f8fafc;
+        padding: 9px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        margin-top: 6px;
+        border-bottom: none;
+    }
+
+    .progress-thin {
+        height: 9px;
+        border-radius: 999px;
+        background-color: #e2e8f0;
+    }
+
+    @@media (max-width: 992px) {
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media print {
+        header, footer, .no-print {
+            display: none !important;
+        }
+
+        body {
+            background: #ffffff;
+        }
+    }
+
+</style>
+
+<div class="dash-page">
+    <!-- HÀNG 1: TIÊU ĐỀ & CHỌN KỲ THÁNG -->
+    <div class="dash-top-bar">
+        <div>
+            <h1 class="dash-title">Dashboard Chỉ số Kinh doanh &amp; Tài chính</h1>
+            <div class="text-muted small">Tổng hợp KPI khách sạn, dòng tiền, lợi nhuận và ngân sách Tháng @Model.Thang.ToString("D2")/@Model.Nam</div>
+        </div>
+
+        <form method="get" class="d-flex align-items-center gap-2 flex-wrap no-print">
+            <select class="form-select filter-select w-auto" asp-for="Thang">
+                @for (int m = 1; m <= 12; m++)
+                {
+                    <option value="@m">Tháng @m.ToString("D2")</option>
+                }
+            </select>
+
+            <select class="form-select filter-select w-auto" asp-for="Nam">
+                @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 1; y++)
+                {
+                    <option value="@y">Năm @y</option>
+                }
+            </select>
+
+            <button type="submit" class="btn btn-cyan">Xem kỳ này</button>
+
+            <a class="btn btn-outline-secondary btn-sm px-3"
+               asp-page-handler="ExportCsv"
+               asp-route-Thang="@Model.Thang"
+               asp-route-Nam="@Model.Nam"
+               title="Xuất báo cáo tổng hợp CSV">
+                <i class="bi bi-cloud-arrow-down-fill me-1"></i>Xuất CSV
+            </a>
+
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="window.print()">
+                <i class="bi bi-printer-fill me-1"></i>In
+            </button>
+        </form>
+    </div>
+
+    <!-- THANH CHUYỂN NHANH GIỮA CÁC BÁO CÁO -->
+    <div class="quick-nav-strip no-print">
+        <a class="quick-nav-pill active" asp-page="./DashboardBaoCao"><i class="bi bi-speedometer2"></i>Dashboard Tổng quan</a>
+        <a class="quick-nav-pill" asp-page="./BaoCaoDoanhThu"><i class="bi bi-receipt-cutoff"></i>Doanh thu chi tiết</a>
+        <a class="quick-nav-pill" asp-page="./DuBaoCongSuat"><i class="bi bi-graph-up-arrow"></i>Dự báo công suất &amp; Giá động</a>
+        <a class="quick-nav-pill" asp-page="./BaoCaoSalesB2B"><i class="bi bi-building-check"></i>Sản lượng B2B &amp; Hoa hồng</a>
+        <a class="quick-nav-pill" asp-page="./BaoCaoKho"><i class="bi bi-box-seam"></i>Báo cáo Kho vật tư</a>
+        <a class="quick-nav-pill" asp-page="./KiemToanDem"><i class="bi bi-moon-stars-fill"></i>Kiểm toán đêm &amp; Kế toán</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 small no-print" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.ThongBao
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        </div>
+    }
+
+    <!-- 4 THẺ KPI KINH DOANH CHÍNH -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Tổng doanh thu kỳ</div>
+                <div class="kpi-value text-success">@Model.TongDoanhThu.ToString("N0") ₫</div>
+                <div class="kpi-sub">Thực thu: @Model.DongTienThucThu.ToString("N0") ₫</div>
+            </div>
+            <div class="kpi-icon bg-soft-green"><i class="bi bi-currency-dollar"></i></div>
+        </div>
+
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Công suất phòng (Occupancy)</div>
+                <div class="kpi-value text-info">@Model.TyLeLapDay.ToString("0.#")%</div>
+                <div class="kpi-sub">@Model.TongDemPhongDaBan / @Model.TongDemPhongKhaDung đêm khả dụng</div>
+            </div>
+            <div class="kpi-icon bg-soft-cyan"><i class="bi bi-door-open-fill"></i></div>
+        </div>
+
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">ADR / RevPAR</div>
+                <div class="kpi-value text-primary">@Model.ADR.ToString("N0") ₫</div>
+                <div class="kpi-sub">RevPAR: @Model.RevPAR.ToString("N0") ₫ / phòng</div>
+            </div>
+            <div class="kpi-icon bg-soft-blue"><i class="bi bi-bar-chart-fill"></i></div>
+        </div>
+
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Lợi nhuận ước tính</div>
+                <div class="kpi-value @(Model.LoiNhuanUocTinh >= 0 ? "text-success" : "text-danger")">
+                    @Model.LoiNhuanUocTinh.ToString("N0") ₫
+                </div>
+                <div class="kpi-sub">Biên lợi nhuận: @Model.BienLoiNhuan.ToString("0.#")%</div>
+            </div>
+            <div class="kpi-icon @(Model.LoiNhuanUocTinh >= 0 ? "bg-soft-amber" : "bg-soft-red")">
+                <i class="bi bi-piggy-bank-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- HÀNG BIỂU ĐỒ: DOANH THU THEO NGÀY + CƠ CẤU DOANH THU -->
+    <div class="row g-3 mb-3">
+        <div class="col-lg-8">
+            <div class="dash-card h-100">
+                <div class="dash-card-header">
+                    <h2 class="dash-card-title"><i class="bi bi-graph-up text-info"></i>Biểu đồ Doanh thu &amp; Dòng tiền thực thu theo ngày</h2>
+                    <span class="text-muted small">Tháng @Model.Thang.ToString("D2")/@Model.Nam</span>
+                </div>
+                <div style="height: 270px; position: relative;">
+                    <canvas id="dailyRevenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="dash-card h-100">
+                <div class="dash-card-header">
+                    <h2 class="dash-card-title"><i class="bi bi-pie-chart-fill text-primary"></i>Cơ cấu nguồn doanh thu</h2>
+                </div>
+                <div style="height: 210px; position: relative;">
+                    <canvas id="revenueMixChart"></canvas>
+                </div>
+                <div class="mt-2 pt-2 border-top small">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Phòng lưu trú:</span>
+                        <span class="fw-semibold">@Model.DoanhThuPhong.ToString("N0") ₫</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Dịch vụ khách sạn:</span>
+                        <span class="fw-semibold">@Model.DoanhThuDichVu.ToString("N0") ₫</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Nhà hàng (F&amp;B):</span>
+                        <span class="fw-semibold">@Model.DoanhThuNhaHang.ToString("N0") ₫</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HÀNG PHÂN TÍCH TÀI CHÍNH: P&L + DÒNG TIỀN + LẬP NGÂN SÁCH -->
+    <div class="row g-3 mb-3">
+        <!-- BÁO CÁO LỢI NHUẬN & DÒNG TIỀN -->
+        <div class="col-lg-6">
+            <div class="dash-card h-100">
+                <div class="dash-card-header">
+                    <h2 class="dash-card-title"><i class="bi bi-cash-stack text-success"></i>Phân tích Lợi nhuận &amp; Dòng tiền</h2>
+                    <button type="button" class="btn btn-sm btn-outline-primary no-print" data-bs-toggle="modal" data-bs-target="#modalBudget">
+                        <i class="bi bi-sliders me-1"></i>Lập ngân sách / Nhập chi phí
+                    </button>
+                </div>
+
+                <div class="pl-row">
+                    <span>1. Tổng doanh thu phát sinh trong kỳ</span>
+                    <span class="fw-bold text-dark">@Model.TongDoanhThu.ToString("N0") ₫</span>
+                </div>
+                <div class="pl-row ps-3 text-muted">
+                    <span>↳ Dòng tiền đã thực thu (Tiền mặt / CK)</span>
+                    <span class="text-success fw-semibold">@Model.DongTienThucThu.ToString("N0") ₫</span>
+                </div>
+                <div class="pl-row ps-3 text-muted">
+                    <span>↳ Công nợ còn phải thu</span>
+                    <span class="@(Model.CongNoPhaiThu > 0 ? "text-danger fw-semibold" : "")">@Model.CongNoPhaiThu.ToString("N0") ₫</span>
+                </div>
+
+                <div class="pl-row mt-2">
+                    <span>2. Tổng chi phí vận hành kỳ</span>
+                    <span class="fw-bold text-danger">-@Model.TongChiPhiKy.ToString("N0") ₫</span>
+                </div>
+                <div class="pl-row ps-3 text-muted">
+                    <span>↳ Hoa hồng đối tác B2B (tự động)</span>
+                    <span>@Model.ChiPhiHoaHongB2B.ToString("N0") ₫</span>
+                </div>
+                <div class="pl-row ps-3 text-muted">
+                    <span>↳ Chi phí nhân sự &amp; vận hành (điện, nước...)</span>
+                    <span>@Model.NganSachHienTai.ChiPhiNhanSuVanHanh.ToString("N0") ₫</span>
+                </div>
+                <div class="pl-row ps-3 text-muted">
+                    <span>↳ Chi phí vật tư tiêu hao</span>
+                    <span>@Model.NganSachHienTai.ChiPhiVatTuThucTe.ToString("N0") ₫</span>
+                </div>
+
+                <div class="pl-row pl-total">
+                    <span>3. LỢI NHUẬN ƯỚC TÍNH (Biên @Model.BienLoiNhuan.ToString("0.#")%)</span>
+                    <span class="@(Model.LoiNhuanUocTinh >= 0 ? "text-success" : "text-danger")">
+                        @Model.LoiNhuanUocTinh.ToString("N0") ₫
+                    </span>
+                </div>
+
+                <!-- SO SÁNH TIẾN ĐỘ NGÂN SÁCH -->
+                <div class="mt-3 pt-2 border-top">
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">Tiến độ mục tiêu Doanh thu (@Model.NganSachHienTai.MucTieuDoanhThu.ToString("N0") ₫)</span>
+                            <span class="fw-bold text-info">@Model.TyLeDatDoanhThu.ToString("0.#")%</span>
+                        </div>
+                        <div class="progress progress-thin">
+                            <div class="progress-bar bg-info" style="width: @Math.Min(100m, Model.TyLeDatDoanhThu)%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">Mức sử dụng Ngân sách chi phí (@Model.NganSachHienTai.NganSachChiPhi.ToString("N0") ₫)</span>
+                            <span class="fw-bold @(Model.TyLeDungNganSach > 100 ? "text-danger" : "text-success")">
+                                @Model.TyLeDungNganSach.ToString("0.#")%
+                                @(Model.TyLeDungNganSach > 100 ? "(Vượt ngân sách)" : "")
+                            </span>
+                        </div>
+                        <div class="progress progress-thin">
+                            <div class="progress-bar @(Model.TyLeDungNganSach > 100 ? "bg-danger" : Model.TyLeDungNganSach >= 80 ? "bg-warning" : "bg-success")"
+                                 style="width: @Math.Min(100m, Model.TyLeDungNganSach)%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HIỆU SUẤT THEO LOẠI PHÒNG & TÌNH HÌNH KHO -->
+        <div class="col-lg-6">
+            <div class="dash-card h-100 d-flex flex-column">
+                <div class="dash-card-header">
+                    <h2 class="dash-card-title"><i class="bi bi-building text-info"></i>Hiệu suất kinh doanh theo Loại phòng</h2>
+                </div>
+
+                <div class="table-responsive flex-grow-1">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Loại phòng</th>
+                                <th class="text-end">Số phòng</th>
+                                <th class="text-end">Đêm bán</th>
+                                <th class="text-end">Công suất</th>
+                                <th class="text-end">Doanh thu phòng (₫)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.PhanTichLoaiPhong.Any())
+                            {
+                                foreach (var row in Model.PhanTichLoaiPhong)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@row.LoaiPhong</td>
+                                        <td class="text-end">@row.SoPhong</td>
+                                        <td class="text-end text-primary fw-semibold">@row.DemPhongBan</td>
+                                        <td class="text-end">@row.CongSuat.ToString("0.#")%</td>
+                                        <td class="text-end fw-semibold text-success">@row.DoanhThu.ToString("N0")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">Chưa có dữ liệu phòng.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- TÓM TẮT KHO VẬT TƯ -->
+                <div class="mt-3 p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <div class="small text-muted">Giá trị tồn kho vật tư hiện tại</div>
+                        <div class="fw-bold fs-6 text-dark">@Model.GiaTriTonKhoHienTai.ToString("N0") ₫</div>
+                    </div>
+                    <div class="text-end">
+                        @if (Model.SoVatTuCanhBaoKho > 0)
+                        {
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>@Model.SoVatTuCanhBaoKho vật tư sắp hết / hết hàng
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success-subtle text-success-emphasis px-2 py-1">
+                                <i class="bi bi-check-circle-fill me-1"></i>Kho vật tư ổn định
+                            </span>
+                        }
+                        <div class="mt-1 no-print">
+                            <a asp-page="./BaoCaoKho" class="small text-info text-decoration-none fw-semibold">Xem chi tiết kho →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL LẬP NGÂN SÁCH & NHẬP CHI PHÍ THÁNG -->
+<div class="modal fade" id="modalBudget" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="LuuNganSach">
+                <input type="hidden" name="Thang" value="@Model.Thang" />
+                <input type="hidden" name="Nam" value="@Model.Nam" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-sliders text-info me-2"></i>Lập ngân sách Tháng @Model.Thang.ToString("D2")/@Model.Nam
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Mục tiêu doanh thu tháng (VNĐ)</label>
+                        <input type="number" class="form-control" asp-for="NganSachHienTai.MucTieuDoanhThu" step="1000000" min="0" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Hạn mức ngân sách chi phí tháng (VNĐ)</label>
+                        <input type="number" class="form-control" asp-for="NganSachHienTai.NganSachChiPhi" step="1000000" min="0" />
+                    </div>
+
+                    <hr class="my-3" />
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Chi phí nhân sự &amp; vận hành thực tế (VNĐ)</label>
+                        <input type="number" class="form-control" asp-for="NganSachHienTai.ChiPhiNhanSuVanHanh" step="500000" min="0" />
+                        <div class="form-text">Lương nhân viên, điện, nước, bảo trì, marketing...</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Chi phí vật tư tiêu hao thực tế (VNĐ)</label>
+                        <input type="number" class="form-control" asp-for="NganSachHienTai.ChiPhiVatTuThucTe" step="100000" min="0" />
+                        <div class="form-text">Tham chiếu tổng tồn kho hiện tại: @Model.GiaTriTonKhoHienTai.ToString("N0") ₫</div>
+                    </div>
+
+                    <div class="mb-1">
+                        <label class="form-label small fw-semibold">Ghi chú kế hoạch</label>
+                        <textarea class="form-control" rows="2" asp-for="NganSachHienTai.GhiChu" placeholder="VD: Mùa cao điểm du lịch, tăng ngân sách marketing..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-cyan">Lưu ngân sách</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const dayLabels = @Html.Raw(JsonSerializer.Serialize(Model.BieuDoTheoNgay.Select(x => x.NhanNgay)));
+        const revSeries = @Html.Raw(JsonSerializer.Serialize(Model.BieuDoTheoNgay.Select(x => x.DoanhThu)));
+        const cashSeries = @Html.Raw(JsonSerializer.Serialize(Model.BieuDoTheoNgay.Select(x => x.ThucThu)));
+
+        // 1. Biểu đồ Doanh thu & Thực thu theo ngày
+        const ctxDaily = document.getElementById('dailyRevenueChart');
+        if (ctxDaily) {
+            new Chart(ctxDaily, {
+                type: 'bar',
+                data: {
+                    labels: dayLabels,
+                    datasets: [
+                        {
+                            label: 'Doanh thu phát sinh (₫)',
+                            data: revSeries,
+                            backgroundColor: 'rgba(24, 154, 180, 0.72)',
+                            borderRadius: 4,
+                            maxBarThickness: 22
+                        },
+                        {
+                            type: 'line',
+                            label: 'Dòng tiền thực thu (₫)',
+                            data: cashSeries,
+                            borderColor: '#157347',
+                            backgroundColor: '#157347',
+                            borderWidth: 2,
+                            tension: 0.25,
+                            pointRadius: 2.5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: v => new Intl.NumberFormat('vi-VN').format(v)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Biểu đồ tròn Cơ cấu doanh thu
+        const ctxMix = document.getElementById('revenueMixChart');
+        if (ctxMix) {
+            const roomRev = @Model.DoanhThuPhong;
+            const svcRev = @Model.DoanhThuDichVu;
+            const fbRev = @Model.DoanhThuNhaHang;
+            const hasData = (roomRev + svcRev + fbRev) > 0;
+
+            new Chart(ctxMix, {
+                type: 'doughnut',
+                data: {
+                    labels: hasData ? ['Tiền phòng', 'Dịch vụ', 'Nhà hàng'] : ['Chưa có doanh thu'],
+                    datasets: [{
+                        data: hasData ? [roomRev, svcRev, fbRev] : [1],
+                        backgroundColor: hasData ? ['#189ab4', '#f59e0b', '#10b981'] : ['#e2e8f0'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+    </script>
+}

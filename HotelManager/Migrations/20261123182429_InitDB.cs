@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HotelManager.Migrations
 {
     /// <inheritdoc />
-    public partial class CapNhatPhieuBaoCaoSuCo_UC07 : Migration
+    public partial class InitDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -26,6 +26,32 @@ namespace HotelManager.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_BAN_NHA_HANG", x => x.MaBan);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BAO_CAO_DOANH_THU",
+                columns: table => new
+                {
+                    MaBaoCao = table.Column<string>(type: "varchar(20)", nullable: false),
+                    MaDatPhong = table.Column<string>(type: "varchar(20)", nullable: false),
+                    PhanHe = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    LoaiPhong = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    TenPhong = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    TenKhach = table.Column<string>(type: "nvarchar(100)", nullable: true),
+                    NgayDen = table.Column<DateTime>(type: "datetime", nullable: true),
+                    NgayDi = table.Column<DateTime>(type: "datetime", nullable: true),
+                    TienPhong = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    DichVu = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ChietKhau = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TongDoanhThu = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    NoTruoc = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TienDaThu = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TrangThai = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    BaoGomThuePhi = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BAO_CAO_DOANH_THU", x => x.MaBaoCao);
                 });
 
             migrationBuilder.CreateTable(
@@ -426,6 +452,9 @@ namespace HotelManager.Migrations
         {
             migrationBuilder.DropTable(
                 name: "BAN_NHA_HANG");
+
+            migrationBuilder.DropTable(
+                name: "BAO_CAO_DOANH_THU");
 
             migrationBuilder.DropTable(
                 name: "CHI_TIET_DAT_PHONG");
