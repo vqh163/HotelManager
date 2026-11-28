@@ -1,0 +1,619 @@
+﻿@page
+@model HotelManager.Pages.QuanLyKho.BaoCaoTieuHaoKhoModel
+@{
+    ViewData["Title"] = "Báo cáo Tiêu hao & Chi phí Kho";
+    bool ngayBaoCaoHopLe = Model.TuNgay.Date <= Model.DenNgay.Date;
+}
+
+<style>
+    /* Giao diện nền sáng phẳng, tiết chế màu sắc và không dùng icon trang trí */
+    body {
+        background-color: #f5f6f8;
+        color: #1f2937;
+    }
+
+    .rp-page {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 18px 20px 32px;
+    }
+
+    /* Thanh tiêu đề gọn trên 1 hàng */
+    .rp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .rp-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .rp-subtitle {
+        font-size: 0.82rem;
+        color: #6b7280;
+        margin-top: 2px;
+    }
+
+    /* Khối thẻ phẳng viền mảnh */
+    .rp-box {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+    }
+
+    /* Thanh lọc 1 dòng gọn gàng */
+    .rp-filter-bar {
+        padding: 12px 16px;
+        margin-bottom: 14px;
+    }
+
+    /* 4 ô chỉ số với gạch nhấn mảnh phía trên */
+    .rp-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .rp-kpi-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-top: 3px solid #1f2937;
+        border-radius: 10px;
+        padding: 13px 16px;
+    }
+
+        .rp-kpi-card.k-emerald {
+            border-top-color: #059669;
+        }
+
+        .rp-kpi-card.k-crimson {
+            border-top-color: #dc2626;
+        }
+
+        .rp-kpi-card.k-amber {
+            border-top-color: #d97706;
+        }
+
+    .rp-kpi-title {
+        font-size: 0.74rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+    }
+
+    .rp-kpi-num {
+        font-size: 1.32rem;
+        font-weight: 700;
+        margin: 4px 0 2px;
+        font-variant-numeric: tabular-nums;
+        color: #111827;
+    }
+
+    .rp-kpi-meta {
+        font-size: 0.76rem;
+        color: #6b7280;
+    }
+
+    /* Đầu bảng kèm bộ lọc chế độ xem dạng nút gọn */
+    .rp-box-head {
+        padding: 11px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .rp-seg {
+        display: inline-flex;
+        background: #f3f4f6;
+        padding: 2px;
+        border-radius: 6px;
+        gap: 2px;
+    }
+
+        .rp-seg a {
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #4b5563;
+            text-decoration: none;
+        }
+
+            .rp-seg a.active {
+                background: #ffffff;
+                color: #111827;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            }
+
+    /* Bảng số liệu mật độ cân đối */
+    .rp-table {
+        font-size: 0.86rem;
+        margin-bottom: 0;
+    }
+
+        .rp-table thead th {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #6b7280;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 14px;
+            white-space: nowrap;
+        }
+
+        .rp-table tbody td {
+            padding: 9px 14px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+
+        .rp-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .rp-table tfoot td {
+            background: #f9fafb;
+            border-top: 1px solid #d1d5db;
+            padding: 10px 14px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+    .num {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .c-in {
+        color: #059669;
+        font-weight: 600;
+    }
+
+    .c-out {
+        color: #dc2626;
+        font-weight: 600;
+    }
+
+    .c-warn {
+        color: #b45309;
+        font-weight: 600;
+    }
+
+    .btn-charcoal {
+        background: #1f2937;
+        border-color: #1f2937;
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+        .btn-charcoal:hover {
+            background: #111827;
+            border-color: #111827;
+            color: #ffffff;
+        }
+
+    @@media print {
+        header, footer, .no-print {
+            display: none !important;
+        }
+
+        body {
+            background: #ffffff !important;
+        }
+
+        .rp-page {
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+    }
+
+    @@media (max-width: 992px) {
+        .rp-kpi-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
+<div class="rp-page">
+    <!-- Thông báo lỗi / cảnh báo đọc dữ liệu -->
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small no-print" role="alert">
+            @Model.ThongBaoLoi
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.CanhBaoDuLieu))
+    {
+        <div class="alert alert-warning alert-dismissible fade show py-2 px-3 mb-3 small no-print" role="alert">
+            @Model.CanhBaoDuLieu
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Tiêu đề báo cáo và nút xuất file -->
+    <div class="rp-header">
+        <div>
+            <h1 class="rp-title">Báo cáo Tiêu hao & Chi phí Kho</h1>
+            <div class="rp-subtitle">
+                Kỳ báo cáo: <strong>@Model.TuNgay.ToString("dd/MM/yyyy") – @Model.DenNgay.ToString("dd/MM/yyyy")</strong>
+                · Phạm vi: <strong>@(Model.LoaiKhoFilter == "ALL" ? "Tất cả phân khu kho" : Model.LoaiKhoFilter)</strong>
+            </div>
+        </div>
+        <div class="d-flex gap-2 no-print">
+            <a asp-page="./BaoCaoTieuHaoKho"
+               asp-page-handler="ExportCsv"
+               asp-route-TuNgay="@Model.TuNgay.ToString("yyyy-MM-dd")"
+               asp-route-DenNgay="@Model.DenNgay.ToString("yyyy-MM-dd")"
+               asp-route-LoaiKhoFilter="@Model.LoaiKhoFilter"
+               asp-route-TuKhoa="@Model.TuKhoa"
+               asp-route-SapXepTheo="@Model.SapXepTheo"
+               asp-route-CheDoXem="@Model.CheDoXem"
+               class="btn btn-sm btn-outline-secondary px-3 fw-semibold">
+                Xuất CSV
+            </a>
+            <button type="button" class="btn btn-sm btn-charcoal px-3" onclick="window.print()">
+                In báo cáo (PDF)
+            </button>
+        </div>
+    </div>
+
+    <!-- Bộ lọc dữ liệu gọn trên 1 hàng (chặn Từ ngày > Đến ngày) -->
+    <div class="rp-box rp-filter-bar no-print">
+        <form method="get"
+              novalidate
+              onsubmit="return kiemTraKhoangNgay('inpTuNgay', 'inpDenNgay', 'errNgayBaoCao');"
+              class="row g-2 align-items-end">
+            <input type="hidden" asp-for="CheDoXem" />
+            <div class="col-6 col-md-2">
+                <label asp-for="TuNgay" class="form-label small fw-semibold text-secondary mb-1">Từ ngày</label>
+                <input asp-for="TuNgay"
+                       id="inpTuNgay"
+                       type="date"
+                       max="@Model.DenNgay.ToString("yyyy-MM-dd")"
+                       onchange="dongBoGioiHanNgay('inpTuNgay', 'inpDenNgay', 'errNgayBaoCao')"
+                       class="form-control form-control-sm @(ngayBaoCaoHopLe ? "" : "is-invalid")" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label asp-for="DenNgay" class="form-label small fw-semibold text-secondary mb-1">Đến ngày</label>
+                <input asp-for="DenNgay"
+                       id="inpDenNgay"
+                       type="date"
+                       min="@Model.TuNgay.ToString("yyyy-MM-dd")"
+                       onchange="dongBoGioiHanNgay('inpTuNgay', 'inpDenNgay', 'errNgayBaoCao')"
+                       class="form-control form-control-sm @(ngayBaoCaoHopLe ? "" : "is-invalid")" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="LoaiKhoFilter" class="form-label small fw-semibold text-secondary mb-1">Phân loại kho</label>
+                <select asp-for="LoaiKhoFilter" class="form-select form-select-sm">
+                    <option value="ALL">Tất cả kho</option>
+                    <option value="Kho vật dụng">Kho vật dụng</option>
+                    <option value="Kho nhà hàng">Kho nhà hàng</option>
+                    <option value="Kho đồ tiêu hao">Kho đồ tiêu hao</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label asp-for="SapXepTheo" class="form-label small fw-semibold text-secondary mb-1">Sắp xếp theo</label>
+                <select asp-for="SapXepTheo" class="form-select form-select-sm">
+                    <option value="TIEU_HAO_DESC">Tiêu hao cao nhất</option>
+                    <option value="TON_DESC">Giá trị tồn cao nhất</option>
+                    <option value="NHAP_DESC">Chi phí nhập cao nhất</option>
+                    <option value="HAO_HUT_DESC">Hao hụt kiểm kê</option>
+                    <option value="TEN_ASC">Tên vật tư (A–Z)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="TuKhoa" class="form-label small fw-semibold text-secondary mb-1">Tìm theo mã hoặc tên vật tư</label>
+                <div class="input-group input-group-sm">
+                    <input asp-for="TuKhoa" class="form-control" placeholder="Nhập mã hoặc tên..." />
+                    <button type="submit" class="btn btn-charcoal px-3">Xem báo cáo</button>
+                </div>
+            </div>
+            <div class="col-12">
+                <div id="errNgayBaoCao" class="text-danger small @(ngayBaoCaoHopLe ? "d-none" : "")">
+                    Từ ngày không được lớn hơn Đến ngày.
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 4 thẻ chỉ số tài chính trọng tâm -->
+    <div class="rp-kpi-row">
+        <div class="rp-kpi-card">
+            <div class="rp-kpi-title">Giá trị tồn hiện tại</div>
+            <div class="rp-kpi-num">@Model.TongGiaTriTonKho.ToString("N0") ₫</div>
+            <div class="rp-kpi-meta">@Model.TongSoMatHang mặt hàng · @Model.SoMatHangSapHet chạm mức tối thiểu</div>
+        </div>
+        <div class="rp-kpi-card k-emerald">
+            <div class="rp-kpi-title">Chi phí nhập trong kỳ</div>
+            <div class="rp-kpi-num" style="color: #059669;">@Model.TongChiPhiNhapTrongKy.ToString("N0") ₫</div>
+            <div class="rp-kpi-meta">Tổng nhập: @Model.TongSoLuongNhap.ToString("N0") đơn vị</div>
+        </div>
+        <div class="rp-kpi-card k-crimson">
+            <div class="rp-kpi-title">Chi phí tiêu hao (Xuất)</div>
+            <div class="rp-kpi-num" style="color: #dc2626;">@Model.TongGiaTriTieuHaoTrongKy.ToString("N0") ₫</div>
+            <div class="rp-kpi-meta">Xuất @Model.TongSoLuongXuat.ToString("N0") đơn vị · @Model.TyLeTieuHaoTrenVon.ToString("0.0")% vốn</div>
+        </div>
+        <div class="rp-kpi-card k-amber">
+            <div class="rp-kpi-title">Hao hụt kiểm kê & Cân đối</div>
+            <div class="rp-kpi-num" style="color: #b45309;">@Model.TongGiaTriHaoHutKiemKe.ToString("N0") ₫</div>
+            <div class="rp-kpi-meta num">
+                Nhập – Xuất: @((Model.TongChiPhiNhapTrongKy - Model.TongGiaTriTieuHaoTrongKy).ToString("N0")) ₫
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng chi tiết từng vật tư -->
+    <div class="rp-box overflow-hidden mb-3">
+        <div class="rp-box-head">
+            <div class="fw-bold small text-dark">Chi tiết Nhập – Xuất – Hao hụt – Tồn theo vật tư</div>
+            <div class="rp-seg no-print">
+                <a asp-page="./BaoCaoTieuHaoKho"
+                   asp-route-TuNgay="@Model.TuNgay.ToString("yyyy-MM-dd")"
+                   asp-route-DenNgay="@Model.DenNgay.ToString("yyyy-MM-dd")"
+                   asp-route-LoaiKhoFilter="@Model.LoaiKhoFilter"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   asp-route-SapXepTheo="@Model.SapXepTheo"
+                   asp-route-CheDoXem="ALL"
+                   class="@(Model.CheDoXem == "ALL" ? "active" : "")">
+                    Tất cả (@Model.DemTatCa)
+                </a>
+                <a asp-page="./BaoCaoTieuHaoKho"
+                   asp-route-TuNgay="@Model.TuNgay.ToString("yyyy-MM-dd")"
+                   asp-route-DenNgay="@Model.DenNgay.ToString("yyyy-MM-dd")"
+                   asp-route-LoaiKhoFilter="@Model.LoaiKhoFilter"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   asp-route-SapXepTheo="@Model.SapXepTheo"
+                   asp-route-CheDoXem="PHAT_SINH"
+                   class="@(Model.CheDoXem == "PHAT_SINH" ? "active" : "")">
+                    Có giao dịch (@Model.DemCoPhatSinh)
+                </a>
+                <a asp-page="./BaoCaoTieuHaoKho"
+                   asp-route-TuNgay="@Model.TuNgay.ToString("yyyy-MM-dd")"
+                   asp-route-DenNgay="@Model.DenNgay.ToString("yyyy-MM-dd")"
+                   asp-route-LoaiKhoFilter="@Model.LoaiKhoFilter"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   asp-route-SapXepTheo="@Model.SapXepTheo"
+                   asp-route-CheDoXem="HAO_HUT"
+                   class="@(Model.CheDoXem == "HAO_HUT" ? "active" : "")">
+                    Có hao hụt (@Model.DemCoHaoHut)
+                </a>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table rp-table">
+                <thead>
+                    <tr>
+                        <th>Mã VT</th>
+                        <th>Tên vật tư</th>
+                        <th>Phân khu</th>
+                        <th class="text-end">SL nhập</th>
+                        <th class="text-end">Chi phí nhập</th>
+                        <th class="text-end">SL xuất</th>
+                        <th class="text-end">Chi phí tiêu hao</th>
+                        <th class="text-end">Hao hụt KK</th>
+                        <th class="text-end">Tồn cuối</th>
+                        <th class="text-end">Giá trị tồn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.DanhSachBaoCaoVatTu != null && Model.DanhSachBaoCaoVatTu.Any())
+                    {
+                        @foreach (var item in Model.DanhSachBaoCaoVatTu)
+                        {
+                            <tr>
+                                <td class="text-muted fw-semibold num">@item.MaVatTu</td>
+                                <td>
+                                    <span class="fw-semibold text-dark">@item.TenVatTu</span>
+                                    <span class="text-muted small">(@item.DonViTinh)</span>
+                                    @if (item.DaXoaKhoiDanhMuc)
+                                    {
+                                        <span class="badge bg-light text-secondary border ms-1">Đã xóa</span>
+                                    }
+                                </td>
+                                <td class="text-secondary small">@item.LoaiVatTu</td>
+                                <td class="text-end num @(item.SoLuongNhapKyNay > 0 ? "c-in" : "text-muted")">
+                                    @(item.SoLuongNhapKyNay > 0 ? "+" + item.SoLuongNhapKyNay : "0")
+                                </td>
+                                <td class="text-end num @(item.ChiPhiNhapKyNay > 0 ? "c-in" : "text-muted")">
+                                    @item.ChiPhiNhapKyNay.ToString("N0") ₫
+                                </td>
+                                <td class="text-end num @(item.SoLuongXuatKyNay > 0 ? "c-out" : "text-muted")">
+                                    @(item.SoLuongXuatKyNay > 0 ? "-" + item.SoLuongXuatKyNay : "0")
+                                </td>
+                                <td class="text-end num @(item.ChiPhiTieuHaoKyNay > 0 ? "c-out" : "text-muted")">
+                                    @item.ChiPhiTieuHaoKyNay.ToString("N0") ₫
+                                </td>
+                                <td class="text-end num @(item.SoLuongHaoHutKiemKe > 0 ? "c-warn" : "text-muted")">
+                                    @(item.SoLuongHaoHutKiemKe > 0 ? $"-{item.SoLuongHaoHutKiemKe} ({item.ChiPhiHaoHutKiemKe:N0} ₫)" : "0")
+                                </td>
+                                <td class="text-end fw-semibold text-dark num">@item.TonHienTai</td>
+                                <td class="text-end fw-semibold text-dark num">@item.GiaTriTonHienTai.ToString("N0") ₫</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                @if (!ngayBaoCaoHopLe)
+                                {
+                                    <span>Vui lòng chọn lại khoảng thời gian hợp lệ (Từ ngày nhỏ hơn hoặc bằng Đến ngày).</span>
+                                }
+                                else
+                                {
+                                    <span>Không có dữ liệu vật tư phù hợp trong kỳ báo cáo.</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                @if (Model.DanhSachBaoCaoVatTu != null && Model.DanhSachBaoCaoVatTu.Any())
+                {
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Tổng cộng (@Model.DanhSachBaoCaoVatTu.Count mặt hàng)</td>
+                            <td class="text-end c-in">+@Model.TongSoLuongNhap.ToString("N0")</td>
+                            <td class="text-end c-in">@Model.TongChiPhiNhapTrongKy.ToString("N0") ₫</td>
+                            <td class="text-end c-out">-@Model.TongSoLuongXuat.ToString("N0")</td>
+                            <td class="text-end c-out">@Model.TongGiaTriTieuHaoTrongKy.ToString("N0") ₫</td>
+                            <td class="text-end c-warn">@Model.TongGiaTriHaoHutKiemKe.ToString("N0") ₫</td>
+                            <td></td>
+                            <td class="text-end">@Model.TongGiaTriTonKho.ToString("N0") ₫</td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+
+    <!-- Hai bảng tóm tắt ngang hàng cân đối ở cuối trang -->
+    <div class="row g-3">
+        <!-- Bảng trái: Tiêu hao theo bộ phận (đã bỏ cột Tỷ trọng và thanh ngang) -->
+        <div class="col-lg-6">
+            <div class="rp-box overflow-hidden h-100">
+                <div class="rp-box-head">
+                    <span class="fw-bold small text-dark">Tiêu hao theo bộ phận tiếp nhận</span>
+                    <span class="small text-muted">
+                        @(Model.ThongKeTheoBoPhan.Any() ? $"{Model.ThongKeTheoBoPhan.Sum(x => x.SoLuotXuat)} phiếu xuất" : "0 phiếu")
+                    </span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table rp-table">
+                        <thead>
+                            <tr>
+                                <th>Bộ phận</th>
+                                <th class="text-center">Số phiếu</th>
+                                <th class="text-end">Chi phí tiêu hao</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ThongKeTheoBoPhan != null && Model.ThongKeTheoBoPhan.Any())
+                            {
+                                @foreach (var bp in Model.ThongKeTheoBoPhan)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold text-dark">@bp.TenBoPhan</td>
+                                        <td class="text-center num text-secondary">@bp.SoLuotXuat</td>
+                                        <td class="text-end num c-out">@bp.TongChiPhiTieuHao.ToString("N0") ₫</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">
+                                        Chưa có phiếu xuất theo bộ phận trong kỳ.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bảng phải: Tổng hợp theo phân khu kho -->
+        <div class="col-lg-6">
+            <div class="rp-box overflow-hidden h-100">
+                <div class="rp-box-head">
+                    <span class="fw-bold small text-dark">Tổng hợp chi phí & tồn theo phân khu kho</span>
+                    <span class="small text-muted">@Model.ThongKeTheoPhanKhu.Count phân khu</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table rp-table">
+                        <thead>
+                            <tr>
+                                <th>Phân khu kho</th>
+                                <th class="text-center">Mặt hàng</th>
+                                <th class="text-end">Chi phí nhập</th>
+                                <th class="text-end">Tiêu hao</th>
+                                <th class="text-end">Giá trị tồn</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ThongKeTheoPhanKhu != null && Model.ThongKeTheoPhanKhu.Any())
+                            {
+                                @foreach (var pk in Model.ThongKeTheoPhanKhu)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold text-dark">@pk.TenPhanKhu</td>
+                                        <td class="text-center num text-secondary">@pk.SoMatHang</td>
+                                        <td class="text-end num c-in">@pk.TongChiPhiNhap.ToString("N0") ₫</td>
+                                        <td class="text-end num c-out">@pk.TongChiPhiTieuHao.ToString("N0") ₫</td>
+                                        <td class="text-end num fw-semibold text-dark">@pk.TongGiaTriTon.ToString("N0") ₫</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        Chưa có dữ liệu phân khu kho.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // @@ts-nocheck
+        // Đồng bộ thuộc tính min/max trên lịch trình duyệt để chặn Từ ngày > Đến ngày
+        function dongBoGioiHanNgay(idTu, idDen, idLoi) {
+            var inpTu = document.getElementById(idTu);
+            var inpDen = document.getElementById(idDen);
+            var elLoi = document.getElementById(idLoi);
+            if (!inpTu || !inpDen) return true;
+
+            var tuVal = inpTu['value'] || '';
+            var denVal = inpDen['value'] || '';
+
+            if (denVal) inpTu.setAttribute('max', denVal);
+            else inpTu.removeAttribute('max');
+
+            if (tuVal) inpDen.setAttribute('min', tuVal);
+            else inpDen.removeAttribute('min');
+
+            var hopLe = !(tuVal && denVal && tuVal > denVal);
+            inpTu.classList.toggle('is-invalid', !hopLe);
+            inpDen.classList.toggle('is-invalid', !hopLe);
+            if (elLoi) elLoi.classList.toggle('d-none', hopLe);
+
+            return hopLe;
+        }
+
+        // Chặn submit form nếu người dùng gõ tay Từ ngày > Đến ngày
+        function kiemTraKhoangNgay(idTu, idDen, idLoi) {
+            var hopLe = dongBoGioiHanNgay(idTu, idDen, idLoi);
+            if (!hopLe) {
+                var inpTu = document.getElementById(idTu);
+                if (inpTu) inpTu.focus();
+            }
+            return hopLe;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            dongBoGioiHanNgay('inpTuNgay', 'inpDenNgay', 'errNgayBaoCao');
+        });
+    </script>
+}

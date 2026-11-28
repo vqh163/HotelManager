@@ -2,183 +2,405 @@
 @model HotelManager.Pages.QuanLyKho.QuanLyXuatKhoModel
 @{
     ViewData["Title"] = "Quản lý Xuất Kho";
+    bool ngayLichSuHopLe = Model.TuNgayLichSu.Date <= Model.DenNgayLichSu.Date;
 }
 
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-12 col-xl-11">
+<style>
+    /* Giao diện nền sáng phẳng đồng bộ toàn phân hệ Kho, giữ nguyên Header của _Layout */
+    body {
+        background-color: #f5f6f8;
+        color: #1f2937;
+    }
 
-            <!-- Khu vực hiển thị thông báo kết quả xử lý -->
-            @if (!string.IsNullOrEmpty(Model.ThongBao))
-            {
-                <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBao
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
-            {
-                <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
+    .xk-page {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 18px 20px 32px;
+    }
 
-            <!-- Thanh điều hướng nội bộ phân hệ Kho (UC_09) -->
-            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                <div class="btn-group shadow-sm rounded-pill overflow-hidden bg-white p-1">
-                    <a asp-page="./QuanLyKho" class="btn btn-light rounded-pill px-4 fw-bold text-secondary">
-                        <i class="bi bi-box-seam me-1"></i> Danh mục Tồn kho
-                    </a>
-                    <a asp-page="./QuanLyNhapKho" class="btn btn-light rounded-pill px-4 fw-bold text-secondary">
-                        <i class="bi bi-box-arrow-in-down me-1"></i> Quản lý Nhập kho
-                    </a>
-                    <a asp-page="./QuanLyXuatKho" class="btn btn-warning text-dark rounded-pill px-4 fw-bold shadow-sm">
-                        <i class="bi bi-box-arrow-up me-1"></i> Quản lý Xuất kho
-                    </a>
+    .xk-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .xk-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .xk-subtitle {
+        font-size: 0.82rem;
+        color: #6b7280;
+        margin-top: 2px;
+    }
+
+    .xk-box {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+    }
+
+    .xk-box-head {
+        padding: 11px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .xk-table {
+        font-size: 0.86rem;
+        margin-bottom: 0;
+    }
+
+        .xk-table thead th {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #6b7280;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 12px;
+            white-space: nowrap;
+        }
+
+        .xk-table tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+
+    .row-vuot-ton {
+        background-color: #fef2f2 !important;
+    }
+
+    .num {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .c-out {
+        color: #dc2626;
+        font-weight: 600;
+    }
+
+    .c-warn {
+        color: #b45309;
+        font-weight: 600;
+    }
+
+    .btn-charcoal {
+        background: #1f2937;
+        border-color: #1f2937;
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+        .btn-charcoal:hover {
+            background: #111827;
+            border-color: #111827;
+            color: #ffffff;
+        }
+
+    .item-line {
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+</style>
+
+<div class="xk-page">
+    <!-- Thông báo kết quả xử lý -->
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.ThongBao
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.ThongBaoLoi
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.LoiLocNgay))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.LoiLocNgay
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="xk-header">
+        <div>
+            <h1 class="xk-title">Quản lý Xuất Kho</h1>
+            <div class="xk-subtitle">Xuất một hoặc nhiều vật tư cùng lúc cho các bộ phận, tự động kiểm tra khả dụng và trừ tồn kho</div>
+        </div>
+    </div>
+
+    <!-- KHỐI 1: Form Lập Phiếu Xuất Nhiều Vật Tư -->
+    <div class="xk-box overflow-hidden mb-3">
+        <div class="xk-box-head">
+            <span class="fw-bold small text-dark">Lập phiếu xuất kho mới</span>
+            <span class="small text-muted">Có thể chọn nhiều vật tư trong cùng 1 lần xuất; trùng mã sẽ tự gộp số lượng</span>
+        </div>
+
+        <form method="post" id="formXuatKho" onsubmit="return kiemTraTruocKhiXuat();">
+            <input type="hidden" name="TuNgayLichSu" value="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="DenNgayLichSu" value="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")" />
+
+            <!-- Thông tin chung của phiếu xuất -->
+            <div class="p-3 border-bottom">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label asp-for="BoPhanNhan" class="form-label small fw-semibold text-secondary mb-1">
+                            Bộ phận tiếp nhận <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="BoPhanNhan" class="form-select form-select-sm" required>
+                            <option value="Bộ phận Buồng phòng">Bộ phận Buồng phòng</option>
+                            <option value="Bộ phận Nhà hàng / Bếp">Bộ phận Nhà hàng / Bếp</option>
+                            <option value="Bộ phận Kỹ thuật / Bảo trì">Bộ phận Kỹ thuật / Bảo trì</option>
+                            <option value="Bộ phận Tiền sảnh / Lễ tân">Bộ phận Tiền sảnh / Lễ tân</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label asp-for="LyDoXuat" class="form-label small fw-semibold text-secondary mb-1">
+                            Lý do xuất / Mục đích sử dụng <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="LyDoXuat" class="form-control form-control-sm" placeholder="VD: Bổ sung đồ tiêu hao tầng 3, xuất nguyên liệu bếp ca sáng..." required />
+                    </div>
                 </div>
             </div>
 
-            <div class="row g-4">
-                <!-- Cột Trái: Form Lập Phiếu Xuất Kho -->
-                <div class="col-lg-5">
-                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
-                        <div class="card-header bg-gradient bg-warning text-dark p-4 border-0">
-                            <h5 class="mb-0 fw-bold"><i class="bi bi-box-arrow-up-right me-2"></i> Lập Phiếu Xuất Kho</h5>
-                            <p class="mb-0 text-dark opacity-75 small mt-1">Xuất vật tư cho Bếp, Buồng phòng, Kỹ thuật & tự động trừ tồn</p>
-                        </div>
-                        <div class="card-body p-4 bg-light">
-                            <form method="post">
-                                <div class="mb-3">
-                                    <label asp-for="Input.MaVatTu" class="form-label fw-bold">Chọn vật tư / hàng hóa xuất <span class="text-danger">*</span></label>
-                                    <select asp-for="Input.MaVatTu" id="selectVatTuXuat" class="form-select rounded-3 border-0 shadow-sm" onchange="capNhatThongTinVatTuXuat()" required>
+            <!-- Cảnh báo nhanh khi có dòng vượt quá tồn khả dụng -->
+            <div id="boxCanhBaoVuotTon" class="alert alert-danger rounded-0 border-0 border-bottom mb-0 py-2 px-3 small d-none"></div>
+
+            <!-- Bảng chọn nhiều vật tư cần xuất -->
+            <div class="table-responsive">
+                <table class="table xk-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 38%;">Vật tư / Hàng hóa xuất <span class="text-danger">*</span></th>
+                            <th>Phân khu</th>
+                            <th class="text-end">Tồn khả dụng / Min</th>
+                            <th class="text-center" style="width: 130px;">SL xuất <span class="text-danger">*</span></th>
+                            <th class="text-end" style="width: 145px;">Giá trị xuất</th>
+                            <th class="text-center" style="width: 135px;">Sau khi xuất</th>
+                            <th class="text-center" style="width: 70px;">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyXuat">
+                        @for (int i = 0; i < Model.Items.Count; i++)
+                        {
+                            <tr class="row-xuat">
+                                <td>
+                                    <select name="Items[@i].MaVatTu" class="form-select form-select-sm sel-vattu-xuat" onchange="chonVatTuXuat(this)" required>
                                         <option value="">-- Chọn vật tư cần xuất --</option>
-                                        @if (Model.DanhSachVatTu != null)
+                                        @foreach (var vt in Model.DanhSachVatTu)
                                         {
-                                            @foreach (var vt in Model.DanhSachVatTu)
-                                            {
-                                                int ton = vt.SoLuongTon ?? 0;
-                                                <option value="@vt.MaVatTu"
-                                                        data-kho="@(vt.LoaiVatTu ?? "Chưa phân loại")"
-                                                        data-dvt="@(vt.DonViTinh ?? "Cái")"
-                                                        data-ton="@ton"
-                                                        data-toithieu="@(vt.SoLuongTonToiThieu ?? 0)">
-                                                    [@vt.MaVatTu] @vt.TenVatTu (Khả dụng: @ton @(vt.DonViTinh ?? ""))
-                                                </option>
-                                            }
+                                            int ton = vt.SoLuongTon ?? 0;
+                                            <option value="@vt.MaVatTu"
+                                                    selected="@(vt.MaVatTu == Model.Items[i].MaVatTu)"
+                                                    disabled="@(ton <= 0 && vt.MaVatTu != Model.Items[i].MaVatTu)"
+                                                    data-kho="@(vt.LoaiVatTu ?? "Chưa phân loại")"
+                                                    data-dvt="@(vt.DonViTinh ?? "Cái")"
+                                                    data-ton="@ton"
+                                                    data-toithieu="@(vt.SoLuongTonToiThieu ?? 0)"
+                                                    data-gia="@(vt.DonGiaNhap ?? 0)">
+                                                [@vt.MaVatTu] @vt.TenVatTu (Khả dụng: @ton @(vt.DonViTinh ?? ""))
+                                            </option>
                                         }
                                     </select>
-                                </div>
-
-                                <!-- Khung hiển thị nhanh số lượng khả dụng để kiểm soát trước khi xuất -->
-                                <div class="p-3 bg-white rounded-3 shadow-sm mb-3 border-start border-4 border-warning">
-                                    <div class="row text-center">
-                                        <div class="col-4 border-end">
-                                            <small class="text-muted d-block">Phân loại</small>
-                                            <strong class="text-dark small" id="lblLoaiKhoXuat">-</strong>
-                                        </div>
-                                        <div class="col-4 border-end">
-                                            <small class="text-muted d-block">Tồn khả dụng</small>
-                                            <strong class="text-primary fs-6" id="lblTonKhaDung">0</strong>
-                                        </div>
-                                        <div class="col-4">
-                                            <small class="text-muted d-block">Định mức tối thiểu</small>
-                                            <strong class="text-danger" id="lblTonToiThieu">0</strong>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row g-3 mb-3">
-                                    <div class="col-md-6">
-                                        <label asp-for="Input.SoLuongXuat" class="form-label fw-bold">Số lượng xuất <span class="text-danger">*</span></label>
-                                        <input asp-for="Input.SoLuongXuat" id="inpSoLuongXuat" type="number" min="1" class="form-control rounded-3 border-0 shadow-sm fw-bold text-danger" required />
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label asp-for="Input.BoPhanNhan" class="form-label fw-bold">Bộ phận tiếp nhận <span class="text-danger">*</span></label>
-                                        <select asp-for="Input.BoPhanNhan" class="form-select rounded-3 border-0 shadow-sm" required>
-                                            <option value="Bộ phận Buồng phòng">Bộ phận Buồng phòng</option>
-                                            <option value="Bộ phận Nhà hàng / Bếp">Bộ phận Nhà hàng / Bếp</option>
-                                            <option value="Bộ phận Kỹ thuật / Bảo trì">Bộ phận Kỹ thuật / Bảo trì</option>
-                                            <option value="Bộ phận Tiền sảnh / Lễ tân">Bộ phận Tiền sảnh / Lễ tân</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="mb-4">
-                                    <label asp-for="Input.LyDoXuat" class="form-label fw-bold">Lý do xuất / Mục đích sử dụng <span class="text-danger">*</span></label>
-                                    <textarea asp-for="Input.LyDoXuat" class="form-control rounded-3 border-0 shadow-sm" rows="2" placeholder="VD: Bổ sung đồ tiêu hao tầng 3, Xuất nguyên liệu ca sáng..." required></textarea>
-                                </div>
-
-                                <button type="submit" class="btn btn-warning btn-lg w-100 rounded-pill fw-bold shadow text-dark">
-                                    <i class="bi bi-box-arrow-right me-1"></i> Xác nhận Xuất Kho
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cột Phải: Lịch sử Phiếu Xuất Kho gần đây -->
-                <div class="col-lg-7">
-                    <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
-                        <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-clock-history text-warning me-2"></i> Lịch sử Phiếu Xuất Kho</h5>
-                            <span class="badge bg-warning bg-opacity-25 text-dark border border-warning rounded-pill px-3 py-2">
-                                Tổng: @(Model.LichSuXuatKho?.Count ?? 0) phiếu
-                            </span>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0 text-center">
-                                    <thead class="table-light text-secondary small">
-                                        <tr>
-                                            <th class="ps-3 text-start">Mã Phiếu</th>
-                                            <th class="text-start">Vật Tư Xuất</th>
-                                            <th>SL Xuất</th>
-                                            <th>Giá Trị Xuất</th>
-                                            <th class="text-start pe-3">Bộ Phận Nhận & Lý Do</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (Model.LichSuXuatKho != null && Model.LichSuXuatKho.Any())
-                                        {
-                                            @foreach (var item in Model.LichSuXuatKho)
-                                            {
-                                                <tr class="border-bottom">
-                                                    <td class="ps-3 text-start">
-                                                        <span class="badge bg-light text-dark border">@item.MaPhieu</span>
-                                                    </td>
-                                                    <td class="text-start">
-                                                        <div class="fw-bold text-dark">@item.TenVatTu</div>
-                                                        <small class="text-muted">@item.LoaiKho</small>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-danger rounded-pill px-3">-@item.SoLuong @item.DonViTinh</span>
-                                                    </td>
-                                                    <td class="fw-bold text-secondary">@item.ThanhTien.ToString("N0") ₫</td>
-                                                    <td class="text-start pe-3">
-                                                        <div class="small fw-semibold text-primary"><i class="bi bi-people-fill me-1"></i>@item.DoiTacHoacBoPhan</div>
-                                                        <div class="small text-dark text-truncate" style="max-width: 240px;" title="@item.GhiChu">@item.GhiChu</div>
-                                                        <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>@item.ThoiGian.ToString("dd/MM/yyyy HH:mm")</small>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <tr>
-                                                <td colspan="5" class="text-center text-muted py-5">
-                                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i> Chưa có lịch sử phiếu xuất kho nào.
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                                </td>
+                                <td class="small text-secondary lbl-kho">-</td>
+                                <td class="text-end num small text-secondary lbl-ton">-</td>
+                                <td>
+                                    <input name="Items[@i].SoLuongXuat"
+                                           type="number"
+                                           min="1"
+                                           value="@(Model.Items[i].SoLuongXuat > 0 ? Model.Items[i].SoLuongXuat : 1)"
+                                           class="form-control form-control-sm text-center fw-bold c-out num inp-sl-xuat"
+                                           oninput="kiemTraVaTinhToanXuat()"
+                                           required />
+                                </td>
+                                <td class="text-end num small fw-semibold text-dark lbl-giatri">0 ₫</td>
+                                <td class="text-center num small lbl-conlai">-</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="xoaDongXuat(this)">Xóa</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
 
+            <!-- Chân phiếu: Thêm dòng & Tổng giá trị xuất + Nút xác nhận -->
+            <div class="px-3 py-3 bg-light border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary fw-semibold px-3" onclick="themDongXuat()">
+                    + Thêm vật tư cần xuất
+                </button>
+
+                <div class="d-flex align-items-center flex-wrap gap-3">
+                    <div class="small text-secondary">
+                        Số dòng: <strong class="text-dark num" id="lblTongDongXuat">@Model.Items.Count</strong>
+                        · Tổng giá trị xuất: <strong class="fs-6 c-out num" id="lblTongGiaTriXuat">0 ₫</strong>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-charcoal px-4 py-2" id="btnXacNhanXuat">
+                        Xác nhận xuất kho
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Template HTML ẩn dùng để thêm dòng xuất mới -->
+    <template id="tplDongXuat">
+        <tr class="row-xuat">
+            <td>
+                <select name="Items[0].MaVatTu" class="form-select form-select-sm sel-vattu-xuat" onchange="chonVatTuXuat(this)" required>
+                    <option value="">-- Chọn vật tư cần xuất --</option>
+                    @foreach (var vt in Model.DanhSachVatTu)
+                    {
+                        int ton = vt.SoLuongTon ?? 0;
+                        <option value="@vt.MaVatTu"
+                                disabled="@(ton <= 0)"
+                                data-kho="@(vt.LoaiVatTu ?? "Chưa phân loại")"
+                                data-dvt="@(vt.DonViTinh ?? "Cái")"
+                                data-ton="@ton"
+                                data-toithieu="@(vt.SoLuongTonToiThieu ?? 0)"
+                                data-gia="@(vt.DonGiaNhap ?? 0)">
+                            [@vt.MaVatTu] @vt.TenVatTu (Khả dụng: @ton @(vt.DonViTinh ?? ""))
+                        </option>
+                    }
+                </select>
+            </td>
+            <td class="small text-secondary lbl-kho">-</td>
+            <td class="text-end num small text-secondary lbl-ton">-</td>
+            <td>
+                <input name="Items[0].SoLuongXuat" type="number" min="1" value="1" class="form-control form-control-sm text-center fw-bold c-out num inp-sl-xuat" oninput="kiemTraVaTinhToanXuat()" required />
+            </td>
+            <td class="text-end num small fw-semibold text-dark lbl-giatri">0 ₫</td>
+            <td class="text-center num small lbl-conlai">-</td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="xoaDongXuat(this)">Xóa</button>
+            </td>
+        </tr>
+    </template>
+
+    <!-- KHỐI 2: Lịch sử Phiếu Xuất Kho (gom theo Mã phiếu + lọc khoảng ngày, chặn Từ ngày > Đến ngày) -->
+    <div class="xk-box overflow-hidden" id="lich-su-xuat">
+        <div class="xk-box-head">
+            <div>
+                <span class="fw-bold small text-dark">Lịch sử phiếu xuất kho</span>
+                <span class="small text-muted ms-2">
+                    (@Model.TuNgayLichSu.ToString("dd/MM/yyyy") – @Model.DenNgayLichSu.ToString("dd/MM/yyyy") · @Model.LichSuPhieuXuat.Count phiếu)
+                </span>
+            </div>
+
+            <form method="get"
+                  action="#lich-su-xuat"
+                  novalidate
+                  onsubmit="return kiemTraKhoangNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu');"
+                  class="d-flex flex-column align-items-end gap-1">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-1">
+                        <label asp-for="TuNgayLichSu" class="small text-secondary fw-semibold mb-0 text-nowrap">Từ ngày</label>
+                        <input asp-for="TuNgayLichSu"
+                               id="inpTuNgayLichSu"
+                               type="date"
+                               max="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")"
+                               onchange="dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu')"
+                               class="form-control form-control-sm @(ngayLichSuHopLe ? "" : "is-invalid")"
+                               style="width: 140px;" />
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <label asp-for="DenNgayLichSu" class="small text-secondary fw-semibold mb-0 text-nowrap">Đến ngày</label>
+                        <input asp-for="DenNgayLichSu"
+                               id="inpDenNgayLichSu"
+                               type="date"
+                               min="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")"
+                               onchange="dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu')"
+                               class="form-control form-control-sm @(ngayLichSuHopLe ? "" : "is-invalid")"
+                               style="width: 140px;" />
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-charcoal px-3">Xem lịch sử</button>
+                </div>
+                <div id="errNgayLichSu" class="text-danger small @(ngayLichSuHopLe ? "d-none" : "")">
+                    Từ ngày không được lớn hơn Đến ngày.
+                </div>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table xk-table">
+                <thead>
+                    <tr>
+                        <th>Mã phiếu & Thời gian</th>
+                        <th>Bộ phận nhận & Lý do</th>
+                        <th>Chi tiết vật tư xuất</th>
+                        <th class="text-center">Số mặt hàng</th>
+                        <th class="text-end">Tổng giá trị xuất</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.LichSuPhieuXuat != null && Model.LichSuPhieuXuat.Any())
+                    {
+                        @foreach (var phieu in Model.LichSuPhieuXuat)
+                        {
+                            <tr>
+                                <td class="text-nowrap">
+                                    <div class="fw-bold text-dark num">@phieu.MaPhieu</div>
+                                    <div class="text-muted small num">@phieu.ThoiGian.ToString("dd/MM/yyyy HH:mm")</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@phieu.BoPhanNhan</div>
+                                    @if (!string.IsNullOrWhiteSpace(phieu.LyDoXuat))
+                                    {
+                                        <div class="small text-muted">@phieu.LyDoXuat</div>
+                                    }
+                                </td>
+                                <td>
+                                    @foreach (var ct in phieu.ChiTietVatTu)
+                                    {
+                                        <div class="item-line">
+                                            <span class="fw-semibold text-dark">@ct.TenVatTu</span>
+                                            <span class="c-out num ms-1">-@ct.SoLuong @ct.DonViTinh</span>
+                                            <span class="text-muted num">(@ct.ThanhTien.ToString("N0") ₫)</span>
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-center num text-secondary">@phieu.ChiTietVatTu.Count</td>
+                                <td class="text-end num c-out">@phieu.TongGiaTriXuat.ToString("N0") ₫</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                @if (!ngayLichSuHopLe)
+                                {
+                                    <span>Vui lòng chọn lại khoảng ngày hợp lệ (Từ ngày nhỏ hơn hoặc bằng Đến ngày).</span>
+                                }
+                                else
+                                {
+                                    <span>Không có phiếu xuất kho nào trong khoảng ngày @Model.TuNgayLichSu.ToString("dd/MM/yyyy") – @Model.DenNgayLichSu.ToString("dd/MM/yyyy").</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -186,29 +408,191 @@
 @section Scripts {
     <script>
         // @@ts-nocheck
-        // Hiển thị số lượng tồn khả dụng và giới hạn số lượng xuất tối đa theo tồn thực tế
-        function capNhatThongTinVatTuXuat() {
-            var selectEl = document.getElementById('selectVatTuXuat');
-            if (!selectEl || selectEl['selectedIndex'] <= 0) {
-                document.getElementById('lblLoaiKhoXuat').innerText = '-';
-                document.getElementById('lblTonKhaDung').innerText = '0';
-                document.getElementById('lblTonToiThieu').innerText = '0';
+        var coLoiVuotTon = false;
+
+        // Thêm một dòng vật tư xuất mới
+        function themDongXuat() {
+            var tbody = document.getElementById('tbodyXuat');
+            var tpl = document.getElementById('tplDongXuat');
+            if (!tbody || !tpl) return;
+
+            var clone = tpl.content.cloneNode(true);
+            tbody.appendChild(clone);
+            danhLaiChiSoXuat();
+            kiemTraVaTinhToanXuat();
+        }
+
+        // Xóa một dòng vật tư xuất (luôn giữ lại ít nhất 1 dòng)
+        function xoaDongXuat(btn) {
+            var tbody = document.getElementById('tbodyXuat');
+            var rows = tbody.querySelectorAll('.row-xuat');
+            if (rows.length <= 1) {
+                var r = rows[0];
+                r.querySelector('.sel-vattu-xuat')['value'] = '';
+                r.querySelector('.inp-sl-xuat')['value'] = '1';
+                kiemTraVaTinhToanXuat();
                 return;
             }
 
-            var selectedOpt = selectEl['options'][selectEl['selectedIndex']];
-            var kho = selectedOpt.getAttribute('data-kho') || '-';
-            var ton = selectedOpt.getAttribute('data-ton') || '0';
-            var toiThieu = selectedOpt.getAttribute('data-toithieu') || '0';
+            var tr = btn.closest('tr');
+            if (tr) tr.remove();
+            danhLaiChiSoXuat();
+            kiemTraVaTinhToanXuat();
+        }
 
-            document.getElementById('lblLoaiKhoXuat').innerText = kho;
-            document.getElementById('lblTonKhaDung').innerText = ton;
-            document.getElementById('lblTonToiThieu').innerText = toiThieu;
+        // Đánh lại thuộc tính name="Items[i]..." liên tục cho ASP.NET Core Model Binding
+        function danhLaiChiSoXuat() {
+            var rows = document.querySelectorAll('#tbodyXuat .row-xuat');
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].querySelector('.sel-vattu-xuat').setAttribute('name', 'Items[' + i + '].MaVatTu');
+                rows[i].querySelector('.inp-sl-xuat').setAttribute('name', 'Items[' + i + '].SoLuongXuat');
+            }
+            var lblCount = document.getElementById('lblTongDongXuat');
+            if (lblCount) lblCount.innerText = rows.length.toString();
+        }
 
-            var inpSLXuat = document.getElementById('inpSoLuongXuat');
-            if (inpSLXuat) {
-                inpSLXuat.setAttribute('max', ton);
+        function chonVatTuXuat(selectEl) {
+            kiemTraVaTinhToanXuat();
+        }
+
+        // Kiểm tra tổng lượng xuất của từng mã vật tư (kể cả chọn trùng dòng) so với tồn khả dụng
+        function kiemTraVaTinhToanXuat() {
+            var rows = document.querySelectorAll('#tbodyXuat .row-xuat');
+            var tongYeuCauTheoMa = {};
+
+            for (var i = 0; i < rows.length; i++) {
+                var sel = rows[i].querySelector('.sel-vattu-xuat');
+                var ma = sel ? sel['value'] : '';
+                var sl = parseInt(rows[i].querySelector('.inp-sl-xuat')['value'] || '0', 10) || 0;
+                if (ma) {
+                    tongYeuCauTheoMa[ma] = (tongYeuCauTheoMa[ma] || 0) + sl;
+                }
+            }
+
+            var tongGiaTri = 0;
+            var loiList = [];
+            coLoiVuotTon = false;
+
+            for (var j = 0; j < rows.length; j++) {
+                var tr = rows[j];
+                var selEl = tr.querySelector('.sel-vattu-xuat');
+                var inpSl = tr.querySelector('.inp-sl-xuat');
+                var lblKho = tr.querySelector('.lbl-kho');
+                var lblTon = tr.querySelector('.lbl-ton');
+                var lblGiaTri = tr.querySelector('.lbl-giatri');
+                var lblConLai = tr.querySelector('.lbl-conlai');
+
+                tr.classList.remove('row-vuot-ton');
+
+                if (!selEl || selEl['selectedIndex'] <= 0) {
+                    lblKho.innerText = '-';
+                    lblTon.innerText = '-';
+                    lblGiaTri.innerText = '0 ₫';
+                    lblConLai.className = 'text-center num small text-muted lbl-conlai';
+                    lblConLai.innerText = '-';
+                    inpSl.removeAttribute('max');
+                    continue;
+                }
+
+                var opt = selEl['options'][selEl['selectedIndex']];
+                var maVT = opt['value'];
+                var kho = opt.getAttribute('data-kho') || '-';
+                var dvt = opt.getAttribute('data-dvt') || '';
+                var ton = parseInt(opt.getAttribute('data-ton') || '0', 10);
+                var toiThieu = parseInt(opt.getAttribute('data-toithieu') || '0', 10);
+                var gia = parseFloat(opt.getAttribute('data-gia') || '0') || 0;
+                var slXuat = parseInt(inpSl['value'] || '0', 10) || 0;
+
+                inpSl.setAttribute('max', ton.toString());
+                lblKho.innerText = kho;
+                lblTon.innerText = ton + ' / Min ' + toiThieu;
+
+                var thanhTien = slXuat * gia;
+                tongGiaTri += thanhTien;
+                lblGiaTri.innerText = thanhTien.toLocaleString('vi-VN') + ' ₫';
+
+                var tongXuatCuaMa = tongYeuCauTheoMa[maVT] || 0;
+                var conLai = ton - tongXuatCuaMa;
+
+                if (tongXuatCuaMa > ton) {
+                    tr.classList.add('row-vuot-ton');
+                    lblConLai.className = 'text-center num small c-out lbl-conlai';
+                    lblConLai.innerText = 'Vượt tồn (' + conLai + ')';
+                    coLoiVuotTon = true;
+                    if (loiList.indexOf(maVT) === -1) {
+                        loiList.push(maVT + ' (yêu cầu ' + tongXuatCuaMa + ', tồn ' + ton + ')');
+                    }
+                } else if (conLai <= toiThieu) {
+                    lblConLai.className = 'text-center num small c-warn lbl-conlai';
+                    lblConLai.innerText = conLai + ' ' + dvt + ' (chạm min)';
+                } else {
+                    lblConLai.className = 'text-center num small text-secondary lbl-conlai';
+                    lblConLai.innerText = conLai + ' ' + dvt;
+                }
+            }
+
+            var lblTong = document.getElementById('lblTongGiaTriXuat');
+            if (lblTong) lblTong.innerText = tongGiaTri.toLocaleString('vi-VN') + ' ₫';
+
+            var boxLoi = document.getElementById('boxCanhBaoVuotTon');
+            if (boxLoi) {
+                if (coLoiVuotTon) {
+                    boxLoi.classList.remove('d-none');
+                    boxLoi.innerText = 'Số lượng xuất vượt quá tồn khả dụng ở mã: ' + loiList.join('; ');
+                } else {
+                    boxLoi.classList.add('d-none');
+                    boxLoi.innerText = '';
+                }
             }
         }
+
+        function kiemTraTruocKhiXuat() {
+            kiemTraVaTinhToanXuat();
+            if (coLoiVuotTon) {
+                alert('Vui lòng điều chỉnh lại số lượng xuất không vượt quá tồn kho khả dụng.');
+                return false;
+            }
+            return true;
+        }
+
+        // Đồng bộ thuộc tính min/max trên lịch trình duyệt để chặn Từ ngày > Đến ngày
+        function dongBoGioiHanNgay(idTu, idDen, idLoi) {
+            var inpTu = document.getElementById(idTu);
+            var inpDen = document.getElementById(idDen);
+            var elLoi = document.getElementById(idLoi);
+            if (!inpTu || !inpDen) return true;
+
+            var tuVal = inpTu['value'] || '';
+            var denVal = inpDen['value'] || '';
+
+            if (denVal) inpTu.setAttribute('max', denVal);
+            else inpTu.removeAttribute('max');
+
+            if (tuVal) inpDen.setAttribute('min', tuVal);
+            else inpDen.removeAttribute('min');
+
+            var hopLe = !(tuVal && denVal && tuVal > denVal);
+            inpTu.classList.toggle('is-invalid', !hopLe);
+            inpDen.classList.toggle('is-invalid', !hopLe);
+            if (elLoi) elLoi.classList.toggle('d-none', hopLe);
+
+            return hopLe;
+        }
+
+        // Chặn submit form lọc lịch sử nếu người dùng gõ tay Từ ngày > Đến ngày
+        function kiemTraKhoangNgay(idTu, idDen, idLoi) {
+            var hopLe = dongBoGioiHanNgay(idTu, idDen, idLoi);
+            if (!hopLe) {
+                var inpTu = document.getElementById(idTu);
+                if (inpTu) inpTu.focus();
+            }
+            return hopLe;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            danhLaiChiSoXuat();
+            kiemTraVaTinhToanXuat();
+            dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu');
+        });
     </script>
 }

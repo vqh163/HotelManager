@@ -4,324 +4,528 @@
     ViewData["Title"] = "Quản lý Danh mục Kho";
 }
 
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-12 col-xl-11">
+<style>
+    /* Giao diện nền sáng phẳng đồng bộ toàn phân hệ Kho, giữ nguyên Header của _Layout */
+    body {
+        background-color: #f5f6f8;
+        color: #1f2937;
+    }
 
-            <!-- Khu vực hiển thị thông báo hệ thống (Thành công / Lỗi) -->
-            @if (!string.IsNullOrEmpty(Model.ThongBao))
-            {
-                <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBao
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
-            {
-                <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
+    .kho-page {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 18px 20px 32px;
+    }
 
-            <!-- Khung danh sách Quản lý Tồn kho -->
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <!-- Header: Tiêu đề và nút thêm mới -->
-                <div class="card-header bg-gradient bg-primary text-white p-4 border-0 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2"></i> Quản lý Danh mục Hàng hóa & Tồn kho (UC_09)</h4>
-                        <p class="mb-0 text-white-50 small mt-1">Theo dõi tồn kho thời gian thực cho Vật dụng, Nhà hàng và Đồ tiêu hao</p>
-                    </div>
-                    <button type="button" class="btn btn-light text-primary fw-bold rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVatTu" onclick="resetForm()">
-                        <i class="bi bi-plus-circle-fill me-1"></i> Nhập Vật tư mới
-                    </button>
-                </div>
+    .kho-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
 
-                <!-- Thanh công cụ Lọc theo 3 loại kho và Tìm kiếm (Sử dụng Tag Helpers chuẩn) -->
-                <div class="bg-light p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
-                    <!-- Các nút Tab lọc nhanh theo loại kho -->
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <strong class="text-secondary me-1"><i class="bi bi-funnel-fill"></i> Danh mục:</strong>
-                        <a asp-page="./QuanLyKho" asp-route-LoaiVatTuFilter="ALL" asp-route-TuKhoa="@Model.TuKhoa"
-                           class="btn btn-sm rounded-pill fw-bold px-3 @(Model.LoaiVatTuFilter == "ALL" || string.IsNullOrEmpty(Model.LoaiVatTuFilter) ? "btn-primary shadow-sm" : "btn-outline-secondary bg-white")">
-                            Tất cả (@Model.TongSoMatHang)
-                        </a>
-                        <a asp-page="./QuanLyKho" asp-route-LoaiVatTuFilter="Kho vật dụng" asp-route-TuKhoa="@Model.TuKhoa"
-                           class="btn btn-sm rounded-pill fw-bold px-3 @(Model.LoaiVatTuFilter == "Kho vật dụng" ? "btn-primary shadow-sm" : "btn-outline-secondary bg-white")">
-                            <i class="bi bi-lamp me-1"></i> Kho vật dụng
-                        </a>
-                        <a asp-page="./QuanLyKho" asp-route-LoaiVatTuFilter="Kho nhà hàng" asp-route-TuKhoa="@Model.TuKhoa"
-                           class="btn btn-sm rounded-pill fw-bold px-3 @(Model.LoaiVatTuFilter == "Kho nhà hàng" ? "btn-primary shadow-sm" : "btn-outline-secondary bg-white")">
-                            <i class="bi bi-cup-hot me-1"></i> Kho nhà hàng
-                        </a>
-                        <a asp-page="./QuanLyKho" asp-route-LoaiVatTuFilter="Kho đồ tiêu hao" asp-route-TuKhoa="@Model.TuKhoa"
-                           class="btn btn-sm rounded-pill fw-bold px-3 @(Model.LoaiVatTuFilter == "Kho đồ tiêu hao" ? "btn-primary shadow-sm" : "btn-outline-secondary bg-white")">
-                            <i class="bi bi-droplet-half me-1"></i> Kho đồ tiêu hao
-                        </a>
-                    </div>
+    .kho-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
 
-                    <!-- Ô tìm kiếm theo Tên hoặc Mã vật tư -->
-                    <form method="get" class="d-flex gap-2">
-                        <input type="hidden" asp-for="LoaiVatTuFilter" />
-                        <div class="input-group input-group-sm">
-                            <input asp-for="TuKhoa" class="form-control rounded-start-pill border-0 shadow-sm ps-3" placeholder="Tìm tên hoặc mã VT..." />
-                            <button type="submit" class="btn btn-primary rounded-end-pill px-3 shadow-sm">
-                                <i class="bi bi-search"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
+    .kho-subtitle {
+        font-size: 0.82rem;
+        color: #6b7280;
+        margin-top: 2px;
+    }
 
-                <!-- Bảng hiển thị danh sách hàng hóa trong kho -->
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-borderless align-middle mb-0 text-center">
-                            <thead class="table-light text-secondary">
-                                <tr>
-                                    <th class="ps-4 text-start">Mã VT</th>
-                                    <th class="text-start">Tên Hàng Hóa / Vật Tư</th>
-                                    <th>Phân Loại Kho</th>
-                                    <th>Đơn Vị Tính</th>
-                                    <th>Đơn Giá Nhập (VNĐ)</th>
-                                    <th>Tồn Tối Thiểu</th>
-                                    <th>SL Tồn Hiện Tại</th>
-                                    <th class="text-center pe-4">Thao Tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if (Model.DanhSachVatTu != null && Model.DanhSachVatTu.Any())
-                                {
-                                    @foreach (var vt in Model.DanhSachVatTu)
-                                    {
-                                        // Xử lý an toàn các thuộc tính Nullable (int?, decimal?) của Model KHO_VAT_TU
-                                        int slTon = vt.SoLuongTon ?? 0;
-                                        int slToiThieu = vt.SoLuongTonToiThieu ?? 0;
-                                        decimal giaNhap = vt.DonGiaNhap ?? 0;
-                                        bool isLowStock = slTon <= slToiThieu;
+    .kho-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+    }
 
-                                        <tr class="border-bottom @(isLowStock ? "bg-warning bg-opacity-10" : "")">
-                                            <td class="ps-4 text-start">
-                                                <span class="badge bg-light text-dark border">@vt.MaVatTu</span>
-                                            </td>
-                                            <td class="fw-bold text-dark text-start">
-                                                @(vt.TenVatTu ?? "Chưa cập nhật")
-                                                @if (isLowStock)
-                                                {
-                                                    <span class="badge bg-danger ms-2" title="Số lượng tồn thấp hơn hoặc bằng mức tối thiểu">
-                                                        <i class="bi bi-exclamation-triangle-fill"></i> Sắp hết
-                                                    </span>
-                                                }
-                                            </td>
-                                            <td>
-                                                @if (vt.LoaiVatTu == "Kho vật dụng")
-                                                {
-                                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-pill px-3">@vt.LoaiVatTu</span>
-                                                }
-                                                else if (vt.LoaiVatTu == "Kho nhà hàng")
-                                                {
-                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-3">@vt.LoaiVatTu</span>
-                                                }
-                                                else if (vt.LoaiVatTu == "Kho đồ tiêu hao")
-                                                {
-                                                    <span class="badge bg-info bg-opacity-10 text-info border border-info rounded-pill px-3">@vt.LoaiVatTu</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-secondary rounded-pill px-3">@(vt.LoaiVatTu ?? "Chưa phân loại")</span>
-                                                }
-                                            </td>
-                                            <td>@(vt.DonViTinh ?? "-")</td>
-                                            <td class="text-success fw-medium">@giaNhap.ToString("N0") ₫</td>
-                                            <td class="text-muted">@slToiThieu</td>
-                                            <td>
-                                                <span class="fs-5 fw-bold @(isLowStock ? "text-danger" : "text-primary")">@slTon</span>
-                                            </td>
-                                            <td class="text-center pe-4">
-                                                <!-- Sử dụng thuộc tính data-* để truyền dữ liệu sang JS, tránh 100% lỗi cú pháp của Razor & TypeScript -->
-                                                <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 me-2"
-                                                        data-mavt="@vt.MaVatTu"
-                                                        data-tenvt="@(vt.TenVatTu ?? "")"
-                                                        data-loaivt="@(vt.LoaiVatTu ?? "Kho vật dụng")"
-                                                        data-dvt="@(vt.DonViTinh ?? "")"
-                                                        data-gianhap="@giaNhap"
-                                                        data-slton="@slTon"
-                                                        data-sltoithieu="@slToiThieu"
-                                                        onclick="editVatTuFromBtn(this)">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </button>
+    .kpi-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
 
-                                                <!-- Form Xóa vật tư sử dụng Tag Helpers -->
-                                                <form method="post" asp-page-handler="Delete" asp-route-id="@vt.MaVatTu" class="d-inline" onsubmit="return confirm('Xác nhận xóa vật tư này khỏi kho?');">
-                                                    <input type="hidden" name="LoaiVatTuFilter" value="@Model.LoaiVatTuFilter" />
-                                                    <input type="hidden" name="TuKhoa" value="@Model.TuKhoa" />
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
-                                                        <i class="bi bi-trash3"></i>
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    }
-                                }
-                                else
-                                {
-                                    <tr>
-                                        <td colspan="8" class="text-center text-muted py-5">
-                                            <i class="bi bi-box2 fs-1 d-block mb-2"></i> Chưa có vật tư nào trong danh mục kho này.
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    .kpi-cell {
+        padding: 13px 18px;
+        border-right: 1px solid #e5e7eb;
+    }
 
+        .kpi-cell:last-child {
+            border-right: none;
+        }
+
+    .kpi-label {
+        font-size: 0.74rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+        margin-bottom: 3px;
+    }
+
+    .kpi-value {
+        font-size: 1.3rem;
+        font-weight: 700;
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-sub {
+        font-size: 0.76rem;
+        color: #6b7280;
+        margin-top: 2px;
+    }
+
+    .zone-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 10px 16px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        margin-bottom: 14px;
+        font-size: 0.84rem;
+    }
+
+    .zone-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .kho-tab {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.83rem;
+        font-weight: 600;
+        color: #4b5563;
+        background: #f3f4f6;
+        text-decoration: none;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+        .kho-tab:hover {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .kho-tab.active {
+            background: #1f2937;
+            color: #ffffff;
+        }
+
+    .kho-table {
+        font-size: 0.86rem;
+        margin-bottom: 0;
+    }
+
+        .kho-table thead th {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #6b7280;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 14px;
+            white-space: nowrap;
+        }
+
+        .kho-table tbody td {
+            padding: 9px 14px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+
+        .kho-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .kho-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+    .num-col {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .st-pill {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 5px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .st-ok {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .st-warn {
+        background: #fef9c3;
+        color: #a16207;
+    }
+
+    .st-danger {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .st-neutral {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .btn-charcoal {
+        background-color: #1f2937;
+        border-color: #1f2937;
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+        .btn-charcoal:hover {
+            background-color: #111827;
+            border-color: #111827;
+            color: #ffffff;
+        }
+
+    @@media (max-width: 992px) {
+        .kpi-strip {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .kpi-cell {
+            border-bottom: 1px solid #e5e7eb;
+        }
+    }
+</style>
+
+<div class="kho-page">
+    <!-- Thông báo kết quả xử lý -->
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.ThongBao
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.ThongBaoLoi
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Tiêu đề trang và nút thêm mới (chỉ hiện với nhóm quản trị kho) -->
+    <div class="kho-header">
+        <div>
+            <h1 class="kho-title">Quản lý Danh mục Kho</h1>
+            <div class="kho-subtitle">Theo dõi tồn kho vật dụng buồng phòng, nhà hàng và đồ tiêu hao</div>
+        </div>
+        @if (Model.CoQuyenQuanTriKho)
+        {
+            <button type="button" class="btn btn-sm btn-charcoal px-3 py-2" data-bs-toggle="modal" data-bs-target="#modalVatTu" onclick="resetForm()">
+                + Thêm vật tư mới
+            </button>
+        }
+    </div>
+
+    <!-- Dải 4 chỉ số tổng quan -->
+    <div class="kpi-strip">
+        <div class="kpi-cell">
+            <div class="kpi-label">Tổng danh mục vật tư</div>
+            <div class="kpi-value text-dark">@Model.TongSoMatHang</div>
+            <div class="kpi-sub">mặt hàng đang quản lý</div>
+        </div>
+        <div class="kpi-cell">
+            <div class="kpi-label">Tổng giá trị vốn tồn</div>
+            <div class="kpi-value" style="color: #0056b3;">@Model.TongGiaTriTonKho.ToString("N0") ₫</div>
+            <div class="kpi-sub">tính theo đơn giá nhập</div>
+        </div>
+        <div class="kpi-cell">
+            <div class="kpi-label">Chạm định mức tối thiểu</div>
+            <div class="kpi-value" style="color: #a16207;">@Model.SoMatHangSapHet</div>
+            <div class="kpi-sub">mặt hàng cần nhập bù</div>
+        </div>
+        <div class="kpi-cell">
+            <div class="kpi-label">Hết hàng (Tồn = 0)</div>
+            <div class="kpi-value" style="color: #b91c1c;">@Model.SoMatHangHetSach</div>
+            <div class="kpi-sub">cần ưu tiên xử lý</div>
         </div>
     </div>
-</div>
 
-<!-- Modal Thêm mới / Cập nhật Vật Tư -->
-<div class="modal fade" id="modalVatTu" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white border-bottom pb-3">
-                <h5 class="modal-title fw-bold" id="modalTitle">
-                    <i class="bi bi-box-arrow-in-down me-2"></i>Khai báo Vật tư mới
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- Thanh tóm tắt giá trị vốn theo 3 phân khu kho -->
+    <div class="zone-strip">
+        <span class="fw-semibold text-secondary small text-uppercase">Giá trị vốn theo phân khu:</span>
+        <div class="zone-items">
+            <span>Kho vật dụng: <strong class="num-col text-dark">@Model.GiaTriKhoVatDung.ToString("N0") ₫</strong></span>
+            <span>Kho nhà hàng: <strong class="num-col text-dark">@Model.GiaTriKhoNhaHang.ToString("N0") ₫</strong></span>
+            <span>Kho đồ tiêu hao: <strong class="num-col text-dark">@Model.GiaTriKhoTieuHao.ToString("N0") ₫</strong></span>
+        </div>
+    </div>
+
+    <!-- Bảng danh mục vật tư rộng 100% chiều ngang -->
+    <div class="kho-card overflow-hidden">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex flex-wrap gap-1">
+                <a asp-page="./QuanLyKho"
+                   asp-route-LoaiVatTuFilter="ALL"
+                   asp-route-TrangThaiTonFilter="@Model.TrangThaiTonFilter"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   class="kho-tab @(Model.LoaiVatTuFilter == "ALL" ? "active" : "")">
+                    Tất cả (@Model.TongSoMatHang)
+                </a>
+                <a asp-page="./QuanLyKho"
+                   asp-route-LoaiVatTuFilter="Kho vật dụng"
+                   asp-route-TrangThaiTonFilter="@Model.TrangThaiTonFilter"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   class="kho-tab @(Model.LoaiVatTuFilter == "Kho vật dụng" ? "active" : "")">
+                    Vật dụng (@Model.DemKhoVatDung)
+                </a>
+                <a asp-page="./QuanLyKho"
+                   asp-route-LoaiVatTuFilter="Kho nhà hàng"
+                   asp-route-TrangThaiTonFilter="@Model.TrangThaiTonFilter"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   class="kho-tab @(Model.LoaiVatTuFilter == "Kho nhà hàng" ? "active" : "")">
+                    Nhà hàng (@Model.DemKhoNhaHang)
+                </a>
+                <a asp-page="./QuanLyKho"
+                   asp-route-LoaiVatTuFilter="Kho đồ tiêu hao"
+                   asp-route-TrangThaiTonFilter="@Model.TrangThaiTonFilter"
+                   asp-route-TuKhoa="@Model.TuKhoa"
+                   class="kho-tab @(Model.LoaiVatTuFilter == "Kho đồ tiêu hao" ? "active" : "")">
+                    Đồ tiêu hao (@Model.DemKhoTieuHao)
+                </a>
             </div>
-            
-            <!-- Mặc định trỏ về handler Create, khi bấm Sửa JS sẽ đổi sang Update -->
-            <form method="post" asp-page-handler="Create" id="formVatTu">
-                <input type="hidden" name="LoaiVatTuFilter" value="@Model.LoaiVatTuFilter" />
-                <input type="hidden" name="TuKhoa" value="@Model.TuKhoa" />
-                <input type="hidden" asp-for="InputData.MaVatTu" id="inpMaVatTu" />
 
-                <div class="modal-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label asp-for="InputData.TenVatTu" class="form-label fw-bold">Tên vật tư / hàng hóa <span class="text-danger">*</span></label>
-                            <input asp-for="InputData.TenVatTu" id="inpTenVatTu" class="form-control rounded-3" placeholder="VD: Khăn tắm lớn, Thịt bò Mỹ, Bàn chải..." required />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="InputData.LoaiVatTu" class="form-label fw-bold">Phân loại Kho <span class="text-danger">*</span></label>
-                            <select asp-for="InputData.LoaiVatTu" id="inpLoaiVatTu" class="form-select rounded-3" required>
-                                <option value="Kho vật dụng">Kho vật dụng</option>
-                                <option value="Kho nhà hàng">Kho nhà hàng</option>
-                                <option value="Kho đồ tiêu hao">Kho đồ tiêu hao</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="InputData.DonViTinh" class="form-label fw-bold">Đơn vị tính <span class="text-danger">*</span></label>
-                            <input asp-for="InputData.DonViTinh" id="inpDonViTinh" class="form-control rounded-3" placeholder="VD: Cái, Bộ, Kg, Lít, Thùng..." required />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="InputData.DonGiaNhap" class="form-label fw-bold">Đơn giá nhập (VNĐ) <span class="text-danger">*</span></label>
-                            <input asp-for="InputData.DonGiaNhap" id="inpDonGiaNhap" type="number" step="0.01" min="0" class="form-control rounded-3" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="InputData.SoLuongTon" class="form-label fw-bold text-primary">Số lượng tồn kho hiện tại <span class="text-danger">*</span></label>
-                            <input asp-for="InputData.SoLuongTon" id="inpSoLuongTon" type="number" min="0" class="form-control rounded-3 bg-light fw-bold" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="InputData.SoLuongTonToiThieu" class="form-label fw-bold text-danger">Định mức tồn tối thiểu (Cảnh báo) <span class="text-danger">*</span></label>
-                            <input asp-for="InputData.SoLuongTonToiThieu" id="inpTonToiThieu" type="number" min="0" class="form-control rounded-3" required />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer bg-light border-top-0">
-                    <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary fw-bold px-4">
-                        <i class="bi bi-save me-1"></i> Lưu thông tin
-                    </button>
+            <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+                <input type="hidden" asp-for="LoaiVatTuFilter" />
+                <select asp-for="TrangThaiTonFilter" class="form-select form-select-sm" style="width: 175px;" onchange="this.form.submit()">
+                    <option value="ALL">Mọi trạng thái tồn</option>
+                    <option value="AN_TOAN">Đủ định mức an toàn</option>
+                    <option value="SAP_HET">Chạm đáy tối thiểu</option>
+                    <option value="HET_HANG">Đã hết hàng (0)</option>
+                </select>
+                <div class="input-group input-group-sm" style="width: 250px;">
+                    <input asp-for="TuKhoa" class="form-control" placeholder="Tìm mã hoặc tên vật tư..." />
+                    <button type="submit" class="btn btn-charcoal px-3">Tìm</button>
                 </div>
             </form>
         </div>
+
+        <div class="table-responsive">
+            <table class="table kho-table">
+                <thead>
+                    <tr>
+                        <th>Mã VT</th>
+                        <th>Tên hàng hóa / Vật tư</th>
+                        <th>Phân loại</th>
+                        <th class="text-center">ĐVT</th>
+                        <th class="text-end">Đơn giá nhập</th>
+                        <th class="text-end">Tồn / Tối thiểu</th>
+                        <th class="text-end">Giá trị tồn</th>
+                        <th class="text-center">Trạng thái</th>
+                        @if (Model.CoQuyenQuanTriKho)
+                        {
+                            <th class="text-end">Thao tác</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.DanhSachVatTu != null && Model.DanhSachVatTu.Any())
+                    {
+                        @foreach (var vt in Model.DanhSachVatTu)
+                        {
+                            int slTon = vt.SoLuongTon ?? 0;
+                            int slToiThieu = vt.SoLuongTonToiThieu ?? 0;
+                            decimal giaNhap = vt.DonGiaNhap ?? 0;
+                            decimal giaTriTon = slTon * giaNhap;
+                            bool isOut = slTon <= 0;
+                            bool isLow = !isOut && slTon <= slToiThieu;
+
+                            <tr>
+                                <td class="text-muted fw-semibold num-col">@vt.MaVatTu</td>
+                                <td class="fw-semibold text-dark">@(vt.TenVatTu ?? "Chưa cập nhật")</td>
+                                <td><span class="st-pill st-neutral">@(vt.LoaiVatTu ?? "Chưa phân loại")</span></td>
+                                <td class="text-center text-secondary">@(vt.DonViTinh ?? "-")</td>
+                                <td class="text-end num-col">@giaNhap.ToString("N0") ₫</td>
+                                <td class="text-end num-col">
+                                    <span class="fw-bold @(isOut || isLow ? "text-danger" : "text-dark")">@slTon</span>
+                                    <span class="text-muted"> / @slToiThieu</span>
+                                </td>
+                                <td class="text-end num-col fw-semibold text-dark">@giaTriTon.ToString("N0") ₫</td>
+                                <td class="text-center">
+                                    @if (isOut)
+                                    {
+                                        <span class="st-pill st-danger">Hết hàng</span>
+                                    }
+                                    else if (isLow)
+                                    {
+                                        <span class="st-pill st-warn">Sắp hết</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="st-pill st-ok">An toàn</span>
+                                    }
+                                </td>
+                                @if (Model.CoQuyenQuanTriKho)
+                                {
+                                    <td class="text-end text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 me-1"
+                                                data-mavt="@vt.MaVatTu"
+                                                data-tenvt="@(vt.TenVatTu ?? "")"
+                                                data-loaivt="@(vt.LoaiVatTu ?? "Kho vật dụng")"
+                                                data-dvt="@(vt.DonViTinh ?? "")"
+                                                data-gianhap="@giaNhap.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                data-slton="@slTon"
+                                                data-sltoithieu="@slToiThieu"
+                                                onclick="editVatTuFromBtn(this)">
+                                            Sửa
+                                        </button>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@vt.MaVatTu" class="d-inline" onsubmit="return confirm('Xác nhận xóa vật tư này khỏi danh mục kho?');">
+                                            <input type="hidden" name="LoaiVatTuFilter" value="@Model.LoaiVatTuFilter" />
+                                            <input type="hidden" name="TrangThaiTonFilter" value="@Model.TrangThaiTonFilter" />
+                                            <input type="hidden" name="TuKhoa" value="@Model.TuKhoa" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">Xóa</button>
+                                        </form>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="@(Model.CoQuyenQuanTriKho ? 9 : 8)" class="text-center text-muted py-4">
+                                Không tìm thấy vật tư phù hợp với điều kiện lọc.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+@if (Model.CoQuyenQuanTriKho)
+{
+    <!-- Modal Thêm mới / Cập nhật Vật tư (chỉ render khi có quyền quản trị kho) -->
+    <div class="modal fade" id="modalVatTu" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom py-3 px-4">
+                    <h6 class="modal-title fw-bold mb-0" id="modalTitle">Khai báo vật tư mới</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form method="post" asp-page-handler="Create" id="formVatTu">
+                    <input type="hidden" name="LoaiVatTuFilter" value="@Model.LoaiVatTuFilter" />
+                    <input type="hidden" name="TrangThaiTonFilter" value="@Model.TrangThaiTonFilter" />
+                    <input type="hidden" name="TuKhoa" value="@Model.TuKhoa" />
+                    <input type="hidden" asp-for="InputData.MaVatTu" id="inpMaVatTu" />
+
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="InputData.TenVatTu" class="form-label small fw-semibold">Tên vật tư / hàng hóa <span class="text-danger">*</span></label>
+                                <input asp-for="InputData.TenVatTu" id="inpTenVatTu" class="form-control form-control-sm" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="InputData.LoaiVatTu" class="form-label small fw-semibold">Phân loại kho <span class="text-danger">*</span></label>
+                                <select asp-for="InputData.LoaiVatTu" id="inpLoaiVatTu" class="form-select form-select-sm" required>
+                                    <option value="Kho vật dụng">Kho vật dụng</option>
+                                    <option value="Kho nhà hàng">Kho nhà hàng</option>
+                                    <option value="Kho đồ tiêu hao">Kho đồ tiêu hao</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="InputData.DonViTinh" class="form-label small fw-semibold">Đơn vị tính <span class="text-danger">*</span></label>
+                                <input asp-for="InputData.DonViTinh" id="inpDonViTinh" class="form-control form-control-sm" placeholder="VD: Cái, Bộ, Kg, Chai..." required />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="InputData.DonGiaNhap" class="form-label small fw-semibold">Đơn giá nhập (VNĐ) <span class="text-danger">*</span></label>
+                                <input asp-for="InputData.DonGiaNhap" id="inpDonGiaNhap" type="number" step="0.01" min="0" class="form-control form-control-sm" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="InputData.SoLuongTon" class="form-label small fw-semibold">Số lượng tồn hiện tại <span class="text-danger">*</span></label>
+                                <input asp-for="InputData.SoLuongTon" id="inpSoLuongTon" type="number" min="0" class="form-control form-control-sm fw-bold" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="InputData.SoLuongTonToiThieu" class="form-label small fw-semibold">Định mức tồn tối thiểu <span class="text-danger">*</span></label>
+                                <input asp-for="InputData.SoLuongTonToiThieu" id="inpTonToiThieu" type="number" min="0" class="form-control form-control-sm" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light border-top py-2 px-4">
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-sm btn-charcoal px-4">Lưu thông tin</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
 
 @section Scripts {
     <script>
         // @@ts-nocheck
-        // Chỉ thị trên giúp tắt bộ kiểm tra TypeScript ngầm của Visual Studio trong file Razor
-
-        // Hàm làm mới Form khi người dùng bấm nút "Nhập Vật tư mới"
         function resetForm() {
             var titleEl = document.getElementById('modalTitle');
-            if (titleEl) {
-                titleEl.innerHTML = '<i class="bi bi-box-arrow-in-down me-2"></i>Khai báo Vật tư mới';
-            }
+            if (titleEl) titleEl.innerText = 'Khai báo vật tư mới';
 
             var formEl = document.getElementById('formVatTu');
-            if (formEl) {
-                formEl.setAttribute('action', '?handler=Create');
-            }
+            if (formEl) formEl.setAttribute('action', '?handler=Create');
 
-            var inpMa = document.getElementById('inpMaVatTu');
-            if (inpMa) inpMa.setAttribute('value', '');
+            var fields = {
+                inpMaVatTu: '',
+                inpTenVatTu: '',
+                inpLoaiVatTu: 'Kho vật dụng',
+                inpDonViTinh: '',
+                inpDonGiaNhap: '0',
+                inpSoLuongTon: '0',
+                inpTonToiThieu: '10'
+            };
 
-            var inpTen = document.getElementById('inpTenVatTu');
-            if (inpTen) inpTen['value'] = '';
-
-            var inpLoai = document.getElementById('inpLoaiVatTu');
-            if (inpLoai) inpLoai['value'] = 'Kho vật dụng';
-
-            var inpDvt = document.getElementById('inpDonViTinh');
-            if (inpDvt) inpDvt['value'] = '';
-
-            var inpGia = document.getElementById('inpDonGiaNhap');
-            if (inpGia) inpGia['value'] = '0';
-
-            var inpTon = document.getElementById('inpSoLuongTon');
-            if (inpTon) inpTon['value'] = '0';
-
-            var inpToiThieu = document.getElementById('inpTonToiThieu');
-            if (inpToiThieu) inpToiThieu['value'] = '10';
+            Object.keys(fields).forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el['value'] = fields[id];
+            });
         }
 
-        // Hàm lấy dữ liệu từ thuộc tính data-* của nút Sửa và đổ lên Modal
         function editVatTuFromBtn(btn) {
             if (!btn) return;
 
             var maVT = btn.getAttribute('data-mavt') || '';
-            var tenVT = btn.getAttribute('data-tenvt') || '';
-            var loaiVT = btn.getAttribute('data-loaivt') || 'Kho vật dụng';
-            var dvt = btn.getAttribute('data-dvt') || '';
-            var giaNhap = btn.getAttribute('data-gianhap') || '0';
-            var slTon = btn.getAttribute('data-slton') || '0';
-            var slToiThieu = btn.getAttribute('data-sltoithieu') || '0';
-
             var titleEl = document.getElementById('modalTitle');
-            if (titleEl) {
-                titleEl.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Cập nhật Vật tư (' + maVT + ')';
-            }
+            if (titleEl) titleEl.innerText = 'Cập nhật vật tư (' + maVT + ')';
 
             var formEl = document.getElementById('formVatTu');
-            if (formEl) {
-                formEl.setAttribute('action', '?handler=Update');
-            }
+            if (formEl) formEl.setAttribute('action', '?handler=Update');
 
-            var inpMa = document.getElementById('inpMaVatTu');
-            if (inpMa) inpMa['value'] = maVT;
-
-            var inpTen = document.getElementById('inpTenVatTu');
-            if (inpTen) inpTen['value'] = tenVT;
-
-            var inpLoai = document.getElementById('inpLoaiVatTu');
-            if (inpLoai) inpLoai['value'] = loaiVT;
-
-            var inpDvt = document.getElementById('inpDonViTinh');
-            if (inpDvt) inpDvt['value'] = dvt;
-
-            var inpGia = document.getElementById('inpDonGiaNhap');
-            if (inpGia) inpGia['value'] = giaNhap;
-
-            var inpTon = document.getElementById('inpSoLuongTon');
-            if (inpTon) inpTon['value'] = slTon;
-
-            var inpToiThieu = document.getElementById('inpTonToiThieu');
-            if (inpToiThieu) inpToiThieu['value'] = slToiThieu;
+            document.getElementById('inpMaVatTu')['value'] = maVT;
+            document.getElementById('inpTenVatTu')['value'] = btn.getAttribute('data-tenvt') || '';
+            document.getElementById('inpLoaiVatTu')['value'] = btn.getAttribute('data-loaivt') || 'Kho vật dụng';
+            document.getElementById('inpDonViTinh')['value'] = btn.getAttribute('data-dvt') || '';
+            document.getElementById('inpDonGiaNhap')['value'] = btn.getAttribute('data-gianhap') || '0';
+            document.getElementById('inpSoLuongTon')['value'] = btn.getAttribute('data-slton') || '0';
+            document.getElementById('inpTonToiThieu')['value'] = btn.getAttribute('data-sltoithieu') || '0';
 
             var modalEl = document.getElementById('modalVatTu');
             var bs = window['bootstrap'];

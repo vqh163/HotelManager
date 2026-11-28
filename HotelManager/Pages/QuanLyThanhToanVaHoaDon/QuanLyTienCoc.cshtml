@@ -1,0 +1,433 @@
+﻿@page
+@model HotelManager.Pages.QuanLyThanhToan.QuanLyTienCocModel
+@{
+    ViewData["Title"] = "Quản lý Ví Tiền cọc";
+}
+
+<style>
+    body {
+        background-color: #f4f6f9;
+    }
+
+    .pos-panel {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+    }
+
+    .folio-list-scroll {
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .folio-card {
+        display: block;
+        text-decoration: none;
+        background: #ffffff;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 13px 15px;
+        margin-bottom: 10px;
+        transition: all 0.18s ease;
+        color: inherit;
+    }
+
+        .folio-card:hover {
+            border-color: #93c5fd;
+            background-color: #f8fafc;
+            transform: translateY(-1px);
+        }
+
+        .folio-card.active {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+        }
+
+    .filter-pill {
+        padding: 4px 12px;
+        border-radius: 50rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: #475569;
+        background: #f1f5f9;
+    }
+
+        .filter-pill.active {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+    .wallet-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+        color: #ffffff;
+        border-radius: 14px;
+        padding: 20px 22px;
+    }
+
+    .action-radio {
+        display: none;
+    }
+
+    .action-tile {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #475569;
+        background: #ffffff;
+        transition: all 0.18s ease;
+    }
+
+    .action-radio:checked + .action-tile.tile-thu {
+        border-color: #2563eb;
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .action-radio:checked + .action-tile.tile-hoan {
+        border-color: #dc2626;
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .receipt-divider {
+        border-top: 1.5px dashed #cbd5e1;
+        margin: 14px 0;
+    }
+</style>
+
+<div class="container-fluid px-4 py-4" style="max-width: 1480px;">
+
+    <!-- Thanh tiêu đề & Tổng quan Ví tiền cọc -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="bi bi-safe2-fill text-primary me-2"></i>Quản lý Ví Hạn mức Tiền cọc
+            </h4>
+           
+        </div>
+        <div class="bg-white border rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-3 small">
+            <span class="text-secondary">Tổng cọc đang giữ: <strong class="text-primary">@Model.TongTienCocDangGiu.ToString("N0") ₫</strong></span>
+            <span class="text-muted">|</span>
+            <span class="text-secondary">Đã cọc: <strong class="text-success">@Model.SoDonDaCoc đơn</strong></span>
+            <span class="text-muted">|</span>
+            <span class="text-secondary">Chưa cọc: <strong class="text-warning text-dark">@Model.SoDonChuaCoc đơn</strong></span>
+        </div>
+    </div>
+
+    <!-- Thông báo kết quả xử lý -->
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBao
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+
+        <!-- CỘT TRÁI (4 cột): Danh sách thẻ Đơn đặt phòng -->
+        <div class="col-12 col-xl-4">
+            <div class="pos-panel p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-bookmark-check text-primary me-1"></i> Ví cọc theo Đơn đặt phòng
+                    </h6>
+                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2">@Model.DanhSachDatPhong.Count</span>
+                </div>
+
+                <!-- Bộ lọc nhanh trạng thái cọc -->
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <a asp-page="./QuanLyTienCoc" asp-route-TrangThaiCocFilter="ALL" asp-route-TuKhoa="@Model.TuKhoa"
+                       class="filter-pill @(Model.TrangThaiCocFilter == "ALL" ? "active" : "")">Tất cả</a>
+                    <a asp-page="./QuanLyTienCoc" asp-route-TrangThaiCocFilter="DA_COC" asp-route-TuKhoa="@Model.TuKhoa"
+                       class="filter-pill @(Model.TrangThaiCocFilter == "DA_COC" ? "active" : "")">Đã có cọc (@Model.SoDonDaCoc)</a>
+                    <a asp-page="./QuanLyTienCoc" asp-route-TrangThaiCocFilter="CHUA_COC" asp-route-TuKhoa="@Model.TuKhoa"
+                       class="filter-pill @(Model.TrangThaiCocFilter == "CHUA_COC" ? "active" : "")">Chưa cọc (@Model.SoDonChuaCoc)</a>
+                </div>
+
+                <!-- Form tìm kiếm đơn đặt phòng -->
+                <form method="get" class="mb-3">
+                    <input type="hidden" asp-for="TrangThaiCocFilter" />
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0 rounded-start-pill ps-3">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input asp-for="TuKhoa" class="form-control bg-light border-start-0 shadow-none" placeholder="Tìm mã đặt phòng, mã KH..." />
+                        @if (!string.IsNullOrEmpty(Model.TuKhoa))
+                        {
+                            <a asp-page="./QuanLyTienCoc" asp-route-TrangThaiCocFilter="@Model.TrangThaiCocFilter" class="btn btn-light border text-muted">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        }
+                        <button type="submit" class="btn btn-primary rounded-end-pill px-3 fw-semibold">Tìm</button>
+                    </div>
+                </form>
+
+                <!-- Danh sách thẻ cuộn -->
+                <div class="folio-list-scroll">
+                    @if (Model.DanhSachDatPhong.Any())
+                    {
+                        @foreach (var dp in Model.DanhSachDatPhong)
+                        {
+                            bool isSelected = Model.DatPhongDangChon?.MaDatPhong == dp.MaDatPhong;
+                            decimal tienCoc = Convert.ToDecimal(dp.TienCoc ?? 0m);
+
+                            <a asp-page="./QuanLyTienCoc"
+                               asp-route-MaDatPhongChon="@dp.MaDatPhong"
+                               asp-route-TrangThaiCocFilter="@Model.TrangThaiCocFilter"
+                               asp-route-TuKhoa="@Model.TuKhoa"
+                               class="folio-card @(isSelected ? "active" : "")">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span class="fw-bold text-dark">@dp.MaDatPhong</span>
+                                    <span class="badge @(tienCoc > 0 ? "bg-success bg-opacity-10 text-success" : "bg-light text-muted border") rounded-pill" style="font-size: 0.72rem;">
+                                        @(dp.TrangThaiDatPhong ?? "Đang xử lý")
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-end mt-2">
+                                    <div class="small text-muted">
+                                        <div><i class="bi bi-person me-1"></i>KH: @(dp.KHACH_HANGMaKH ?? "-")</div>
+                                        <div><i class="bi bi-calendar-event me-1"></i>@(dp.NgayNhan?.ToString("dd/MM") ?? "-") &rarr; @(dp.NgayTra?.ToString("dd/MM/yyyy") ?? "-")</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted d-block" style="font-size: 0.7rem;">Số dư cọc</small>
+                                        <span class="fw-bold fs-6 @(tienCoc > 0 ? "text-primary" : "text-muted")">
+                                            @tienCoc.ToString("N0") ₫
+                                        </span>
+                                    </div>
+                                </div>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            <div class="fw-semibold text-dark">Không có đơn đặt phòng</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI (8 cột): Chi tiết Ví cọc & Bảng điều khiển Thu / Hoàn cọc -->
+        <div class="col-12 col-xl-8">
+            @if (Model.DatPhongDangChon != null)
+            {
+                var dp = Model.DatPhongDangChon;
+                decimal cocHienCo = Convert.ToDecimal(dp.TienCoc ?? 0m);
+
+                <div class="pos-panel p-4 h-100">
+                    <div class="row g-4">
+
+                        <!-- NỬA TRÁI: Thẻ thông tin Ví cọc & Đơn đặt phòng -->
+                        <div class="col-12 col-lg-5">
+                            <div class="p-3 rounded-4 bg-light border h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="wallet-hero mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.7rem;">Số dư Ví Tiền cọc</span>
+                                            <span class="badge bg-white bg-opacity-25 text-white rounded-pill">@dp.MaDatPhong</span>
+                                        </div>
+                                        <div class="fs-2 fw-bold">@cocHienCo.ToString("N0") ₫</div>
+                                        <div class="small text-white-50 mt-2">
+                                            <i class="bi bi-shield-check me-1"></i>Đảm bảo khấu trừ trực tiếp khi Check-out
+                                        </div>
+                                    </div>
+
+                                    <div class="small text-secondary">
+                                        <div class="d-flex justify-content-between py-1">
+                                            <span>Mã khách hàng:</span>
+                                            <strong class="text-dark">@(dp.KHACH_HANGMaKH ?? "-")</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1">
+                                            <span>Ngày đặt:</span>
+                                            <span>@(dp.NgayDat?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1">
+                                            <span>Nhận - Trả phòng:</span>
+                                            <strong class="text-dark">@(dp.NgayNhan?.ToString("dd/MM") ?? "-") &rarr; @(dp.NgayTra?.ToString("dd/MM/yyyy") ?? "-")</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1">
+                                            <span>Kênh đặt phòng:</span>
+                                            <span>@(dp.KenhDatPhong ?? "Trực tiếp")</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1">
+                                            <span>Trạng thái đơn:</span>
+                                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">@(dp.TrangThaiDatPhong ?? "-")</span>
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(dp.GhiChu))
+                                    {
+                                        <div class="receipt-divider"></div>
+                                        <div class="small text-muted">
+                                            <strong class="text-dark d-block mb-1">Ghi chú đặt phòng:</strong>
+                                            @dp.GhiChu
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Lịch sử biến động cọc của đơn này -->
+                                <div class="mt-3 pt-3 border-top">
+                                    <div class="small fw-bold text-secondary text-uppercase mb-2">Biến động cọc gần đây</div>
+                                    @if (Model.LichSuCocDonChon.Any())
+                                    {
+                                        @foreach (var ls in Model.LichSuCocDonChon.Take(3))
+                                        {
+                                            decimal st = ls.SoTien ?? 0;
+                                            <div class="d-flex justify-content-between align-items-center small py-1">
+                                                <span class="text-muted">@(ls.ThoiGianGiaoDich?.ToString("dd/MM HH:mm") ?? "-")</span>
+                                                <strong class="@(st < 0 ? "text-danger" : "text-success")">
+                                                    @(st > 0 ? "+" : "")@st.ToString("N0") ₫
+                                                </strong>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="small text-muted fst-italic">Chưa ghi nhận giao dịch cọc mới.</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NỬA PHẢI: Form Nghiệp vụ Thu thêm cọc / Hoàn tiền cọc -->
+                        <div class="col-12 col-lg-7">
+                            <form method="post" asp-page-handler="XuLyTienCoc" class="h-100 d-flex flex-column justify-content-between">
+                                <input type="hidden" asp-for="InputCoc.MaDatPhong" value="@dp.MaDatPhong" />
+                                <input type="hidden" asp-for="TrangThaiCocFilter" />
+                                <input type="hidden" asp-for="TuKhoa" />
+
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-3">
+                                        <i class="bi bi-sliders text-primary me-1"></i> 1. Chọn nghiệp vụ Ví tiền cọc
+                                    </h6>
+
+                                    <!-- 2 Ô chọn hành động trực quan (Đã sửa lỗi RZ1031 bằng disabled="@(cocHienCo <= 0)") -->
+                                    <div class="row g-2 mb-4">
+                                        <div class="col-6">
+                                            <input type="radio" asp-for="InputCoc.HanhDong" value="THU" id="rdoThuCoc" class="action-radio" checked onchange="capNhatGiaoDienCoc()" />
+                                            <label for="rdoThuCoc" class="action-tile tile-thu">
+                                                <i class="bi bi-plus-circle-fill fs-5"></i> Thu thêm cọc
+                                            </label>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="radio" asp-for="InputCoc.HanhDong" value="HOAN" id="rdoHoanCoc" class="action-radio" disabled="@(cocHienCo <= 0)" onchange="capNhatGiaoDienCoc()" />
+                                            <label for="rdoHoanCoc" class="action-tile tile-hoan @(cocHienCo <= 0 ? "opacity-50" : "")">
+                                                <i class="bi bi-arrow-return-left fs-5"></i> Hoàn tiền cọc
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Nhập số tiền + các nút mệnh giá gợi ý nhanh -->
+                                    <div class="p-3 rounded-4 bg-light border mb-3">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mb-2">
+                                            <label asp-for="InputCoc.SoTien" class="form-label fw-bold small text-secondary mb-0">
+                                                Số tiền thực hiện (VNĐ) <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0 small" onclick="chonMucCoc(500000)">500k</button>
+                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0 small" onclick="chonMucCoc(1000000)">1 Triệu</button>
+                                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0 small" onclick="chonMucCoc(2000000)">2 Triệu</button>
+                                                @if (cocHienCo > 0)
+                                                {
+                                                    <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-2 py-0 small" onclick="chonMucCoc(@cocHienCo)">Toàn bộ cọc</button>
+                                                }
+                                            </div>
+                                        </div>
+                                        <input asp-for="InputCoc.SoTien" id="inpSoTienCoc" type="number" min="1000" step="1000" value="500000"
+                                               class="form-control form-control-lg rounded-3 fw-bold text-dark" required />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label asp-for="InputCoc.PhuongThuc" class="form-label fw-bold small text-secondary">
+                                            Phương thức giao dịch
+                                        </label>
+                                        <select asp-for="InputCoc.PhuongThuc" class="form-select rounded-3">
+                                            <option value="Chuyển khoản (VietQR)">Chuyển khoản ngân hàng (VietQR)</option>
+                                            <option value="Tiền mặt">Tiền mặt tại quầy Lễ tân</option>
+                                            <option value="Thẻ tín dụng / ATM">Thẻ tín dụng / ATM (POS)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Nút xác nhận -->
+                                <div class="pt-3 border-top mt-3">
+                                    <div class="small text-muted mb-3">
+                                        <i class="bi bi-shield-lock-fill text-success me-1"></i>
+                                        Giao dịch cọc được thực thi nguyên tử (Atomic Transaction) và tự động ghi log vào sổ cái <code>THANH_TOAN</code>.
+                                    </div>
+                                    <button type="submit" id="btnXacNhanCoc" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm py-3">
+                                        <i class="bi bi-check2-circle me-2"></i>Xác nhận Thu thêm Tiền cọc
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="pos-panel p-5 h-100 d-flex flex-column align-items-center justify-content-center text-center">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-4 mb-3 fs-1">
+                        <i class="bi bi-safe2"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Chưa chọn đơn đặt phòng</h5>
+                    <p class="text-muted small mb-0">Chọn một đơn đặt phòng ở danh sách bên trái để kiểm tra số dư ví cọc và thao tác thu/hoàn cọc.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // @@ts-nocheck
+        var cocHienCoVal = parseFloat('@((Model.DatPhongDangChon?.TienCoc ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture))');
+
+        // Gán nhanh mệnh giá tiền cọc
+        function chonMucCoc(soTien) {
+            var inp = document.getElementById('inpSoTienCoc');
+            if (inp) inp.value = Math.round(soTien);
+        }
+
+        // Đổi màu nút xác nhận và giới hạn số tiền tối đa khi chuyển sang chế độ Hoàn cọc
+        function capNhatGiaoDienCoc() {
+            var rdoHoan = document.getElementById('rdoHoanCoc');
+            var isHoan = rdoHoan ? rdoHoan.checked : false;
+            var btn = document.getElementById('btnXacNhanCoc');
+            var inp = document.getElementById('inpSoTienCoc');
+            if (!btn || !inp) return;
+
+            if (isHoan) {
+                btn.className = 'btn btn-danger btn-lg w-100 rounded-pill fw-bold shadow-sm py-3';
+                btn.innerHTML = '<i class="bi bi-arrow-return-left me-2"></i>Xác nhận Hoàn tiền cọc';
+                inp.setAttribute('max', cocHienCoVal);
+                inp.value = Math.round(cocHienCoVal);
+            } else {
+                btn.className = 'btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm py-3';
+                btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>Xác nhận Thu thêm Tiền cọc';
+                inp.removeAttribute('max');
+            }
+        }
+    </script>
+}

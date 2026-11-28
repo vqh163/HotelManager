@@ -1,56 +1,258 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using HotelManager.Data;
-using HotelManager.Helpers;
 using HotelManager.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace HotelManager.Pages.QuanLyKho
 {
+    [Authorize]
     public class QuanLyXuatKhoModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<QuanLyXuatKhoModel> _logger;
+        private static readonly object _logFileLock = new object();
 
-        public QuanLyXuatKhoModel(ApplicationDbContext context, ILogger<QuanLyXuatKhoModel> logger)
+        public QuanLyXuatKhoModel(ApplicationDbContext context)
         {
             _context = context;
-            _logger = logger;
         }
 
         public IList<KHO_VAT_TU> DanhSachVatTu { get; set; } = new List<KHO_VAT_TU>();
-        public IList<QuanLyNhapKhoModel.PhieuKhoViewModel> LichSuXuatKho { get; set; } = new List<QuanLyNhapKhoModel.PhieuKhoViewModel>();
+
+        public List<PhieuXuatGroupViewModel> LichSuPhieuXuat { get; set; } = new List<PhieuXuatGroupViewModel>();
+
+        [BindProperty(SupportsGet = true)]
+        [DataType(DataType.Date)]
+        public DateTime TuNgayLichSu { get; set; } = DateTime.Today.AddDays(-29);
+
+        [BindProperty(SupportsGet = true)]
+        [DataType(DataType.Date)]
+        public DateTime DenNgayLichSu { get; set; } = DateTime.Today;
 
         [BindProperty]
-        public XuatKhoInputModel Input { get; set; } = new XuatKhoInputModel();
+        [Required(ErrorMessage = "Vui lòng chọn bộ phận tiếp nhận.")]
+        public string BoPhanNhan { get; set; } = "Bộ phận Buồng phòng";
 
-        [TempData] public string ThongBao { get; set; } = string.Empty;
-        [TempData] public string ThongBaoLoi { get; set; } = string.Empty;
+        [BindProperty]
+        [Required(ErrorMessage = "Vui lòng nhập lý do xuất kho.")]
+        public string LyDoXuat { get; set; } = string.Empty;
 
-        public class XuatKhoInputModel
+        [BindProperty]
+        public List<XuatKhoItemInput> Items { get; set; } = new List<XuatKhoItemInput>();
+
+        public string LoiLocNgay { get; set; } = string.Empty;
+
+        [TempData]
+        public string ThongBao { get; set; } = string.Empty;
+
+        [TempData]
+        public string ThongBaoLoi { get; set; } = string.Empty;
+
+        public class XuatKhoItemInput
         {
-            [Required(ErrorMessage = "Vui lòng chọn vật tư cần xuất.")]
             public string MaVatTu { get; set; } = string.Empty;
-
-            [Range(1, int.MaxValue, ErrorMessage = "Số lượng xuất phải lớn hơn 0.")]
             public int SoLuongXuat { get; set; } = 1;
+        }
 
-            [Required(ErrorMessage = "Vui lòng chọn bộ phận tiếp nhận.")]
-            public string BoPhanNhan { get; set; } = "Bộ phận Buồng phòng";
+        public class ChiTietPhieuXuatViewModel
+        {
+            public string MaVatTu { get; set; } = string.Empty;
+            public string TenVatTu { get; set; } = string.Empty;
+            public string LoaiKho { get; set; } = string.Empty;
+            public string DonViTinh { get; set; } = string.Empty;
+            public int SoLuong { get; set; }
+            public decimal DonGia { get; set; }
+            public decimal ThanhTien => SoLuong * DonGia;
+        }
 
-            [Required(ErrorMessage = "Vui lòng nhập lý do xuất kho.")]
+        public class PhieuXuatGroupViewModel
+        {
+            public string MaPhieu { get; set; } = string.Empty;
+            public string BoPhanNhan { get; set; } = string.Empty;
             public string LyDoXuat { get; set; } = string.Empty;
+            public DateTime ThoiGian { get; set; }
+            public List<ChiTietPhieuXuatViewModel> ChiTietVatTu { get; set; } = new List<ChiTietPhieuXuatViewModel>();
+            public decimal TongGiaTriXuat => ChiTietVatTu.Sum(x => x.ThanhTien);
         }
 
         public async Task OnGetAsync()
         {
             await LoadDataAsync();
+
+            if (!Items.Any())
+            {
+                Items.Add(new XuatKhoItemInput { SoLuongXuat = 1 });
+            }
+        }
+
+        public async Task<IActionResult> OnPostAsync()
+        {
+            if (TuNgayLichSu == default || DenNgayLichSu == default || TuNgayLichSu.Date > DenNgayLichSu.Date)
+            {
+                TuNgayLichSu = DateTime.Today.AddDays(-29);
+                DenNgayLichSu = DateTime.Today;
+            }
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(BoPhanNhan) || string.IsNullOrWhiteSpace(LyDoXuat))
+                {
+                    ThongBaoLoi = "Vui lòng chọn bộ phận tiếp nhận và nhập lý do xuất kho.";
+                    await LoadDataAsync();
+                    if (!Items.Any()) Items.Add(new XuatKhoItemInput());
+                    return Page();
+                }
+
+                var dongHopLe = (Items ?? new List<XuatKhoItemInput>())
+                    .Where(x => !string.IsNullOrWhiteSpace(x.MaVatTu))
+                    .ToList();
+
+                if (!dongHopLe.Any())
+                {
+                    ThongBaoLoi = "Vui lòng chọn ít nhất 1 vật tư để lập phiếu xuất kho.";
+                    await LoadDataAsync();
+                    if (!Items.Any()) Items.Add(new XuatKhoItemInput());
+                    return Page();
+                }
+
+                if (dongHopLe.Any(x => x.SoLuongXuat <= 0))
+                {
+                    ThongBaoLoi = "Số lượng xuất của từng vật tư phải lớn hơn 0.";
+                    await LoadDataAsync();
+                    return Page();
+                }
+
+                var nhomXuat = dongHopLe
+                    .GroupBy(x => x.MaVatTu)
+                    .Select(g => new { MaVatTu = g.Key, TongSoLuong = g.Sum(x => x.SoLuongXuat) })
+                    .ToList();
+
+                var maList = nhomXuat.Select(x => x.MaVatTu).ToList();
+                var vatTuDbDict = await _context.KHO_VAT_TU
+                    .Where(v => maList.Contains(v.MaVatTu))
+                    .ToDictionaryAsync(v => v.MaVatTu, v => v);
+
+                var danhSachThieu = new List<string>();
+                foreach (var yc in nhomXuat)
+                {
+                    if (!vatTuDbDict.TryGetValue(yc.MaVatTu, out var vtDb))
+                    {
+                        danhSachThieu.Add($"[{yc.MaVatTu}] không tồn tại trong kho");
+                        continue;
+                    }
+
+                    int tonHienTai = vtDb.SoLuongTon ?? 0;
+                    if (yc.TongSoLuong > tonHienTai)
+                    {
+                        danhSachThieu.Add($"'{vtDb.TenVatTu}' (cần xuất {yc.TongSoLuong}, chỉ còn {tonHienTai} {vtDb.DonViTinh})");
+                    }
+                }
+
+                if (danhSachThieu.Any())
+                {
+                    ThongBaoLoi = "Không đủ hàng để xuất kho: " + string.Join("; ", danhSachThieu) + ".";
+                    await LoadDataAsync();
+                    return Page();
+                }
+
+                string maPhieu = "PX" + DateTime.Now.ToString("yyMMddHHmmss");
+                string thoiGianStr = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                string cleanBoPhan = BoPhanNhan.Replace("|", "/").Trim();
+                string cleanLyDo = LyDoXuat.Replace("|", "/").Replace("\r", " ").Replace("\n", " ").Trim();
+
+                var logLines = new List<string>();
+                var canhBaoChamMin = new List<string>();
+                int tongSoLuongXuat = 0;
+
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    foreach (var yc in nhomXuat)
+                    {
+                        var vtDb = vatTuDbDict[yc.MaVatTu];
+                        int tonMoi = (vtDb.SoLuongTon ?? 0) - yc.TongSoLuong;
+                        vtDb.SoLuongTon = tonMoi;
+
+                        tongSoLuongXuat += yc.TongSoLuong;
+
+                        if (tonMoi <= (vtDb.SoLuongTonToiThieu ?? 0))
+                        {
+                            canhBaoChamMin.Add($"{vtDb.TenVatTu} (còn {tonMoi})");
+                        }
+
+                        string dongLog = string.Join("|",
+                            maPhieu,
+                            "XUAT",
+                            vtDb.MaVatTu,
+                            (vtDb.TenVatTu ?? "Vật tư").Replace("|", "/"),
+                            (vtDb.LoaiVatTu ?? "Kho chung").Replace("|", "/"),
+                            (vtDb.DonViTinh ?? "Cái").Replace("|", "/"),
+                            yc.TongSoLuong.ToString(CultureInfo.InvariantCulture),
+                            (vtDb.DonGiaNhap ?? 0).ToString(CultureInfo.InvariantCulture),
+                            cleanBoPhan,
+                            cleanLyDo,
+                            thoiGianStr
+                        );
+                        logLines.Add(dongLog);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+
+                string canhBaoLog = string.Empty;
+                try
+                {
+                    string filePath = Path.Combine(Directory.GetCurrentDirectory(), "lichsu_nhapxuat_meta.txt");
+                    lock (_logFileLock)
+                    {
+                        System.IO.File.AppendAllLines(filePath, logLines);
+                    }
+                }
+                catch (Exception logEx)
+                {
+                    canhBaoLog = $" (Lưu ý: Đã trừ tồn SQL nhưng chưa ghi được nhật ký: {logEx.Message})";
+                }
+
+                string thongTinMin = canhBaoChamMin.Any()
+                    ? $" — Cảnh báo chạm định mức tối thiểu: {string.Join(", ", canhBaoChamMin)}."
+                    : "";
+
+                ThongBao = $"Lập phiếu xuất [{maPhieu}] cho {BoPhanNhan} thành công ({nhomXuat.Count} mặt hàng, tổng {tongSoLuongXuat:N0} đơn vị).{thongTinMin}{canhBaoLog}";
+                return RedirectToPage(new
+                {
+                    TuNgayLichSu = TuNgayLichSu.ToString("yyyy-MM-dd"),
+                    DenNgayLichSu = DenNgayLichSu.ToString("yyyy-MM-dd")
+                });
+            }
+            catch (Exception ex)
+            {
+                ThongBaoLoi = "Lỗi hệ thống khi lập phiếu xuất kho: " + ex.Message;
+                await LoadDataAsync();
+                if (!Items.Any()) Items.Add(new XuatKhoItemInput());
+                return Page();
+            }
+        }
+
+        private bool KiemTraKhoangNgayLichSu()
+        {
+            if (TuNgayLichSu == default) TuNgayLichSu = DateTime.Today.AddDays(-29);
+            if (DenNgayLichSu == default) DenNgayLichSu = DateTime.Today;
+
+            if (TuNgayLichSu.Date > DenNgayLichSu.Date)
+            {
+                LoiLocNgay = "Khoảng ngày lọc lịch sử không hợp lệ: 'Từ ngày' không được lớn hơn 'Đến ngày'.";
+                return false;
+            }
+
+            return true;
         }
 
         private async Task LoadDataAsync()
@@ -62,106 +264,89 @@ namespace HotelManager.Pages.QuanLyKho
                     .OrderBy(v => v.TenVatTu)
                     .ToListAsync();
 
-                // Truy vấn lịch sử phiếu XUẤT (bao gồm cả xuất cho sửa chữa sự cố) trực tiếp từ SQL Server
-                LichSuXuatKho = await _context.PHIEU_NHAP_XUAT_KHO
-                    .AsNoTracking()
-                    .Where(p => p.LoaiGiaoDich == "XUAT")
-                    .OrderByDescending(p => p.ThoiGian)
-                    .Take(100)
-                    .Select(p => new QuanLyNhapKhoModel.PhieuKhoViewModel
-                    {
-                        MaPhieu = p.MaPhieu,
-                        LoaiGiaoDich = p.LoaiGiaoDich,
-                        MaVatTu = p.KHO_VAT_TUMaVatTu,
-                        TenVatTu = p.TenVatTu,
-                        LoaiKho = p.LoaiKho,
-                        DonViTinh = p.DonViTinh,
-                        SoLuong = p.SoLuong,
-                        DonGia = p.DonGia,
-                        DoiTacHoacBoPhan = p.DoiTacHoacBoPhan,
-                        GhiChu = p.GhiChu ?? string.Empty,
-                        ThoiGian = p.ThoiGian
-                    })
-                    .ToListAsync();
+                if (KiemTraKhoangNgayLichSu())
+                {
+                    LichSuPhieuXuat = DocLichSuPhieuXuat(TuNgayLichSu, DenNgayLichSu);
+                }
+                else
+                {
+                    LichSuPhieuXuat = new List<PhieuXuatGroupViewModel>();
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi tải dữ liệu xuất kho.");
-                ThongBaoLoi = "Đã xảy ra lỗi khi tải dữ liệu xuất kho.";
+                ThongBaoLoi = "Lỗi khi tải dữ liệu xuất kho: " + ex.Message;
             }
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        private List<PhieuXuatGroupViewModel> DocLichSuPhieuXuat(DateTime tuNgay, DateTime denNgay)
         {
-            if (!ModelState.IsValid)
-            {
-                await LoadDataAsync();
-                ThongBaoLoi = "Vui lòng kiểm tra lại thông tin phiếu xuất kho.";
-                return Page();
-            }
-
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            var result = new List<PhieuXuatGroupViewModel>();
             try
             {
-                var vatTuDb = await _context.KHO_VAT_TU.AsNoTracking().FirstOrDefaultAsync(v => v.MaVatTu == Input.MaVatTu);
-                if (vatTuDb == null)
+                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "lichsu_nhapxuat_meta.txt");
+                if (!System.IO.File.Exists(filePath)) return result;
+
+                DateTime startDate = tuNgay.Date;
+                DateTime endDate = denNgay.Date.AddDays(1).AddTicks(-1);
+
+                var rawList = new List<(string MaPhieu, string BoPhan, string LyDo, DateTime ThoiGian, ChiTietPhieuXuatViewModel Item)>();
+
+                foreach (var line in System.IO.File.ReadAllLines(filePath))
                 {
-                    await LoadDataAsync();
-                    ThongBaoLoi = "Không tìm thấy vật tư cần xuất trong cơ sở dữ liệu!";
-                    return Page();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var p = line.Split('|');
+                    if (p.Length < 11 || p[1].Trim() != "XUAT") continue;
+
+                    if (!int.TryParse(p[6].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int sl)) continue;
+                    if (!decimal.TryParse(p[7].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal gia)) continue;
+
+                    bool okTg = DateTime.TryParseExact(
+                                    p[10].Trim(),
+                                    "yyyy-MM-dd HH:mm:ss",
+                                    CultureInfo.InvariantCulture,
+                                    DateTimeStyles.None,
+                                    out DateTime tg)
+                                || DateTime.TryParse(p[10].Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out tg);
+
+                    if (!okTg || tg < startDate || tg > endDate) continue;
+
+                    rawList.Add((
+                        p[0].Trim(),
+                        p[8].Trim(),
+                        p[9].Trim(),
+                        tg,
+                        new ChiTietPhieuXuatViewModel
+                        {
+                            MaVatTu = p[2].Trim(),
+                            TenVatTu = p[3].Trim(),
+                            LoaiKho = p[4].Trim(),
+                            DonViTinh = p[5].Trim(),
+                            SoLuong = sl,
+                            DonGia = gia
+                        }
+                    ));
                 }
 
-                // Trừ kho nguyên tử (Atomic Update) với điều kiện tồn kho >= số lượng xuất để chống âm kho khi đa luồng
-                int affected = await _context.KHO_VAT_TU
-                    .Where(v => v.MaVatTu == Input.MaVatTu && (v.SoLuongTon ?? 0) >= Input.SoLuongXuat)
-                    .ExecuteUpdateAsync(s => s.SetProperty(v => v.SoLuongTon, v => (v.SoLuongTon ?? 0) - Input.SoLuongXuat));
-
-                if (affected == 0)
-                {
-                    await transaction.RollbackAsync();
-                    await LoadDataAsync();
-                    ThongBaoLoi = $"Không đủ hàng để xuất! Vật tư '{vatTuDb.TenVatTu}' hiện chỉ còn tồn {vatTuDb.SoLuongTon ?? 0} {vatTuDb.DonViTinh}.";
-                    return Page();
-                }
-
-                int tonConLai = (vatTuDb.SoLuongTon ?? 0) - Input.SoLuongXuat;
-                string maPhieu = BaoMatHelper.SinhMaNgauNhien("PX");
-
-                _context.PHIEU_NHAP_XUAT_KHO.Add(new PHIEU_NHAP_XUAT_KHO
-                {
-                    MaPhieu = maPhieu,
-                    LoaiGiaoDich = "XUAT",
-                    KHO_VAT_TUMaVatTu = vatTuDb.MaVatTu,
-                    TenVatTu = vatTuDb.TenVatTu ?? "Vật tư",
-                    LoaiKho = vatTuDb.LoaiVatTu ?? "Kho chung",
-                    DonViTinh = vatTuDb.DonViTinh ?? "Cái",
-                    SoLuong = Input.SoLuongXuat,
-                    DonGia = vatTuDb.DonGiaNhap ?? 0,
-                    DoiTacHoacBoPhan = Input.BoPhanNhan.Trim(),
-                    GhiChu = Input.LyDoXuat.Trim(),
-                    NguoiThucHien = User.Identity?.Name,
-                    ThoiGian = DateTime.Now
-                });
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                int tonToiThieu = vatTuDb.SoLuongTonToiThieu ?? 0;
-                string canhBao = tonConLai <= tonToiThieu
-                    ? $" (CẢNH BÁO: Tồn kho còn {tonConLai}, đã chạm mức tối thiểu {tonToiThieu} - Cần lên đề xuất mua hàng!)"
-                    : $" (Tồn còn lại: {tonConLai}).";
-
-                ThongBao = $"Lập phiếu xuất [{maPhieu}] thành công! Đã xuất {Input.SoLuongXuat} {vatTuDb.DonViTinh} '{vatTuDb.TenVatTu}' cho {Input.BoPhanNhan}{canhBao}";
-                return RedirectToPage();
+                result = rawList
+                    .GroupBy(x => x.MaPhieu)
+                    .Select(g => new PhieuXuatGroupViewModel
+                    {
+                        MaPhieu = g.Key,
+                        BoPhanNhan = g.First().BoPhan,
+                        LyDoXuat = g.First().LyDo,
+                        ThoiGian = g.Max(x => x.ThoiGian),
+                        ChiTietVatTu = g.Select(x => x.Item).ToList()
+                    })
+                    .OrderByDescending(x => x.ThoiGian)
+                    .ToList();
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Lỗi hệ thống khi xuất kho.");
-                ThongBaoLoi = "Đã xảy ra lỗi hệ thống khi xuất kho.";
-                await LoadDataAsync();
-                return Page();
+                LoiLocNgay = "Không thể đọc lịch sử xuất kho: " + ex.Message;
             }
+
+            return result;
         }
     }
 }

@@ -1,9 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using HotelManager.Data;
-using HotelManager.Helpers;
 using HotelManager.Models;
 using System;
 using System.Collections.Generic;
@@ -12,22 +11,36 @@ using System.Threading.Tasks;
 
 namespace HotelManager.Pages.QuanLyKho
 {
+    [Authorize]
     public class QuanLyKhoModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<QuanLyKhoModel> _logger;
 
-        public QuanLyKhoModel(ApplicationDbContext context, ILogger<QuanLyKhoModel> logger)
-        {
-            _context = context;
-            _logger = logger;
-        }
+        public QuanLyKhoModel(ApplicationDbContext context) => _context = context;
+
+        // Mở quyền hiển thị nút Thêm/Sửa/Xóa cho tất cả tài khoản đã đăng nhập
+        public bool CoQuyenQuanTriKho => true;
 
         public IList<KHO_VAT_TU> DanhSachVatTu { get; set; } = new List<KHO_VAT_TU>();
-        public int TongSoMatHang { get; set; } = 0;
+
+        public int TongSoMatHang { get; set; }
+        public decimal TongGiaTriTonKho { get; set; }
+        public int SoMatHangSapHet { get; set; }
+        public int SoMatHangHetSach { get; set; }
+
+        public int DemKhoVatDung { get; set; }
+        public int DemKhoNhaHang { get; set; }
+        public int DemKhoTieuHao { get; set; }
+
+        public decimal GiaTriKhoVatDung { get; set; }
+        public decimal GiaTriKhoNhaHang { get; set; }
+        public decimal GiaTriKhoTieuHao { get; set; }
 
         [BindProperty(SupportsGet = true)]
         public string LoaiVatTuFilter { get; set; } = "ALL";
+
+        [BindProperty(SupportsGet = true)]
+        public string TrangThaiTonFilter { get; set; } = "ALL";
 
         [BindProperty(SupportsGet = true)]
         public string? TuKhoa { get; set; }
@@ -35,125 +48,170 @@ namespace HotelManager.Pages.QuanLyKho
         [BindProperty]
         public KHO_VAT_TU InputData { get; set; } = new KHO_VAT_TU();
 
-        [TempData] public string ThongBao { get; set; } = string.Empty;
-        [TempData] public string ThongBaoLoi { get; set; } = string.Empty;
+        [TempData]
+        public string ThongBao { get; set; } = string.Empty;
 
+        [TempData]
+        public string ThongBaoLoi { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Truy xuất dữ liệu từ bảng KHO_VAT_TU bằng LINQ, tính toán KPI và lọc danh sách hiển thị
+        /// </summary>
         public async Task OnGetAsync()
         {
             try
             {
-                TongSoMatHang = await _context.KHO_VAT_TU.AsNoTracking().CountAsync();
-                var query = _context.KHO_VAT_TU.AsNoTracking().AsQueryable();
+                var toanBoKho = await _context.KHO_VAT_TU.AsNoTracking().ToListAsync();
+
+                TongSoMatHang = toanBoKho.Count;
+                TongGiaTriTonKho = toanBoKho.Sum(v => (decimal)(v.SoLuongTon ?? 0) * (v.DonGiaNhap ?? 0));
+                SoMatHangSapHet = toanBoKho.Count(v => (v.SoLuongTon ?? 0) <= (v.SoLuongTonToiThieu ?? 0));
+                SoMatHangHetSach = toanBoKho.Count(v => (v.SoLuongTon ?? 0) <= 0);
+
+                DemKhoVatDung = toanBoKho.Count(v => v.LoaiVatTu == "Kho vật dụng");
+                DemKhoNhaHang = toanBoKho.Count(v => v.LoaiVatTu == "Kho nhà hàng");
+                DemKhoTieuHao = toanBoKho.Count(v => v.LoaiVatTu == "Kho đồ tiêu hao");
+
+                GiaTriKhoVatDung = toanBoKho
+                    .Where(v => v.LoaiVatTu == "Kho vật dụng")
+                    .Sum(v => (decimal)(v.SoLuongTon ?? 0) * (v.DonGiaNhap ?? 0));
+
+                GiaTriKhoNhaHang = toanBoKho
+                    .Where(v => v.LoaiVatTu == "Kho nhà hàng")
+                    .Sum(v => (decimal)(v.SoLuongTon ?? 0) * (v.DonGiaNhap ?? 0));
+
+                GiaTriKhoTieuHao = toanBoKho
+                    .Where(v => v.LoaiVatTu == "Kho đồ tiêu hao")
+                    .Sum(v => (decimal)(v.SoLuongTon ?? 0) * (v.DonGiaNhap ?? 0));
+
+                var query = toanBoKho.AsQueryable();
 
                 if (!string.IsNullOrEmpty(LoaiVatTuFilter) && LoaiVatTuFilter != "ALL")
                 {
                     query = query.Where(v => v.LoaiVatTu == LoaiVatTuFilter);
                 }
 
+                if (!string.IsNullOrEmpty(TrangThaiTonFilter) && TrangThaiTonFilter != "ALL")
+                {
+                    if (TrangThaiTonFilter == "AN_TOAN")
+                        query = query.Where(v => (v.SoLuongTon ?? 0) > (v.SoLuongTonToiThieu ?? 0));
+                    else if (TrangThaiTonFilter == "SAP_HET")
+                        query = query.Where(v => (v.SoLuongTon ?? 0) <= (v.SoLuongTonToiThieu ?? 0));
+                    else if (TrangThaiTonFilter == "HET_HANG")
+                        query = query.Where(v => (v.SoLuongTon ?? 0) <= 0);
+                }
+
                 if (!string.IsNullOrWhiteSpace(TuKhoa))
                 {
                     string keyword = TuKhoa.Trim();
                     query = query.Where(v =>
-                        (v.TenVatTu != null && v.TenVatTu.Contains(keyword)) ||
-                        v.MaVatTu.Contains(keyword));
+                        (v.TenVatTu != null && v.TenVatTu.Contains(keyword, StringComparison.OrdinalIgnoreCase)) ||
+                        v.MaVatTu.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                        (v.DonViTinh != null && v.DonViTinh.Contains(keyword, StringComparison.OrdinalIgnoreCase)));
                 }
 
-                DanhSachVatTu = await query
+                DanhSachVatTu = query
                     .OrderBy(v => (v.SoLuongTon ?? 0) <= (v.SoLuongTonToiThieu ?? 0) ? 0 : 1)
                     .ThenBy(v => v.TenVatTu)
-                    .ToListAsync();
+                    .ToList();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi tải danh mục kho.");
-                ThongBaoLoi = "Đã xảy ra lỗi khi tải danh mục kho vật tư.";
+                ThongBaoLoi = "Lỗi khi tải danh mục kho: " + ex.Message;
             }
         }
 
+        /// <summary>
+        /// Thêm mới vật tư vào bảng KHO_VAT_TU
+        /// </summary>
         public async Task<IActionResult> OnPostCreateAsync()
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(InputData.TenVatTu))
+                if (string.IsNullOrWhiteSpace(InputData.TenVatTu) || string.IsNullOrWhiteSpace(InputData.DonViTinh))
                 {
-                    ThongBaoLoi = "Tên vật tư không được để trống.";
-                    return RedirectToPage(new { LoaiVatTuFilter, TuKhoa });
+                    ThongBaoLoi = "Vui lòng nhập đầy đủ tên vật tư và đơn vị tính.";
+                    return RedirectToPage(new { LoaiVatTuFilter, TrangThaiTonFilter, TuKhoa });
                 }
 
-                int tonBanDau = Math.Max(0, InputData.SoLuongTon ?? 0);
-                int tonToiThieu = Math.Max(0, InputData.SoLuongTonToiThieu ?? 0);
-                decimal donGia = Math.Max(0, InputData.DonGiaNhap ?? 0);
-
-                var vatTuMoi = new KHO_VAT_TU
+                if ((InputData.SoLuongTon ?? 0) < 0 || (InputData.SoLuongTonToiThieu ?? 0) < 0 || (InputData.DonGiaNhap ?? 0) < 0)
                 {
-                    MaVatTu = BaoMatHelper.SinhMaNgauNhien("VT"),
-                    TenVatTu = InputData.TenVatTu.Trim(),
-                    LoaiVatTu = InputData.LoaiVatTu,
-                    DonViTinh = InputData.DonViTinh?.Trim(),
-                    SoLuongTon = tonBanDau,
-                    SoLuongTonToiThieu = tonToiThieu,
-                    DonGiaNhap = donGia
-                };
+                    ThongBaoLoi = "Số lượng tồn, định mức tối thiểu và đơn giá nhập không được âm.";
+                    return RedirectToPage(new { LoaiVatTuFilter, TrangThaiTonFilter, TuKhoa });
+                }
 
-                _context.KHO_VAT_TU.Add(vatTuMoi);
+                InputData.MaVatTu = "VT" + DateTime.Now.ToString("yyMMddHHmmss") + Random.Shared.Next(10, 99);
+                InputData.TenVatTu = InputData.TenVatTu.Trim();
+                InputData.DonViTinh = InputData.DonViTinh.Trim();
+                InputData.SoLuongTon = InputData.SoLuongTon ?? 0;
+                InputData.SoLuongTonToiThieu = InputData.SoLuongTonToiThieu ?? 0;
+                InputData.DonGiaNhap = InputData.DonGiaNhap ?? 0;
+
+                _context.KHO_VAT_TU.Add(InputData);
                 await _context.SaveChangesAsync();
 
-                ThongBao = $"Đã thêm mới hàng hóa '{vatTuMoi.TenVatTu}' vào {vatTuMoi.LoaiVatTu}!";
+                ThongBao = $"Đã thêm mới hàng hóa '{InputData.TenVatTu}' vào {InputData.LoaiVatTu}!";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi thêm mới vật tư.");
-                ThongBaoLoi = "Đã xảy ra lỗi hệ thống khi thêm mới vật tư.";
+                ThongBaoLoi = "Lỗi khi thêm mới vật tư: " + ex.Message;
             }
 
-            return RedirectToPage(new { LoaiVatTuFilter, TuKhoa });
+            return RedirectToPage(new { LoaiVatTuFilter, TrangThaiTonFilter, TuKhoa });
         }
 
-        // Cập nhật thông tin danh mục vật tư (KHÔNG cho sửa trực tiếp SoLuongTon để tránh thất thoát kho)
+        /// <summary>
+        /// Cập nhật thông tin vật tư trong bảng KHO_VAT_TU
+        /// </summary>
         public async Task<IActionResult> OnPostUpdateAsync()
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(InputData.TenVatTu) || string.IsNullOrWhiteSpace(InputData.DonViTinh))
+                {
+                    ThongBaoLoi = "Vui lòng nhập đầy đủ tên vật tư và đơn vị tính.";
+                    return RedirectToPage(new { LoaiVatTuFilter, TrangThaiTonFilter, TuKhoa });
+                }
+
+                if ((InputData.SoLuongTon ?? 0) < 0 || (InputData.SoLuongTonToiThieu ?? 0) < 0 || (InputData.DonGiaNhap ?? 0) < 0)
+                {
+                    ThongBaoLoi = "Số lượng tồn, định mức tối thiểu và đơn giá nhập không được âm.";
+                    return RedirectToPage(new { LoaiVatTuFilter, TrangThaiTonFilter, TuKhoa });
+                }
+
                 var vatTuDb = await _context.KHO_VAT_TU.FirstOrDefaultAsync(v => v.MaVatTu == InputData.MaVatTu);
                 if (vatTuDb != null)
                 {
-                    vatTuDb.TenVatTu = InputData.TenVatTu?.Trim();
+                    vatTuDb.TenVatTu = InputData.TenVatTu.Trim();
                     vatTuDb.LoaiVatTu = InputData.LoaiVatTu;
-                    vatTuDb.DonViTinh = InputData.DonViTinh?.Trim();
-                    vatTuDb.DonGiaNhap = Math.Max(0, InputData.DonGiaNhap ?? 0);
-                    vatTuDb.SoLuongTonToiThieu = Math.Max(0, InputData.SoLuongTonToiThieu ?? 0);
+                    vatTuDb.DonViTinh = InputData.DonViTinh.Trim();
+                    vatTuDb.DonGiaNhap = InputData.DonGiaNhap ?? 0;
+                    vatTuDb.SoLuongTon = InputData.SoLuongTon ?? 0;
+                    vatTuDb.SoLuongTonToiThieu = InputData.SoLuongTonToiThieu ?? 0;
 
                     await _context.SaveChangesAsync();
-                    ThongBao = $"Đã cập nhật thông tin danh mục '{vatTuDb.TenVatTu}' thành công! (Số lượng tồn kho chỉ thay đổi qua Nhập/Xuất/Kiểm kê).";
+                    ThongBao = $"Đã cập nhật thông tin vật tư '{vatTuDb.TenVatTu}' thành công!";
                 }
                 else
                 {
-                    ThongBaoLoi = "Không tìm thấy mã vật tư cần cập nhật trong cơ sở dữ liệu.";
+                    ThongBaoLoi = "Không tìm thấy vật tư cần cập nhật trong cơ sở dữ liệu.";
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi cập nhật vật tư {MaVT}", InputData.MaVatTu);
-                ThongBaoLoi = "Đã xảy ra lỗi hệ thống khi cập nhật vật tư.";
+                ThongBaoLoi = "Lỗi khi cập nhật vật tư: " + ex.Message;
             }
 
-            return RedirectToPage(new { LoaiVatTuFilter, TuKhoa });
+            return RedirectToPage(new { LoaiVatTuFilter, TrangThaiTonFilter, TuKhoa });
         }
 
+        /// <summary>
+        /// Xóa vật tư khỏi danh mục kho an toàn
+        /// </summary>
         public async Task<IActionResult> OnPostDeleteAsync(string id)
         {
             try
             {
-                // Chặn xóa vật tư đã phát sinh giao dịch kho, sự cố hoặc dịch vụ
-                bool daSuDung = await _context.PHIEU_NHAP_XUAT_KHO.AsNoTracking().AnyAsync(p => p.KHO_VAT_TUMaVatTu == id)
-                             || await _context.PHIEU_BAO_CAO_SU_CO.AsNoTracking().AnyAsync(s => s.KHO_VAT_TUMaVatTu == id)
-                             || await _context.CHI_TIET_DICH_VU.AsNoTracking().AnyAsync(c => c.KHO_VAT_TUMaVatTu == id);
-                if (daSuDung)
-                {
-                    ThongBaoLoi = "Không thể xóa vật tư này vì đã phát sinh phiếu nhập/xuất kho hoặc bảo trì sự cố liên quan!";
-                    return RedirectToPage(new { LoaiVatTuFilter, TuKhoa });
-                }
-
                 var vatTuDb = await _context.KHO_VAT_TU.FirstOrDefaultAsync(v => v.MaVatTu == id);
                 if (vatTuDb != null)
                 {
@@ -162,18 +220,13 @@ namespace HotelManager.Pages.QuanLyKho
                     await _context.SaveChangesAsync();
                     ThongBao = $"Đã xóa vật tư '{tenTam}' khỏi danh mục kho.";
                 }
-                else
-                {
-                    ThongBaoLoi = "Không tìm thấy vật tư cần xóa.";
-                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi xóa vật tư {Id}", id);
-                ThongBaoLoi = "Không thể xóa vật tư do lỗi hệ thống.";
+                ThongBaoLoi = "Không thể xóa do vướng dữ liệu liên kết: " + ex.Message;
             }
 
-            return RedirectToPage(new { LoaiVatTuFilter, TuKhoa });
+            return RedirectToPage(new { LoaiVatTuFilter, TrangThaiTonFilter, TuKhoa });
         }
     }
 }
