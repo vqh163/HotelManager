@@ -44,6 +44,7 @@ namespace HotelManager.Helpers
         public const string PolicySuCo = "SuCoPolicy";
         public const string PolicyBuongPhong = "BuongPhongPolicy";
         public const string PolicyKhachHang = "KhachHangPolicy";
+        public const string PolicyThanhToan = "ThanhToanPolicy";
         public const string PolicyXemAnhKyc = "XemAnhKycPolicy";
 
         // =========================================================================
@@ -101,7 +102,7 @@ namespace HotelManager.Helpers
                 VaiTroThuNgan => "/QuanLyNhaHang/QuayThuNgan",
                 VaiTroKyThuat or VaiTroKyThuatCu => "/QuanLySuCo/Index",
                 VaiTroThuKho => "/QuanLyKho/QuanLyKho",
-                VaiTroKeToan => "/QuanLyLichCaNhan/QuanLyLichCaNhan",
+                VaiTroKeToan => "/QuanLyThanhToanVaHoaDon/QuanLyHoaDon",
                 VaiTroKhachHang => "/QuanLySoDoPhong/TimPhong",
                 _ => "/Index"
             };

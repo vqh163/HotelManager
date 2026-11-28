@@ -84,6 +84,7 @@
                                     {
                                         <li><a class="dropdown-item py-2 fw-semibold text-dark" asp-page="/QuanLyHoSo/HoSoKhachHang"><i class="bi bi-person-vcard text-primary me-2"></i>Hồ sơ của tôi</a></li>
                                         <li><a class="dropdown-item py-2 fw-semibold text-dark" asp-page="/QuanLySoDoPhong/LichSuDatPhong"><i class="bi bi-clock-history text-success me-2"></i>Lịch sử đặt phòng</a></li>
+                                        <li><a class="dropdown-item py-2 fw-semibold text-dark" asp-page="/QuanLyThanhToanVaHoaDon/ThanhToanKhachHang"><i class="bi bi-credit-card text-warning me-2"></i>Hóa đơn & Thanh toán</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
 
@@ -100,6 +101,8 @@
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyOrder"><i class="bi bi-fire me-2"></i>Màn hình Bếp (KDS)</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuanLyThucDon"><i class="bi bi-journal-richtext me-2"></i>Quản lý Thực đơn</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuayThuNgan"><i class="bi bi-cash-stack me-2"></i>Quầy Thu ngân NH</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/LichSuHoaDon"><i class="bi bi-receipt-cutoff me-2"></i>Lịch sử HĐ Nhà hàng</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyThanhToanVaHoaDon/QuanLyHoaDon"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Thanh toán & Hóa đơn</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyKho"><i class="bi bi-box-seam me-2"></i>Quản lý Kho</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
@@ -107,6 +110,8 @@
                                     {
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyTienSanh/Index"><i class="bi bi-building-check me-2"></i>Quản lý Tiền sảnh</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLySoDoPhong/SoDoPhong"><i class="bi bi-grid-fill me-2"></i>Sơ đồ lưới phòng</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyThanhToanVaHoaDon/QuanLyThanhToan"><i class="bi bi-cash-coin me-2"></i>Thanh toán & Hóa đơn</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyThanhToanVaHoaDon/QuanLyTienCoc"><i class="bi bi-wallet2 me-2"></i>Quản lý Tiền cọc</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLySuCo/Index"><i class="bi bi-wrench-adjustable me-2"></i>Sự cố & Kỹ thuật</a></li>
                                         <li><hr class="dropdown-divider"></li>
@@ -140,6 +145,7 @@
                                     @if (User.IsInRole("Thu ngân Nhà hàng"))
                                     {
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/QuayThuNgan"><i class="bi bi-cash-stack me-2"></i>Quầy Thu ngân</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/LichSuHoaDon"><i class="bi bi-receipt-cutoff me-2"></i>Lịch sử Hóa đơn</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyNhaHang/SoDoBan"><i class="bi bi-cup-hot me-2"></i>Sơ đồ bàn</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
                                         <li><hr class="dropdown-divider"></li>
@@ -150,6 +156,8 @@
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyNhapKho"><i class="bi bi-box-arrow-in-down me-2"></i>Nhập kho</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyXuatKho"><i class="bi bi-box-arrow-up me-2"></i>Xuất kho</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/KiemKeKho"><i class="bi bi-clipboard-check me-2"></i>Kiểm kê kho</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/QuanLyDonDatHang"><i class="bi bi-cart-check me-2"></i>Đơn đặt hàng (PO)</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyKho/BaoCaoTieuHaoKho"><i class="bi bi-bar-chart-line me-2"></i>Báo cáo Tiêu hao</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }
@@ -162,6 +170,10 @@
                                     }
                                     @if (User.IsInRole("Kế toán"))
                                     {
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyThanhToanVaHoaDon/QuanLyHoaDon"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Quản lý Hóa đơn</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyThanhToanVaHoaDon/QuanLyThanhToan"><i class="bi bi-cash-coin me-2"></i>Quầy Thanh toán</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyThanhToanVaHoaDon/QuanLyGiaoDich"><i class="bi bi-journal-text me-2"></i>Sổ cái Giao dịch</a></li>
+                                        <li><a class="dropdown-item py-2" asp-page="/QuanLyThanhToanVaHoaDon/QuanLyTienCoc"><i class="bi bi-wallet2 me-2"></i>Quản lý Tiền cọc</a></li>
                                         <li><a class="dropdown-item py-2" asp-page="/QuanLyLichCaNhan/QuanLyLichCaNhan"><i class="bi bi-calendar-check me-2"></i>Lịch làm việc</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                     }

@@ -74,9 +74,14 @@ namespace HotelManager.Pages.QuanLyThanhToan
                 }
                 else if (!string.IsNullOrWhiteSpace(MaTraCuu))
                 {
-                    // Hỗ trợ khách vãng lai tra cứu trực tiếp bằng đúng mã hóa đơn hoặc mã đặt phòng
+                    // Chỉ cho phép tra cứu theo đúng mã hóa đơn hoặc mã đặt phòng cụ thể
                     string kw = MaTraCuu.Trim();
                     queryHD = queryHD.Where(h => h.MaHoaDon == kw || h.DAT_PHONGMaDatPhong == kw);
+                }
+                else
+                {
+                    // Chặn hiển thị toàn bộ hóa đơn hệ thống nếu không xác định được mã khách hàng
+                    queryHD = queryHD.Where(h => false);
                 }
 
                 // Nếu khách đã đăng nhập nhưng vẫn gõ lọc theo mã trên thanh tra cứu
@@ -120,7 +125,7 @@ namespace HotelManager.Pages.QuanLyThanhToan
 
                 // Chặn ở tầng Backend: khách hàng không được thanh toán hộ/can thiệp hóa đơn của người khác
                 string? maKH = await LayMaKhachHangDangNhapAsync();
-                if (!string.IsNullOrEmpty(maKH) && hdDb.KHACH_HANGMaKH != maKH)
+                if (User.IsInRole("Khách hàng") && (string.IsNullOrEmpty(maKH) || hdDb.KHACH_HANGMaKH != maKH))
                 {
                     ThongBaoLoi = "Truy cập bị từ chối! Hóa đơn này không thuộc tài khoản của bạn.";
                     return RedirectToPage(new { MaTraCuu });

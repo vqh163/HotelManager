@@ -1,287 +1,783 @@
 ﻿@page
 @model HotelManager.Pages.QuanLyKho.KiemKeKhoModel
 @{
-    ViewData["Title"] = "Kiểm kê Kho định kỳ";
+    ViewData["Title"] = Model.XemLichSu ? "Lịch sử Kiểm kê Kho" : "Kiểm kê Kho định kỳ";
+    bool ngayLichSuHopLe = Model.TuNgayLichSu.Date <= Model.DenNgayLichSu.Date;
 }
 
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-12 col-xl-11">
+<style>
+    /* Giao diện kiểm kê phẳng gọn, đồng bộ toàn phân hệ Kho */
+    body {
+        background-color: #f5f6f8;
+        color: #1f2937;
+    }
 
-            <!-- Khu vực hiển thị thông báo kết quả xử lý -->
-            @if (!string.IsNullOrEmpty(Model.ThongBao))
-            {
-                <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i> @Model.ThongBao
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
-            {
-                <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ThongBaoLoi
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
+    .kk-page {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 18px 20px 32px;
+    }
 
-            <!-- Thanh điều hướng nội bộ phân hệ Quản lý Kho (UC_09) -->
-            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                <div class="btn-group shadow-sm rounded-pill overflow-hidden bg-white p-1">
-                    <a asp-page="./QuanLyKho" class="btn btn-light rounded-pill px-4 fw-bold text-secondary">
-                        <i class="bi bi-box-seam me-1"></i> Danh mục Tồn kho
-                    </a>
-                    <a asp-page="./QuanLyNhapKho" class="btn btn-light rounded-pill px-4 fw-bold text-secondary">
-                        <i class="bi bi-box-arrow-in-down me-1"></i> Quản lý Nhập kho
-                    </a>
-                    <a asp-page="./QuanLyXuatKho" class="btn btn-light rounded-pill px-4 fw-bold text-secondary">
-                        <i class="bi bi-box-arrow-up me-1"></i> Quản lý Xuất kho
-                    </a>
-                    <a asp-page="./QuanLyKiemKeKho" class="btn btn-info text-white rounded-pill px-4 fw-bold shadow-sm">
-                        <i class="bi bi-clipboard2-check me-1"></i> Kiểm kê định kỳ
-                    </a>
+    .kk-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .kk-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .kk-subtitle {
+        font-size: 0.82rem;
+        color: #6b7280;
+        margin-top: 2px;
+    }
+
+    .kk-box {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+    }
+
+    /* Dải thẻ chỉ số tổng quan */
+    .kk-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .kk-kpi-row-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .kk-kpi-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-top: 3px solid #1f2937;
+        border-radius: 10px;
+        padding: 12px 16px;
+    }
+
+        .kk-kpi-card.k-emerald {
+            border-top-color: #059669;
+        }
+
+        .kk-kpi-card.k-crimson {
+            border-top-color: #dc2626;
+        }
+
+        .kk-kpi-card.k-slate {
+            border-top-color: #4b5563;
+        }
+
+    .kk-kpi-title {
+        font-size: 0.74rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+    }
+
+    .kk-kpi-num {
+        font-size: 1.28rem;
+        font-weight: 700;
+        margin: 3px 0 2px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .kk-kpi-meta {
+        font-size: 0.76rem;
+        color: #6b7280;
+    }
+
+    /* Thanh công cụ chung cho bảng kiểm kê và bảng lịch sử */
+    .kk-toolbar {
+        padding: 11px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Bảng dữ liệu mật độ gọn */
+    .kk-table {
+        font-size: 0.86rem;
+        margin-bottom: 0;
+    }
+
+        .kk-table thead th {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #6b7280;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 14px;
+            white-space: nowrap;
+        }
+
+        .kk-table tbody td {
+            padding: 7px 14px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+        }
+
+    /* Xóa nút mũi tên lên/xuống mặc định của trình duyệt trong ô nhập số thực tế */
+    .input-thucte::-webkit-outer-spin-button,
+    .input-thucte::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .input-thucte {
+        -moz-appearance: textfield;
+        appearance: textfield;
+        font-weight: 700;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        border-color: #d1d5db;
+    }
+
+    .row-lech-thieu {
+        background-color: #fef2f2 !important;
+    }
+
+    .row-lech-thua {
+        background-color: #ecfdf5 !important;
+    }
+
+    .num {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .d-ok {
+        color: #6b7280;
+        font-size: 0.8rem;
+    }
+
+    .d-thieu {
+        color: #dc2626;
+        font-weight: 700;
+        font-size: 0.82rem;
+    }
+
+    .d-thua {
+        color: #059669;
+        font-weight: 700;
+        font-size: 0.82rem;
+    }
+
+    .btn-charcoal {
+        background: #1f2937;
+        border-color: #1f2937;
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+        .btn-charcoal:hover {
+            background: #111827;
+            border-color: #111827;
+            color: #ffffff;
+        }
+
+    @@media (max-width: 992px) {
+        .kk-kpi-row,
+        .kk-kpi-row-3 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
+<div class="kk-page">
+    <!-- Thông báo kết quả xử lý -->
+    @if (!string.IsNullOrEmpty(Model.ThongBao))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.ThongBao
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ThongBaoLoi))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.ThongBaoLoi
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.LoiLocNgay))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 small" role="alert">
+            @Model.LoiLocNgay
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.XemLichSu)
+    {
+        <!-- ========================================================= -->
+        <!-- CHẾ ĐỘ TOÀN MÀN HÌNH: LỊCH SỬ CÁC ĐỢT KIỂM KÊ             -->
+        <!-- ========================================================= -->
+        <div class="kk-header">
+            <div>
+                <h1 class="kk-title">Lịch sử các đợt kiểm kê</h1>
+                <div class="kk-subtitle">
+                    Khoảng thời gian: <strong>@Model.TuNgayLichSu.ToString("dd/MM/yyyy") – @Model.DenNgayLichSu.ToString("dd/MM/yyyy")</strong>
+                    · Tổng số: <strong>@Model.LichSuKiemKe.Count phiếu</strong>
                 </div>
             </div>
+            <a asp-page="./KiemKeKho"
+               asp-route-LoaiVatTuFilter="@Model.LoaiVatTuFilter"
+               asp-route-TuNgayLichSu="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")"
+               asp-route-DenNgayLichSu="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")"
+               class="btn btn-sm btn-outline-secondary fw-semibold px-3">
+                Quay lại kiểm kê
+            </a>
+        </div>
 
-            <!-- Khung Lập Bảng Kiểm Kê Định Kỳ (Hàng tuần / Hàng tháng) -->
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
-                <div class="card-header bg-gradient bg-info text-white p-4 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <h4 class="mb-0 fw-bold"><i class="bi bi-clipboard2-pulse me-2"></i> Kiểm Kê Kho Định Kỳ (Tuần / Tháng)</h4>
-                        <p class="mb-0 text-white opacity-75 small mt-1">Đối chiếu tồn kho sổ sách và tồn thực tế, tự động cân bằng kho khi lệch</p>
-                    </div>
+        <!-- 3 chỉ số tóm tắt lịch sử trong khoảng ngày đang chọn -->
+        <div class="kk-kpi-row-3">
+            <div class="kk-kpi-card">
+                <div class="kk-kpi-title">Số đợt kiểm kê có điều chỉnh</div>
+                <div class="kk-kpi-num">@Model.LichSuKiemKe.Count</div>
+                <div class="kk-kpi-meta">Tổng dòng lệch: @Model.LichSuKiemKe.Sum(x => x.SoMatHangDieuChinh) dòng</div>
+            </div>
+            <div class="kk-kpi-card k-crimson">
+                <div class="kk-kpi-title">Tổng giá trị thiếu (Hao hụt)</div>
+                <div class="kk-kpi-num" style="color: #dc2626;">-@Model.LichSuKiemKe.Sum(x => x.TongGiaTriThieu).ToString("N0") ₫</div>
+                <div class="kk-kpi-meta">Trong khoảng ngày đang xem</div>
+            </div>
+            <div class="kk-kpi-card k-emerald">
+                <div class="kk-kpi-title">Tổng giá trị thừa</div>
+                <div class="kk-kpi-num" style="color: #059669;">+@Model.LichSuKiemKe.Sum(x => x.TongGiaTriThua).ToString("N0") ₫</div>
+                <div class="kk-kpi-meta">Trong khoảng ngày đang xem</div>
+            </div>
+        </div>
 
-                    <!-- Bộ lọc chọn Kho cần kiểm kê -->
-                    <form method="get" class="d-flex align-items-center gap-2">
-                        <label class="small fw-bold text-white text-nowrap"><i class="bi bi-funnel-fill"></i> Chọn kho kiểm kê:</label>
-                        <select asp-for="LoaiVatTuFilter" class="form-select form-select-sm rounded-pill border-0 shadow-sm fw-bold px-3">
-                            <option value="ALL">Tất cả các kho</option>
-                            <option value="Kho vật dụng">Kho vật dụng</option>
-                            <option value="Kho nhà hàng">Kho nhà hàng</option>
-                            <option value="Kho đồ tiêu hao">Kho đồ tiêu hao</option>
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold shadow-sm">Nạp danh sách</button>
-                    </form>
-                </div>
+        <div class="kk-box overflow-hidden">
+            <div class="kk-toolbar bg-light">
+                <span class="fw-bold small text-dark">Danh sách biên bản kiểm kê</span>
 
-                <!-- Form Gửi biên bản kiểm kê và cân bằng tồn kho -->
-                <form method="post">
+                <!-- Bộ lọc Từ ngày - Đến ngày (chặn Từ ngày > Đến ngày) -->
+                <form method="get"
+                      novalidate
+                      onsubmit="return kiemTraKhoangNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu');"
+                      class="d-flex flex-column align-items-end gap-1">
+                    <input type="hidden" name="XemLichSu" value="true" />
                     <input type="hidden" asp-for="LoaiVatTuFilter" />
 
-                    <!-- Thông tin chung của kỳ kiểm kê -->
-                    <div class="bg-light p-4 border-bottom">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label asp-for="KyKiemKe" class="form-label fw-bold small text-secondary">Chu kỳ kiểm kê <span class="text-danger">*</span></label>
-                                <select asp-for="KyKiemKe" class="form-select rounded-3 border-0 shadow-sm fw-bold text-primary" required>
-                                    <option value="Kiểm kê định kỳ Hàng Tuần">Kiểm kê định kỳ Hàng Tuần</option>
-                                    <option value="Kiểm kê định kỳ Hàng Tháng">Kiểm kê định kỳ Hàng Tháng</option>
-                                    <option value="Kiểm kê đột xuất / Bàn giao ca">Kiểm kê đột xuất / Bàn giao ca</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label asp-for="NguoiKiemKe" class="form-label fw-bold small text-secondary">Nhân sự thực hiện <span class="text-danger">*</span></label>
-                                <input asp-for="NguoiKiemKe" class="form-control rounded-3 border-0 shadow-sm" placeholder="Tên thủ kho / người kiểm..." required />
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="GhiChuChung" class="form-label fw-bold small text-secondary">Ghi chú đợt kiểm kê</label>
-                                <input asp-for="GhiChuChung" class="form-control rounded-3 border-0 shadow-sm" placeholder="VD: Kiểm kê chốt số liệu tuần 1 tháng 11..." />
-                            </div>
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <label asp-for="TuNgayLichSu" class="small text-secondary fw-semibold mb-0 text-nowrap">Từ ngày</label>
+                            <input asp-for="TuNgayLichSu"
+                                   id="inpTuNgayLichSu"
+                                   type="date"
+                                   max="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")"
+                                   onchange="dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu')"
+                                   class="form-control form-control-sm @(ngayLichSuHopLe ? "" : "is-invalid")"
+                                   style="width: 145px;" />
                         </div>
+
+                        <div class="d-flex align-items-center gap-1">
+                            <label asp-for="DenNgayLichSu" class="small text-secondary fw-semibold mb-0 text-nowrap">Đến ngày</label>
+                            <input asp-for="DenNgayLichSu"
+                                   id="inpDenNgayLichSu"
+                                   type="date"
+                                   min="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")"
+                                   onchange="dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu')"
+                                   class="form-control form-control-sm @(ngayLichSuHopLe ? "" : "is-invalid")"
+                                   style="width: 145px;" />
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-charcoal px-3">
+                            Xem lịch sử
+                        </button>
                     </div>
 
-                    <!-- Bảng nhập số lượng kiểm đếm thực tế -->
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 text-center">
-                                <thead class="table-light text-secondary small">
-                                    <tr>
-                                        <th class="ps-4 text-start">Mã VT</th>
-                                        <th class="text-start">Tên Hàng Hóa / Vật Tư</th>
-                                        <th>Phân Loại Kho</th>
-                                        <th>ĐVT</th>
-                                        <th>Đơn Giá Nhập</th>
-                                        <th>Tồn Hệ Thống</th>
-                                        <th style="width: 160px;">Tồn Thực Tế <span class="text-danger">*</span></th>
-                                        <th>Chênh Lệch</th>
-                                        <th class="pe-4 text-start">Lý do chênh lệch / Ghi chú</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (Model.ItemsKiemKe != null && Model.ItemsKiemKe.Count > 0)
-                                    {
-                                        @for (int i = 0; i < Model.ItemsKiemKe.Count; i++)
-                                        {
-                                            <tr class="border-bottom">
-                                                <td class="ps-4 text-start">
-                                                    <span class="badge bg-light text-dark border">@Model.ItemsKiemKe[i].MaVatTu</span>
-                                                    <!-- Các trường ẩn để Bind danh sách về OnPostAsync -->
-                                                    <input type="hidden" asp-for="ItemsKiemKe[i].MaVatTu" />
-                                                    <input type="hidden" asp-for="ItemsKiemKe[i].TenVatTu" />
-                                                    <input type="hidden" asp-for="ItemsKiemKe[i].LoaiVatTu" />
-                                                    <input type="hidden" asp-for="ItemsKiemKe[i].DonViTinh" />
-                                                    <input type="hidden" asp-for="ItemsKiemKe[i].DonGiaNhap" />
-                                                    <input type="hidden" asp-for="ItemsKiemKe[i].TonHeThong" />
-                                                </td>
-                                                <td class="fw-bold text-dark text-start">@Model.ItemsKiemKe[i].TenVatTu</td>
-                                                <td>
-                                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-3">
-                                                        @Model.ItemsKiemKe[i].LoaiVatTu
-                                                    </span>
-                                                </td>
-                                                <td>@Model.ItemsKiemKe[i].DonViTinh</td>
-                                                <td class="text-muted small">@Model.ItemsKiemKe[i].DonGiaNhap.ToString("N0") ₫</td>
-                                                <td>
-                                                    <span class="fs-6 fw-bold text-primary" id="tonHT_@i">@Model.ItemsKiemKe[i].TonHeThong</span>
-                                                </td>
-                                                <td>
-                                                    <input asp-for="ItemsKiemKe[i].TonThucTe"
-                                                           type="number"
-                                                           min="0"
-                                                           data-index="@i"
-                                                           data-tonht="@Model.ItemsKiemKe[i].TonHeThong"
-                                                           class="form-control form-control-sm text-center fw-bold border-info shadow-sm rounded-3"
-                                                           oninput="tinhChenhLechDong(this)"
-                                                           required />
-                                                </td>
-                                                <td>
-                                                    <span id="lblLech_@i" class="badge bg-success rounded-pill px-3">Khớp (0)</span>
-                                                </td>
-                                                <td class="pe-4 text-start">
-                                                    <input asp-for="ItemsKiemKe[i].LyDoChenhLech"
-                                                           class="form-control form-control-sm rounded-3 border-0 bg-light"
-                                                           placeholder="Bình thường / Hư hỏng / Thất thoát..." />
-                                                </td>
-                                            </tr>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <tr>
-                                            <td colspan="9" class="text-center text-muted py-5">
-                                                <i class="bi bi-inbox fs-1 d-block mb-2"></i> Không có vật tư nào trong kho để kiểm kê.
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
+                    <div id="errNgayLichSu" class="text-danger small @(ngayLichSuHopLe ? "d-none" : "")">
+                        Từ ngày không được lớn hơn Đến ngày.
                     </div>
-
-                    @if (Model.ItemsKiemKe != null && Model.ItemsKiemKe.Count > 0)
-                    {
-                        <div class="card-footer bg-white p-4 border-top d-flex justify-content-between align-items-center flex-wrap gap-3">
-                            <div class="small text-muted">
-                                <i class="bi bi-info-circle-fill text-info me-1"></i>
-                                Khi bấm xác nhận, hệ thống sẽ <strong>tự động cập nhật Số lượng tồn kho</strong> theo Số lượng thực tế kiểm đếm và lưu biên bản kiểm kê.
-                            </div>
-                            <button type="submit" class="btn btn-info text-white btn-lg rounded-pill px-5 fw-bold shadow" onclick="return confirm('Xác nhận chốt biên bản kiểm kê và cân bằng số lượng tồn kho theo thực tế?');">
-                                <i class="bi bi-check2-all me-1"></i> Chốt Phiếu Kiểm Kê & Cân Bằng Kho
-                            </button>
-                        </div>
-                    }
                 </form>
             </div>
 
-            <!-- Lịch sử các đợt Kiểm kê định kỳ gần đây -->
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-journal-check text-info me-2"></i> Lịch sử Biên bản Kiểm kê Định kỳ</h5>
-                    <span class="badge bg-info bg-opacity-10 text-info border border-info rounded-pill px-3 py-2">
-                        Tổng: @(Model.LichSuKiemKe?.Count ?? 0) đợt kiểm kê
-                    </span>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 text-center">
-                            <thead class="table-light text-secondary small">
+            <div class="table-responsive">
+                <table class="table kk-table">
+                    <thead>
+                        <tr>
+                            <th>Mã phiếu</th>
+                            <th>Thời gian</th>
+                            <th>Người kiểm kê</th>
+                            <th class="text-center">Số dòng lệch</th>
+                            <th class="text-end">Giá trị thiếu</th>
+                            <th class="text-end">Giá trị thừa</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.LichSuKiemKe != null && Model.LichSuKiemKe.Any())
+                        {
+                            @foreach (var ls in Model.LichSuKiemKe)
+                            {
                                 <tr>
-                                    <th class="ps-4 text-start">Mã Biên Bản</th>
-                                    <th class="text-start">Chu Kỳ & Phạm Vi Kho</th>
-                                    <th>Người Kiểm Kê</th>
-                                    <th>Tổng Mặt Hàng</th>
-                                    <th>Số Mặt Hàng Lệch</th>
-                                    <th>Giá Trị Chênh Lệch</th>
-                                    <th class="text-start pe-4">Ghi Chú & Thời Gian</th>
+                                    <td class="fw-semibold text-dark num">@ls.MaPhieu</td>
+                                    <td class="text-muted small num">@ls.ThoiGian.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td class="small">@ls.NguoiThucHien</td>
+                                    <td class="text-center num">@ls.SoMatHangDieuChinh</td>
+                                    <td class="text-end num @(ls.TongGiaTriThieu > 0 ? "d-thieu" : "text-muted")">
+                                        @(ls.TongGiaTriThieu > 0 ? "-" + ls.TongGiaTriThieu.ToString("N0") + " ₫" : "0 ₫")
+                                    </td>
+                                    <td class="text-end num @(ls.TongGiaTriThua > 0 ? "d-thua" : "text-muted")">
+                                        @(ls.TongGiaTriThua > 0 ? "+" + ls.TongGiaTriThua.ToString("N0") + " ₫" : "0 ₫")
+                                    </td>
+                                    <td class="small text-secondary">@ls.GhiChu</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @if (Model.LichSuKiemKe != null && Model.LichSuKiemKe.Any())
-                                {
-                                    @foreach (var bb in Model.LichSuKiemKe)
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    @if (!ngayLichSuHopLe)
                                     {
-                                        <tr class="border-bottom">
-                                            <td class="ps-4 text-start">
-                                                <span class="badge bg-light text-dark border">@bb.MaBienBan</span>
-                                            </td>
-                                            <td class="text-start">
-                                                <div class="fw-bold text-primary">@bb.KyKiemKe</div>
-                                                <small class="text-muted">Phạm vi: @bb.PhamViKho</small>
-                                            </td>
-                                            <td class="fw-semibold text-dark">@bb.NguoiKiemKe</td>
-                                            <td><span class="badge bg-secondary rounded-pill px-3">@bb.TongMatHang</span></td>
-                                            <td>
-                                                @if (bb.SoMatHangLech == 0)
-                                                {
-                                                    <span class="badge bg-success rounded-pill px-3">Khớp 100%</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning text-dark rounded-pill px-3">@bb.SoMatHangLech mặt hàng</span>
-                                                }
-                                            </td>
-                                            <td class="fw-bold @(bb.GiaTriChenhLech < 0 ? "text-danger" : (bb.GiaTriChenhLech > 0 ? "text-success" : "text-muted"))">
-                                                @(bb.GiaTriChenhLech > 0 ? "+" : "")@bb.GiaTriChenhLech.ToString("N0") ₫
-                                            </td>
-                                            <td class="text-start pe-4">
-                                                <div class="small text-dark">@bb.GhiChu</div>
-                                                <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>@bb.ThoiGian.ToString("dd/MM/yyyy HH:mm")</small>
-                                            </td>
-                                        </tr>
+                                        <span>Vui lòng chọn lại khoảng ngày hợp lệ (Từ ngày nhỏ hơn hoặc bằng Đến ngày).</span>
                                     }
-                                }
-                                else
+                                    else
+                                    {
+                                        <span>Không có đợt kiểm kê nào có điều chỉnh trong khoảng ngày @Model.TuNgayLichSu.ToString("dd/MM/yyyy") – @Model.DenNgayLichSu.ToString("dd/MM/yyyy").</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ========================================================= -->
+        <!-- CHẾ ĐỘ CHÍNH: KIỂM KÊ & CÂN BẰNG TỒN KHO                  -->
+        <!-- ========================================================= -->
+        <div class="kk-header">
+            <div>
+                <h1 class="kk-title">Kiểm kê & Cân bằng Tồn kho</h1>
+            </div>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <form method="get" class="d-flex align-items-center">
+                    <input type="hidden" name="TuNgayLichSu" value="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")" />
+                    <input type="hidden" name="DenNgayLichSu" value="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")" />
+                    <select asp-for="LoaiVatTuFilter" class="form-select form-select-sm" style="width: 185px;" onchange="this.form.submit()">
+                        <option value="ALL">Tất cả các kho</option>
+                        <option value="Kho vật dụng">Kho vật dụng</option>
+                        <option value="Kho nhà hàng">Kho nhà hàng</option>
+                        <option value="Kho đồ tiêu hao">Kho đồ tiêu hao</option>
+                    </select>
+                </form>
+
+                @if (Model.ItemsKiemKe != null && Model.ItemsKiemKe.Count > 0)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="khoiPhucSoSach()">
+                        Đặt lại sổ sách
+                    </button>
+                }
+
+                <!-- Nút mở toàn màn hình Lịch sử kiểm kê -->
+                <a asp-page="./KiemKeKho"
+                   asp-route-XemLichSu="true"
+                   asp-route-LoaiVatTuFilter="@Model.LoaiVatTuFilter"
+                   asp-route-TuNgayLichSu="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")"
+                   asp-route-DenNgayLichSu="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")"
+                   class="btn btn-sm btn-charcoal px-3">
+                    Xem lịch sử
+                </a>
+            </div>
+        </div>
+
+        <!-- 4 thẻ thống kê đối soát thời gian thực -->
+        <div class="kk-kpi-row">
+            <div class="kk-kpi-card">
+                <div class="kk-kpi-title">Tổng mặt hàng kiểm</div>
+                <div class="kk-kpi-num" id="kpiTongMatHang">@(Model.ItemsKiemKe?.Count ?? 0)</div>
+                <div class="kk-kpi-meta">Tỷ lệ khớp: <strong id="lblTyLeKhop">100%</strong></div>
+            </div>
+            <div class="kk-kpi-card k-emerald">
+                <div class="kk-kpi-title">Khớp sổ sách</div>
+                <div class="kk-kpi-num" style="color: #059669;" id="kpiSoMatHangKhop">@(Model.ItemsKiemKe?.Count ?? 0)</div>
+                <div class="kk-kpi-meta">Không cần điều chỉnh</div>
+            </div>
+            <div class="kk-kpi-card k-crimson">
+                <div class="kk-kpi-title">Phát hiện lệch</div>
+                <div class="kk-kpi-num" style="color: #dc2626;" id="kpiSoMatHangLech">0</div>
+                <div class="kk-kpi-meta num" id="kpiChiTietThuaThieu">0 thiếu / 0 thừa</div>
+            </div>
+            <div class="kk-kpi-card k-slate">
+                <div class="kk-kpi-title">Chênh lệch giá trị</div>
+                <div class="kk-kpi-num" id="kpiGiaTriLech">0 ₫</div>
+                <div class="kk-kpi-meta num">
+                    Thiếu: <span id="kpiGiaTriThieu" style="color: #dc2626;">0 ₫</span> · Thừa: <span id="kpiGiaTriThua" style="color: #059669;">0 ₫</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bảng kiểm đếm chính -->
+        <div class="kk-box overflow-hidden">
+            <form method="post" id="formKiemKe">
+                <input type="hidden" asp-for="LoaiVatTuFilter" />
+                <input type="hidden" name="TuNgayLichSu" value="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="DenNgayLichSu" value="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")" />
+
+                <!-- Cảnh báo xung đột Lost Update -->
+                @if (Model.CoXungDotTonKho)
+                {
+                    <div class="alert alert-warning rounded-0 border-0 border-bottom mb-0 py-2 px-3 small d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <strong>Tồn kho vừa thay đổi trong lúc bạn kiểm kê:</strong> @Model.ChiTietXungDot
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check mb-0">
+                                <input asp-for="XacNhanGhiDe" class="form-check-input" id="chkXacNhanGhiDe" />
+                                <label class="form-check-label fw-semibold" for="chkXacNhanGhiDe">Vẫn ghi đè theo số thực tế</label>
+                            </div>
+                            <a asp-page="./KiemKeKho"
+                               asp-route-LoaiVatTuFilter="@Model.LoaiVatTuFilter"
+                               asp-route-TuNgayLichSu="@Model.TuNgayLichSu.ToString("yyyy-MM-dd")"
+                               asp-route-DenNgayLichSu="@Model.DenNgayLichSu.ToString("yyyy-MM-dd")"
+                               class="btn btn-sm btn-outline-dark">
+                                Tải lại sổ sách mới
+                            </a>
+                        </div>
+                    </div>
+                }
+
+                <!-- Thanh công cụ 1 dòng: Tìm nhanh + Lọc trạng thái + Ghi chú biên bản -->
+                <div class="kk-toolbar">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <input type="text"
+                               id="inpTimNhanh"
+                               class="form-control form-control-sm"
+                               style="width: 230px;"
+                               placeholder="Tìm nhanh mã hoặc tên..."
+                               oninput="locNhanhBang()" />
+
+                        <select id="selCheDoLoc" class="form-select form-select-sm" style="width: 155px;" onchange="locNhanhBang()">
+                            <option value="ALL">Tất cả vật tư</option>
+                            <option value="LECH">Chỉ vật tư lệch</option>
+                            <option value="KHOP">Chỉ vật tư khớp</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end" style="min-width: 260px; max-width: 480px;">
+                        <label asp-for="GhiChuKiemKe" class="small fw-semibold text-secondary text-nowrap mb-0">Ghi chú biên bản:</label>
+                        <input asp-for="GhiChuKiemKe"
+                               type="text"
+                               class="form-control form-control-sm"
+                               placeholder="VD: Kiểm kê cuối tháng, hao hụt vận hành..." />
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table kk-table">
+                        <thead>
+                            <tr>
+                                <th>Mã VT</th>
+                                <th>Tên vật tư</th>
+                                <th>Phân khu</th>
+                                <th class="text-end">Đơn giá</th>
+                                <th class="text-end">Sổ sách</th>
+                                <th class="text-center" style="width: 140px;">Thực tế</th>
+                                <th class="text-center">Chênh lệch</th>
+                                <th class="text-end">Giá trị lệch</th>
+                                <th style="width: 220px;">Ghi chú dòng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ItemsKiemKe != null && Model.ItemsKiemKe.Count > 0)
+                            {
+                                @for (int i = 0; i < Model.ItemsKiemKe.Count; i++)
                                 {
-                                    <tr>
-                                        <td colspan="7" class="text-center text-muted py-4">
-                                            Chưa có biên bản kiểm kê định kỳ nào được ghi nhận.
+                                    <tr id="row_@i"
+                                        class="audit-row"
+                                        data-lech="0"
+                                        data-search="@($"{Model.ItemsKiemKe[i].MaVatTu} {Model.ItemsKiemKe[i].TenVatTu} {Model.ItemsKiemKe[i].LoaiVatTu}".ToLowerInvariant())">
+                                        <td class="text-muted fw-semibold num">
+                                            @Model.ItemsKiemKe[i].MaVatTu
+                                            <input type="hidden" asp-for="ItemsKiemKe[i].MaVatTu" />
+                                            <input type="hidden" asp-for="ItemsKiemKe[i].TenVatTu" />
+                                            <input type="hidden" asp-for="ItemsKiemKe[i].LoaiVatTu" />
+                                            <input type="hidden" asp-for="ItemsKiemKe[i].DonViTinh" />
+                                            <input type="hidden" asp-for="ItemsKiemKe[i].DonGiaNhap" />
+                                            <input type="hidden" asp-for="ItemsKiemKe[i].TonHeThong" />
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold text-dark">@Model.ItemsKiemKe[i].TenVatTu</span>
+                                            <span class="text-muted small">(@Model.ItemsKiemKe[i].DonViTinh)</span>
+                                        </td>
+                                        <td class="text-secondary small">@Model.ItemsKiemKe[i].LoaiVatTu</td>
+                                        <td class="text-end text-secondary num">@Model.ItemsKiemKe[i].DonGiaNhap.ToString("N0") ₫</td>
+                                        <td class="text-end fw-semibold text-dark num">@Model.ItemsKiemKe[i].TonHeThong</td>
+                                        <td>
+                                            <div class="input-group input-group-sm">
+                                                <button type="button" class="btn btn-outline-secondary px-2" tabindex="-1" onclick="tangGiamSoLuong(@i, -1)">-</button>
+                                                <input asp-for="ItemsKiemKe[i].TonThucTe"
+                                                       id="inpThucTe_@i"
+                                                       type="number"
+                                                       min="0"
+                                                       inputmode="numeric"
+                                                       data-index="@i"
+                                                       data-tonht="@Model.ItemsKiemKe[i].TonHeThong"
+                                                       data-dongia="@Model.ItemsKiemKe[i].DonGiaNhap"
+                                                       class="form-control input-thucte"
+                                                       oninput="capNhatDongKiemKe(@i)"
+                                                       onkeydown="nhayDongTiepTheo(event, @i)"
+                                                       required />
+                                                <button type="button" class="btn btn-outline-secondary px-2" tabindex="-1" onclick="tangGiamSoLuong(@i, 1)">+</button>
+                                            </div>
+                                        </td>
+                                        <td class="text-center num">
+                                            <span id="lblDoLech_@i" class="d-ok">Khớp</span>
+                                        </td>
+                                        <td class="text-end num">
+                                            <span id="lblTienLech_@i" class="small text-muted">0 ₫</span>
+                                        </td>
+                                        <td>
+                                            <input asp-for="ItemsKiemKe[i].GhiChuDong"
+                                                   class="form-control form-control-sm"
+                                                   placeholder="Lý do lệch..." />
                                         </td>
                                     </tr>
                                 }
-                            </tbody>
-                        </table>
-                    </div>
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        Chưa có vật tư nào trong phạm vi kho đã chọn.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-            </div>
 
+                @if (Model.ItemsKiemKe != null && Model.ItemsKiemKe.Count > 0)
+                {
+                    <div class="px-3 py-3 bg-light border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <button type="submit"
+                                class="btn btn-sm btn-charcoal px-4 py-2"
+                                onclick="return xacNhanChotKiemKe();">
+                            Lưu & Cân bằng tồn kho
+                        </button>
+                    </div>
+                }
+            </form>
         </div>
-    </div>
+    }
 </div>
 
 @section Scripts {
     <script>
         // @@ts-nocheck
-        // Hàm tính toán trực tiếp chênh lệch giữa Tồn thực tế và Tồn hệ thống trên từng dòng
-        function tinhChenhLechDong(inputEl) {
-            if (!inputEl) return;
-
-            var idx = inputEl.getAttribute('data-index');
-            var tonHT = parseInt(inputEl.getAttribute('data-tonht') || '0', 10);
-            var tonTT = parseInt(inputEl['value'] || '0', 10);
-            var lech = tonTT - tonHT;
-
-            var lbl = document.getElementById('lblLech_' + idx);
-            if (!lbl) return;
-
-            if (lech === 0) {
-                lbl.className = 'badge bg-success rounded-pill px-3';
-                lbl.innerText = 'Khớp (0)';
-            } else if (lech < 0) {
-                lbl.className = 'badge bg-danger rounded-pill px-3';
-                lbl.innerText = 'Thiếu (' + lech + ')';
-            } else {
-                lbl.className = 'badge bg-primary rounded-pill px-3';
-                lbl.innerText = 'Thừa (+' + lech + ')';
+        // Nhấn Enter trên ô thực tế để chuyển xuống dòng kế tiếp
+        function nhayDongTiepTheo(e, index) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var next = document.getElementById('inpThucTe_' + (index + 1));
+                if (next) {
+                    next.focus();
+                    next.select();
+                }
             }
         }
+
+        // Tăng/giảm nhanh số lượng kiểm đếm thực tế
+        function tangGiamSoLuong(index, delta) {
+            var inp = document.getElementById('inpThucTe_' + index);
+            if (!inp) return;
+            var moi = (parseInt(inp['value'] || '0', 10) || 0) + delta;
+            if (moi < 0) moi = 0;
+            inp['value'] = moi.toString();
+            capNhatDongKiemKe(index);
+        }
+
+        // Tính độ lệch từng dòng và cập nhật màu nền nhẹ
+        function capNhatDongKiemKe(index) {
+            var inp = document.getElementById('inpThucTe_' + index);
+            var row = document.getElementById('row_' + index);
+            var lblDoLech = document.getElementById('lblDoLech_' + index);
+            var lblTienLech = document.getElementById('lblTienLech_' + index);
+            if (!inp || !row || !lblDoLech || !lblTienLech) return;
+
+            var tonHT = parseInt(inp.getAttribute('data-tonht') || '0', 10);
+            var donGia = parseFloat(inp.getAttribute('data-dongia') || '0');
+            var tonTT = parseInt(inp['value'] || '0', 10);
+            if (isNaN(tonTT) || tonTT < 0) tonTT = 0;
+
+            var lech = tonTT - tonHT;
+            var tienLech = lech * donGia;
+            row.classList.remove('row-lech-thieu', 'row-lech-thua');
+            row.setAttribute('data-lech', lech === 0 ? '0' : '1');
+
+            if (lech === 0) {
+                lblDoLech.className = 'd-ok';
+                lblDoLech.innerText = 'Khớp';
+                lblTienLech.className = 'small text-muted';
+                lblTienLech.innerText = '0 ₫';
+            } else if (lech < 0) {
+                row.classList.add('row-lech-thieu');
+                lblDoLech.className = 'd-thieu';
+                lblDoLech.innerText = 'Thiếu ' + lech;
+                lblTienLech.className = 'd-thieu';
+                lblTienLech.innerText = tienLech.toLocaleString('vi-VN') + ' ₫';
+            } else {
+                row.classList.add('row-lech-thua');
+                lblDoLech.className = 'd-thua';
+                lblDoLech.innerText = 'Thừa +' + lech;
+                lblTienLech.className = 'd-thua';
+                lblTienLech.innerText = '+' + tienLech.toLocaleString('vi-VN') + ' ₫';
+            }
+
+            capNhatKPITongQuan();
+            locNhanhBang();
+        }
+
+        // Cập nhật 4 thẻ KPI tổng quan phía trên bảng kiểm kê
+        function capNhatKPITongQuan() {
+            var inputs = document.querySelectorAll('.input-thucte');
+            var elKhop = document.getElementById('kpiSoMatHangKhop');
+            if (!elKhop) return;
+
+            var tong = inputs.length;
+            var soKhop = 0, soThieu = 0, soThua = 0;
+            var tienThieu = 0, tienThua = 0;
+
+            for (var i = 0; i < inputs.length; i++) {
+                var inp = inputs[i];
+                var tonHT = parseInt(inp.getAttribute('data-tonht') || '0', 10);
+                var donGia = parseFloat(inp.getAttribute('data-dongia') || '0');
+                var tonTT = parseInt(inp['value'] || '0', 10);
+                if (isNaN(tonTT) || tonTT < 0) tonTT = 0;
+
+                var lech = tonTT - tonHT;
+                if (lech === 0) {
+                    soKhop++;
+                } else if (lech < 0) {
+                    soThieu++;
+                    tienThieu += Math.abs(lech) * donGia;
+                } else {
+                    soThua++;
+                    tienThua += lech * donGia;
+                }
+            }
+
+            var tongRong = tienThua - tienThieu;
+            var tyLe = tong > 0 ? Math.round((soKhop * 100) / tong) : 100;
+
+            elKhop.innerText = soKhop.toString();
+            document.getElementById('kpiSoMatHangLech').innerText = (soThieu + soThua).toString();
+            document.getElementById('kpiChiTietThuaThieu').innerText = soThieu + ' thiếu / ' + soThua + ' thừa';
+            document.getElementById('kpiGiaTriThieu').innerText = (tienThieu > 0 ? '-' : '') + tienThieu.toLocaleString('vi-VN') + ' ₫';
+            document.getElementById('kpiGiaTriThua').innerText = (tienThua > 0 ? '+' : '') + tienThua.toLocaleString('vi-VN') + ' ₫';
+            document.getElementById('kpiGiaTriLech').innerText = (tongRong > 0 ? '+' : '') + tongRong.toLocaleString('vi-VN') + ' ₫';
+            document.getElementById('lblTyLeKhop').innerText = tyLe + '%';
+        }
+
+        // Lọc tại chỗ theo từ khóa và dropdown trạng thái mà không mất số đang gõ
+        function locNhanhBang() {
+            var kwEl = document.getElementById('inpTimNhanh');
+            var selEl = document.getElementById('selCheDoLoc');
+            var kw = kwEl ? (kwEl['value'] || '').trim().toLowerCase() : '';
+            var mode = selEl ? selEl['value'] : 'ALL';
+            var rows = document.querySelectorAll('.audit-row');
+
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i];
+                var text = r.getAttribute('data-search') || '';
+                var isLech = r.getAttribute('data-lech') === '1';
+
+                var khopMode = (mode === 'ALL')
+                    || (mode === 'LECH' && isLech)
+                    || (mode === 'KHOP' && !isLech);
+
+                r.style.display = ((!kw || text.indexOf(kw) !== -1) && khopMode) ? '' : 'none';
+            }
+        }
+
+        // Đặt lại toàn bộ số thực tế về đúng số sổ sách
+        function khoiPhucSoSach() {
+            var inputs = document.querySelectorAll('.input-thucte');
+            for (var i = 0; i < inputs.length; i++) {
+                var inp = inputs[i];
+                var idx = parseInt(inp.getAttribute('data-index') || '0', 10);
+                inp['value'] = inp.getAttribute('data-tonht') || '0';
+                capNhatDongKiemKe(idx);
+            }
+        }
+
+        function xacNhanChotKiemKe() {
+            var soLech = document.getElementById('kpiSoMatHangLech').innerText;
+            var msg = soLech === '0'
+                ? 'Toàn bộ mặt hàng đều khớp sổ sách. Xác nhận hoàn tất đối soát?'
+                : 'Phát hiện ' + soLech + ' mặt hàng có chênh lệch. Xác nhận cập nhật tồn kho và ghi nhận lịch sử kiểm kê?';
+            return confirm(msg);
+        }
+
+        // Đồng bộ thuộc tính min/max trên lịch trình duyệt để chặn Từ ngày > Đến ngày
+        function dongBoGioiHanNgay(idTu, idDen, idLoi) {
+            var inpTu = document.getElementById(idTu);
+            var inpDen = document.getElementById(idDen);
+            var elLoi = document.getElementById(idLoi);
+            if (!inpTu || !inpDen) return true;
+
+            var tuVal = inpTu['value'] || '';
+            var denVal = inpDen['value'] || '';
+
+            if (denVal) inpTu.setAttribute('max', denVal);
+            else inpTu.removeAttribute('max');
+
+            if (tuVal) inpDen.setAttribute('min', tuVal);
+            else inpDen.removeAttribute('min');
+
+            var hopLe = !(tuVal && denVal && tuVal > denVal);
+            inpTu.classList.toggle('is-invalid', !hopLe);
+            inpDen.classList.toggle('is-invalid', !hopLe);
+            if (elLoi) elLoi.classList.toggle('d-none', hopLe);
+
+            return hopLe;
+        }
+
+        // Chặn submit form lọc lịch sử nếu người dùng gõ tay Từ ngày > Đến ngày
+        function kiemTraKhoangNgay(idTu, idDen, idLoi) {
+            var hopLe = dongBoGioiHanNgay(idTu, idDen, idLoi);
+            if (!hopLe) {
+                var inpTu = document.getElementById(idTu);
+                if (inpTu) inpTu.focus();
+            }
+            return hopLe;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Khởi tạo bảng kiểm kê nếu đang ở màn hình chính
+            var inputs = document.querySelectorAll('.input-thucte');
+            for (var i = 0; i < inputs.length; i++) {
+                var idx = parseInt(inputs[i].getAttribute('data-index') || '0', 10);
+                capNhatDongKiemKe(idx);
+            }
+
+            // Khởi tạo giới hạn ngày nếu đang ở màn hình Lịch sử kiểm kê
+            dongBoGioiHanNgay('inpTuNgayLichSu', 'inpDenNgayLichSu', 'errNgayLichSu');
+        });
     </script>
 }

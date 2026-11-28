@@ -112,6 +112,8 @@ builder.Services.AddAuthorizationBuilder()
         policy.RequireRole(HangSoHeThong.VaiTroBuongPhong, HangSoHeThong.VaiTroBuongPhongCu, HangSoHeThong.VaiTroLeTan, HangSoHeThong.VaiTroQuanLy, HangSoHeThong.VaiTroGiamDoc))
     .AddPolicy(HangSoHeThong.PolicyKhachHang, policy =>
         policy.RequireRole(HangSoHeThong.VaiTroKhachHang))
+    .AddPolicy(HangSoHeThong.PolicyThanhToan, policy =>
+        policy.RequireRole(HangSoHeThong.VaiTroKeToan, HangSoHeThong.VaiTroLeTan, HangSoHeThong.VaiTroQuanLy, HangSoHeThong.VaiTroGiamDoc))
     .AddPolicy(HangSoHeThong.PolicyXemAnhKyc, policy =>
         policy.RequireRole(HangSoHeThong.VaiTroLeTan, HangSoHeThong.VaiTroQuanLy, HangSoHeThong.VaiTroGiamDoc, HangSoHeThong.VaiTroQuanTri));
 
@@ -127,8 +129,11 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizePage("/QuanLyNhaHang/ThemMon", HangSoHeThong.PolicyThucDon);
     options.Conventions.AuthorizePage("/QuanLyNhaHang/SuaMon", HangSoHeThong.PolicyThucDon);
     options.Conventions.AuthorizePage("/QuanLyNhaHang/QuayThuNgan", HangSoHeThong.PolicyThuNgan);
+    options.Conventions.AuthorizePage("/QuanLyNhaHang/LichSuHoaDon", HangSoHeThong.PolicyThuNgan);
     options.Conventions.AuthorizePage("/QuanLyNhaHang/ThemBan", HangSoHeThong.PolicyQuanLyCap);
     options.Conventions.AuthorizePage("/QuanLyNhaHang/SuaBan", HangSoHeThong.PolicyQuanLyCap);
+    options.Conventions.AuthorizeFolder("/QuanLyThanhToanVaHoaDon", HangSoHeThong.PolicyThanhToan);
+    options.Conventions.AuthorizePage("/QuanLyThanhToanVaHoaDon/ThanhToanKhachHang");
     options.Conventions.AuthorizeFolder("/QuanLyLichCaNhan", HangSoHeThong.PolicyNoiBo);
     options.Conventions.AuthorizeFolder("/QuanLyHoSo", HangSoHeThong.PolicyKhachHang);
     options.Conventions.AuthorizeFolder("/QuanLyTienSanh", HangSoHeThong.PolicyTienSanh);
@@ -284,37 +289,8 @@ static void DongBoDuLieuCuVaoCSDL(WebApplication app)
             File.Move(menuJsonPath, menuJsonPath + ".imported", overwrite: true);
         }
 
-        // C. Đồng bộ lichsu_nhapxuat_meta.txt -> PHIEU_NHAP_XUAT_KHO
-        string nhapXuatPath = Path.Combine(env.ContentRootPath, "lichsu_nhapxuat_meta.txt");
-        if (File.Exists(nhapXuatPath))
-        {
-            var lines = File.ReadAllLines(nhapXuatPath, Encoding.UTF8);
-            foreach (var rawLine in lines)
-            {
-                var p = rawLine.Split('|');
-                if (p.Length < 11) continue;
-                int.TryParse(p[6], out int sl);
-                decimal.TryParse(p[7], NumberStyles.Any, CultureInfo.InvariantCulture, out decimal gia);
-                DateTime.TryParse(p[10], out DateTime tg);
-
-                db.PHIEU_NHAP_XUAT_KHO.Add(new PHIEU_NHAP_XUAT_KHO
-                {
-                    MaPhieu = p[0].Trim(),
-                    LoaiGiaoDich = p[1].Trim(),
-                    KHO_VAT_TUMaVatTu = p[2].Trim(),
-                    TenVatTu = SuaLoiMaHoaTiengViet(p[3].Trim()),
-                    LoaiKho = SuaLoiMaHoaTiengViet(p[4].Trim()),
-                    DonViTinh = SuaLoiMaHoaTiengViet(p[5].Trim()),
-                    SoLuong = sl,
-                    DonGia = gia,
-                    DoiTacHoacBoPhan = SuaLoiMaHoaTiengViet(p[8].Trim()),
-                    GhiChu = SuaLoiMaHoaTiengViet(p[9].Trim()),
-                    ThoiGian = tg == default ? DateTime.Now : tg
-                });
-            }
-            db.SaveChanges();
-            File.Move(nhapXuatPath, nhapXuatPath + ".imported", overwrite: true);
-        }
+        // C. Giữ nguyên lichsu_nhapxuat_meta.txt cho phân hệ UC_09 (BaoCaoTieuHaoKho / QuanLyNhapKho / QuanLyXuatKho / KiemKeKho)
+        // Không di chuyển file này sang .imported để tránh mất lịch sử hiển thị trên giao diện kho.
 
         // D. Đồng bộ lichsu_kiemke_meta.txt -> BIEN_BAN_KIEM_KE
         string kiemKePath = Path.Combine(env.ContentRootPath, "lichsu_kiemke_meta.txt");
